@@ -1,7 +1,9 @@
 # example script for fetching the history of a conversation
 # result will be written to file as JSON array
+
 import os
 import slack
+import re
 import fpdf
 from config import *
 from my_slack import *
@@ -14,9 +16,79 @@ def transform_text(text):
     text2 = text.encode('latin-1', 'replace').decode('latin-1')
     return text2
 
+
+def transform_formatted_text(text):    
+    """ remove unsupported characters and resolve formatting, e.g. <!here> """
+    
+    s = transform_text(text)
+    pattern = re.compile(r'<(.*?)>')
+
+    while True:
+        m = pattern.search(s)    
+        if m is not None:
+            match = m.group(1)
+            id_chars = match[0:2]
+            id_raw = match[1:len(match)]
+            parts = id_raw.split("|", 1)
+            id = parts[0]
+
+            if id_chars == "@U" or id_chars == "@W":
+                # match is a user ID
+                if id in user_names:
+                    name = "@" + user_names[id]
+                else:
+                    name = "@[unknown user:{}]".format(id)
+            
+            elif id_chars == "#C":
+                # match is a channel ID
+                if id in channel_names:
+                    name = "#" + channel_names[id]
+                else:
+                    name = "#[unknown channel:{}]".format(id)
+            
+            elif match[0:9] == "!subteam":
+                # match is a user group ID
+                name = "[user group]"
+            
+            elif match[0:1] == "!":
+                # match is a special mention
+                if id == "here":
+                    name = "@here"
+                elif id == "channel":
+                    name = "@channel"
+                elif id == "everyone":
+                    name = "@everyone"
+                elif id == "date":
+                    if len(parts) == 2:
+                        name = parts[1]
+                    else:
+                        name = "(failed to parse date)"
+                else:
+                    name = "[unknown: {}]". format(id)
+
+            else:
+                # match is an URL
+                if len(parts) == 2:
+                    name = parts[1]
+                else:
+                    name = "(unknown)"
+
+            # replace the match with the found name in the string
+            start = m.span()[0]
+            end = m.span()[1]
+            s = s[0:start] + name + s[end:len(s)]
+        else:
+            break
+
+    return s
+
+
 def get_datetime_formatted_str(ts):
     """ return given timestamp as formated datetime string """
     return datetime.utcfromtimestamp(round(float(ts))).strftime('%Y-%m-%d %H:%M:%S')
+
+def parse_markup_and_write(document, line_height, text):    
+    document.write(line_height, text)
 
 def parse_message_and_write_pdf(document, msg, margin_left, last_user_id):
     """ parse message to write and add to PDF """
@@ -54,8 +126,8 @@ def parse_message_and_write_pdf(document, msg, margin_left, last_user_id):
             document.ln()            
         
         if "text" in msg:
-            document.set_font(FONT_FAMILY_DEFAULT, size=FONT_SIZE_NORMAL)
-            document.write(LINE_HEIGHT_DEFAULT, transform_text(msg["text"]))
+            document.set_font(FONT_FAMILY_DEFAULT, size=FONT_SIZE_NORMAL)            
+            parse_markup_and_write(document, LINE_HEIGHT_DEFAULT, transform_formatted_text(msg["text"]))
             document.ln()
 
         if "attachments" in msg:
@@ -68,7 +140,7 @@ def parse_message_and_write_pdf(document, msg, margin_left, last_user_id):
                     document.set_left_margin(margin_left)
                     document.set_x(margin_left)
                     document.set_font(FONT_FAMILY_DEFAULT, size=FONT_SIZE_NORMAL)
-                    document.write(LINE_HEIGHT_DEFAULT, transform_text(attach["pretext"]))
+                    document.write(LINE_HEIGHT_DEFAULT, transform_formatted_text(attach["pretext"]))
                     document.set_left_margin(margin_left + TAB_INDENT)
                     document.set_x(margin_left + TAB_INDENT)
                     document.ln()
@@ -85,7 +157,7 @@ def parse_message_and_write_pdf(document, msg, margin_left, last_user_id):
                 
                 if "text" in attach:
                     document.set_font(FONT_FAMILY_DEFAULT, size=FONT_SIZE_NORMAL)
-                    document.write(LINE_HEIGHT_DEFAULT, transform_text(attach["text"]))
+                    document.write(LINE_HEIGHT_DEFAULT, transform_formatted_text(attach["text"]))
                     document.ln()
 
                 if "fields" in attach:
@@ -94,7 +166,7 @@ def parse_message_and_write_pdf(document, msg, margin_left, last_user_id):
                         document.write(LINE_HEIGHT_DEFAULT, transform_text(field["title"]))
                         document.ln()
                         document.set_font(FONT_FAMILY_DEFAULT, size=FONT_SIZE_NORMAL)
-                        document.write(LINE_HEIGHT_DEFAULT, transform_text(field["value"]))
+                        document.write(LINE_HEIGHT_DEFAULT, transform_formatted_text(field["value"]))
                         document.ln()
 
                 
@@ -122,11 +194,13 @@ def parse_message_and_write_pdf(document, msg, margin_left, last_user_id):
 
     return user_id   
 
+
 def draw_line_for_threads():    
     x0 = MARGIN_LEFT + TAB_INDENT
     x1 = x0 + 20
     y = document.get_y() + 3
     document.line(x0, y, x1, y)
+
 
 # main
 CHANNEL = "G7LULJD46"
@@ -161,7 +235,21 @@ document.write(LINE_HEIGHT_DEFAULT, title)
 document.ln()
 
 last_user_id = None
+latest_date = None
 for msg in reversed(messages):
+    
+    # write day seperator if needed
+    msg_date = datetime.utcfromtimestamp(round(float(msg["ts"]))).date()    
+    if msg_date != latest_date:
+        document.ln()
+        document.ln()
+        document.set_font(FONT_FAMILY_DEFAULT, size=FONT_SIZE_NORMAL, style="U")
+        document.set_left_margin(MARGIN_LEFT)
+        document.set_x(MARGIN_LEFT)
+        document.write(LINE_HEIGHT_DEFAULT, msg_date.strftime('%Y-%m-%d'))        
+        document.ln()
+        latest_date = msg_date
+    
     last_user_id = parse_message_and_write_pdf(
         document, 
         msg, 

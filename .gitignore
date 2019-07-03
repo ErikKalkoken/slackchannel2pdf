@@ -4,4 +4,6 @@
 *.old
 __pycache__/
 .vscode/
+*.pdf
+*.json
 
