@@ -54,6 +54,18 @@ class TestExporter(unittest.TestCase):
             self.exporter._transform_markup_text("some text <@U623456789> more text"), 
             'some text @Janet more text'
         )
+        self.assertEqual(
+            self.exporter._transform_markup_text("*bold*"), 
+            '<b>bold</b>'
+        )
+        self.assertEqual(
+            self.exporter._transform_markup_text("`code`"), 
+            '<s fontfamily="Courier">code</s>'
+        )
+        self.assertEqual(
+            self.exporter._transform_markup_text("some *text <@U623456789>* more text"), 
+            'some <b>text @Janet</b> more text'
+        )
 
 if __name__ == '__main__':
     unittest.main()

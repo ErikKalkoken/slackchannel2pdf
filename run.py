@@ -23,78 +23,97 @@ class Exporter:
         return text2
 
 
+    def _replace_markup_in_text(self, matchObj):
+    
+            match = matchObj.group(1)
+
+            id_chars = match[0:2]
+            id_raw = match[1:len(match)]
+            parts = id_raw.split("|", 1)
+            id = parts[0]
+
+            if id_chars == "@U" or id_chars == "@W":
+                # match is a user ID
+                if id in self.user_names:
+                    replacement = "@" + self.user_names[id]
+                else:
+                    replacement = "@[unknown user:{}]".format(id)
+            
+            elif id_chars == "#C":
+                # match is a channel ID
+                if id in self.channel_names:
+                    replacement = "#" + self.channel_names[id]
+                else:
+                    replacement = "#[unknown channel:{}]".format(id)
+            
+            elif match[0:9] == "!subteam":
+                # match is a user group ID
+                replacement = "[user group]"
+            
+            elif match[0:1] == "!":
+                # match is a special mention
+                if id == "here":
+                    replacement = "@here"
+                
+                elif id == "channel":
+                    replacement = "@channel"
+                
+                elif id == "everyone":
+                    replacement = "@everyone"                    
+            
+                elif match[0:5] == "!date":
+                    date_parts = match.split("^")
+                    if len(date_parts) > 1:
+                        replacement = self.get_datetime_formatted_str(date_parts[1])
+                    else:
+                        replacement = "(failed to parse date)"
+
+                else:
+                    replacement = "[unknown: {}]". format(id)
+            
+            else:
+                # match is an URL
+                link_parts = match.split("|")
+                if len(link_parts) == 2:
+                    replacement = '<a href="' + link_parts[0] + '">' + link_parts[1] + '</a>'
+                else:
+                    replacement = "(unknown)"
+            
+            return replacement
+
+
     def _transform_markup_text(self, text):    
         """ 
         remove unsupported characters and resolve formatting, e.g. <!here> 
         """
-        
+        # pass 1 - adjust encoding
         s = self._transform_text(text)
-        pattern = re.compile(r'<(.*?)>')
 
-        while True:
-            m = pattern.search(s)    
-            if m is not None:
-                match = m.group(1)
-                id_chars = match[0:2]
-                id_raw = match[1:len(match)]
-                parts = id_raw.split("|", 1)
-                id = parts[0]
+        # pass 2 - transform markups with brackets
+        s2 = re.sub(
+            r'<(.*?)>',
+            self._replace_markup_in_text,
+            text
+        )
 
-                if id_chars == "@U" or id_chars == "@W":
-                    # match is a user ID
-                    if id in self.user_names:
-                        name = "@" + self.user_names[id]
-                    else:
-                        name = "@[unknown user:{}]".format(id)
-                
-                elif id_chars == "#C":
-                    # match is a channel ID
-                    if id in self.channel_names:
-                        name = "#" + self.channel_names[id]
-                    else:
-                        name = "#[unknown channel:{}]".format(id)
-                
-                elif match[0:9] == "!subteam":
-                    # match is a user group ID
-                    name = "[user group]"
-                
-                elif match[0:1] == "!":
-                    # match is a special mention
-                    if id == "here":
-                        name = "@here"
-                    
-                    elif id == "channel":
-                        name = "@channel"
-                    
-                    elif id == "everyone":
-                        name = "@everyone"                    
-                
-                    elif match[0:5] == "!date":
-                        date_parts = match.split("^")
-                        if len(date_parts) > 1:
-                            name = self.get_datetime_formatted_str(date_parts[1])
-                        else:
-                            name = "(failed to parse date)"
+        # pass 3 - transform formatting markups
 
-                    else:
-                        name = "[unknown: {}]". format(id)
-                
-                else:
-                    # match is an URL
-                    if len(parts) == 2:
-                        name = '<a href="' + parts[0] + '">' + parts[1] + '</a>'
-                    else:
-                        name = "(unknown)"
+        # bold
+        s2 = re.sub(
+            r'[*]([^*]+)[*]',
+            r'<b>\1</b>',
+            s2
+        )
 
-                # replace the match with the found name in the string
-                start = m.span()[0]
-                end = m.span()[1]
-                s = s[0:start] + name + s[end:len(s)]
-            else:
-                break
+        # code
+        s2 = re.sub(
+            r'[`]([^`]+)[`]',
+            r'<s fontfamily="Courier">\1</s>',
+            s2
+        )
 
-        return s
-
+        return s2
+        
 
     def get_datetime_formatted_str(self, ts):
         """ return given timestamp as formated datetime string """

@@ -3,11 +3,20 @@
 # This package extends the FPDF class with the functionality to use 
 # rudimentary HTML for defining text formatting
 #
-# It is a port from the example in Tutorial 6 from 
+# The class is based on the example in Tutorial 6 from 
 # the official FPDF documentation (http://www.fpdf.org/)
-# with some minor changes to improve readability and extensibility
+# but has extended functionality
 #
 # It's build upon this pyfpdf variant: https://github.com/alexanderankin/pyfpdf
+#
+# Currently supports: <b>, <i>, <u>, <a>, <br>, <s>
+#
+# <s> is a custom tag for setting the font for part of a text. Example:
+# <s fontfamily="Courier" size="14" style="B"> 
+# Attributes can be omitted and wil then not be set. 
+#
+# Unsupported tags are ignored and removed from the text
+#
 
 from fpdf import FPDF
 import re
@@ -24,7 +33,7 @@ class FPDF_ext(FPDF):
         self._tags["I"] = 0
         self._tags["U"] = 0
         self._href = ""
-            
+        self._last_font = None
 
     def write_html(self, height, html):
         """ write text with HTML tags for formatting  """
@@ -64,21 +73,61 @@ class FPDF_ext(FPDF):
 
     def _open_tag(self, tag, attributes):
         """ set style for opening tags and singular tags  """
+        
         if tag == "B" or tag == "I" or tag == "U":
             self._set_style(tag, True)
+        
         if tag == "A":
             self._href = attributes["HREF"]
+        
         if tag == "BR":
             self.ln(5)
+        
+        if tag == "S":
+            if self._last_font is not None:
+                raise RuntimeError("<s> tags can not be nested")
+            else:
+                self._last_font = {
+                    "font_family": self.font_family,
+                    "size": self.font_size_pt,
+                    "style": self.font_style
+                }
+
+            if "FONTFAMILY" in attributes:
+                font_family = attributes["FONTFAMILY"]
+            else:
+                font_family =  self.font_family
+
+            if "SIZE" in attributes:
+                size = int(attributes["SIZE"])
+            else:
+                size =  self.font_size_pt
+
+            if "STYLE" in attributes:
+                style = attributes["STYLE"]
+            else:
+                style = self.font_style
+
+            self.set_font(font_family, size=size, style=style)
 
     
     def _close_tag(self, tag):
         """ set style for closing tags  """
+        
         if tag == "B" or tag == "I" or tag == "U":
             self._set_style(tag, False)
+        
         if tag == "A":
             self._href = ""
 
+        if tag == "S":
+            if self._last_font is not None:                
+                self.set_font(
+                    self._last_font["font_family"], 
+                    size=self._last_font["size"], 
+                    style=self._last_font["style"]
+                )
+                self._last_font = None
 
     def _set_style(self, tag, enable):
         """ set the actual font style based on input  """
@@ -101,7 +150,7 @@ class FPDF_ext(FPDF):
 
 def main():
     
-    html = """You can now easily print text mixing different styles: <b>bold</b>, <i>italic</i>, <u>underlined</u>, or <b><i><u>all at once</u></i></b>!<br><br>You can also insert links on text, such as <a href="http://www.fpdf.org" blank="_target">www.fpdf.org</a>, or on an image: click on the logo."""
+    html = """You can now easily print text mixing different styles: <b>bold</b>, <i>italic</i>, <u>underlined</u>, or <b><i><u>all at once</u></i></b>!<br><br>You can also insert links on text, such as <a href="http://www.fpdf.org" blank="_target">www.fpdf.org</a>, or this <s fontfamily="Courier" size="20" style="U">some custom text </s> - yeah!"""
     
     document = FPDF_ext()
     document.add_page()
