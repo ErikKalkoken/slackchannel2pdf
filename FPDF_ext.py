@@ -15,7 +15,7 @@ import re
 """ 
 This class extends FDPF to add the new method write_html()
 """
-class FDPF_ext(FPDF):
+class FPDF_ext(FPDF):
     
     def __init__(self, orientation='P', unit='mm', format='A4'):        
         super().__init__(orientation=orientation, unit=unit, format=format)
@@ -103,7 +103,7 @@ def main():
     
     html = """You can now easily print text mixing different styles: <b>bold</b>, <i>italic</i>, <u>underlined</u>, or <b><i><u>all at once</u></i></b>!<br><br>You can also insert links on text, such as <a href="http://www.fpdf.org" blank="_target">www.fpdf.org</a>, or on an image: click on the logo."""
     
-    document = FDPF_ext()
+    document = FPDF_ext()
     document.add_page()
     document.set_font('Arial', size=12)
     document.cell(w=0, txt="hello world")

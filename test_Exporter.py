@@ -21,37 +21,37 @@ class TestExporter(unittest.TestCase):
 
     def test_transform_markup_text(self):
         self.assertEqual(
-            self.exporter.transform_markup_text("<@U623456789>"), 
+            self.exporter._transform_markup_text("<@U623456789>"), 
             '@Janet'
         )
         self.assertEqual(
-            self.exporter.transform_markup_text("<#C723456789>"), 
+            self.exporter._transform_markup_text("<#C723456789>"), 
             '#tokio'
         )
         self.assertEqual(
-            self.exporter.transform_markup_text("<!everyone>"), 
+            self.exporter._transform_markup_text("<!everyone>"), 
             '@everyone'
         )        
         self.assertEqual(
-            self.exporter.transform_markup_text("<!here>"), 
+            self.exporter._transform_markup_text("<!here>"), 
             '@here'
         )
         self.assertEqual(
-            self.exporter.transform_markup_text("<!channel>"), 
+            self.exporter._transform_markup_text("<!channel>"), 
             '@channel'
         )
         self.assertEqual(
-            self.exporter.transform_markup_text(
+            self.exporter._transform_markup_text(
                 "<!date^1392734382^Posted {date_num} {time_secs}|Posted 2014-02-18 6:39:42 AM PST>"
             ), 
             self.exporter.get_datetime_formatted_str(1392734382)
         )
         self.assertEqual(
-            self.exporter.transform_markup_text("<https://www.google.com|Google>"), 
-            'Google'            
+            self.exporter._transform_markup_text("<https://www.google.com|Google>"), 
+            '<a href="https://www.google.com">Google</a>'            
         )
         self.assertEqual(
-            self.exporter.transform_markup_text("some text <@U623456789> more text"), 
+            self.exporter._transform_markup_text("some text <@U623456789> more text"), 
             'some text @Janet more text'
         )
 

@@ -7,7 +7,7 @@ import re
 import fpdf
 from config import *
 from my_slack import *
-from fpdf import FPDF
+from fpdf_ext import FPDF_ext
 from datetime import datetime
 
 class Exporter:
@@ -17,16 +17,18 @@ class Exporter:
         self.channel_names = channel_names
 
 
-    def transform_text(self, text):    
+    def _transform_text(self, text):    
         """ remove characters from text that can not be displayed in the PDF """
         text2 = text.encode('latin-1', 'replace').decode('latin-1')
         return text2
 
 
-    def transform_markup_text(self, text):    
-        """ remove unsupported characters and resolve formatting, e.g. <!here> """
+    def _transform_markup_text(self, text):    
+        """ 
+        remove unsupported characters and resolve formatting, e.g. <!here> 
+        """
         
-        s = self.transform_text(text)
+        s = self._transform_text(text)
         pattern = re.compile(r'<(.*?)>')
 
         while True:
@@ -80,7 +82,7 @@ class Exporter:
                 else:
                     # match is an URL
                     if len(parts) == 2:
-                        name = parts[1]
+                        name = '<a href="' + parts[0] + '">' + parts[1] + '</a>'
                     else:
                         name = "(unknown)"
 
@@ -98,8 +100,8 @@ class Exporter:
         """ return given timestamp as formated datetime string """
         return datetime.utcfromtimestamp(round(float(ts))).strftime('%Y-%m-%d %H:%M:%S')
 
-    def parse_test_and_write(self, document, line_height, text):            
-        document.write(line_height, text)
+    def _parse_test_and_write(self, document, line_height, html):
+        document.write_html(line_height, html)
 
     def parse_message_and_write_pdf(self, document, msg, margin_left, last_user_id):
         """ parse message to write and add to PDF """
@@ -138,7 +140,7 @@ class Exporter:
             
             if "text" in msg:
                 document.set_font(FONT_FAMILY_DEFAULT, size=FONT_SIZE_NORMAL)            
-                self.parse_test_and_write(document, LINE_HEIGHT_DEFAULT, self.transform_markup_text(msg["text"]))
+                self._parse_test_and_write(document, LINE_HEIGHT_DEFAULT, self._transform_markup_text(msg["text"]))
                 document.ln()
 
             if "attachments" in msg:
@@ -151,44 +153,44 @@ class Exporter:
                         document.set_left_margin(margin_left)
                         document.set_x(margin_left)
                         document.set_font(FONT_FAMILY_DEFAULT, size=FONT_SIZE_NORMAL)
-                        document.write(LINE_HEIGHT_DEFAULT, self.transform_markup_text(attach["pretext"]))
+                        document.write(LINE_HEIGHT_DEFAULT, self._transform_markup_text(attach["pretext"]))
                         document.set_left_margin(margin_left + TAB_INDENT)
                         document.set_x(margin_left + TAB_INDENT)
                         document.ln()
 
                     if "author_name" in attach:
                         document.set_font(FONT_FAMILY_DEFAULT, size=FONT_SIZE_LARGE, style="B")
-                        document.write(LINE_HEIGHT_DEFAULT, self.transform_text(attach["author_name"]))
+                        document.write(LINE_HEIGHT_DEFAULT, self._transform_text(attach["author_name"]))
                         document.ln()
 
                     if "title" in attach:
                         document.set_font(FONT_FAMILY_DEFAULT, size=FONT_SIZE_NORMAL, style="B")
-                        document.write(LINE_HEIGHT_DEFAULT, self.transform_text(attach["title"]))
+                        document.write(LINE_HEIGHT_DEFAULT, self._transform_text(attach["title"]))
                         document.ln()
                     
                     if "text" in attach:
                         document.set_font(FONT_FAMILY_DEFAULT, size=FONT_SIZE_NORMAL)
-                        document.write(LINE_HEIGHT_DEFAULT, self.transform_markup_text(attach["text"]))
+                        document.write(LINE_HEIGHT_DEFAULT, self._transform_markup_text(attach["text"]))
                         document.ln()
 
                     if "fields" in attach:
                         for field in attach["fields"]:
                             document.set_font(FONT_FAMILY_DEFAULT, size=FONT_SIZE_NORMAL, style="B")
-                            document.write(LINE_HEIGHT_DEFAULT, self.transform_text(field["title"]))
+                            document.write(LINE_HEIGHT_DEFAULT, self._transform_text(field["title"]))
                             document.ln()
                             document.set_font(FONT_FAMILY_DEFAULT, size=FONT_SIZE_NORMAL)
-                            document.write(LINE_HEIGHT_DEFAULT, self.transform_markup_text(field["value"]))
+                            document.write(LINE_HEIGHT_DEFAULT, self._transform_markup_text(field["value"]))
                             document.ln()
 
                     
                     if "footer" in attach:                
                         if "ts" in attach:
                             text = "{} | {}".format(
-                                self.transform_text(attach["footer"]), 
+                                self._transform_text(attach["footer"]), 
                                 self.get_datetime_formatted_str(attach["ts"])
                             )
                         else:
-                            text = self.transform_text(attach["footer"])
+                            text = self._transform_text(attach["footer"])
 
                         document.set_font(FONT_FAMILY_DEFAULT, size=FONT_SIZE_SMALL)
                         document.write(LINE_HEIGHT_DEFAULT, text)
@@ -214,7 +216,7 @@ def draw_line_for_threads(document):
 
 
 def main():    
-    CHANNEL = "C0HBSD3E0"
+    CHANNEL = "G7LULJD46"
 
     # fetch data from Slack
     client = slack.WebClient(token=os.environ['SLACK_TOKEN'])
@@ -231,7 +233,7 @@ def main():
     write_messages_to_file(threads, filename + "_threads")
 
     # create PDF
-    document = FPDF()
+    document = FPDF_ext()
     document.add_page()
 
     exporter = Exporter(user_names, channel_names)
