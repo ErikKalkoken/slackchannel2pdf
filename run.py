@@ -1,9 +1,8 @@
 # example script for fetching the history of a conversation
 # result will be written to file as JSON array
 
-import os
+import os, re, html
 import slack
-import re
 import fpdf
 from config import *
 from my_slack import *
@@ -19,6 +18,7 @@ class Exporter:
 
     def _transform_text(self, text):    
         """ remove characters from text that can not be displayed in the PDF """
+        text = html.unescape(text)
         text2 = text.encode('latin-1', 'replace').decode('latin-1')
         return text2
 
@@ -93,7 +93,7 @@ class Exporter:
         s2 = re.sub(
             r'<(.*?)>',
             self._replace_markup_in_text,
-            text
+            s
         )
 
         # pass 3 - transform formatting markups
@@ -172,7 +172,7 @@ class Exporter:
                         document.set_left_margin(margin_left)
                         document.set_x(margin_left)
                         document.set_font(FONT_FAMILY_DEFAULT, size=FONT_SIZE_NORMAL)
-                        document.write(LINE_HEIGHT_DEFAULT, self._transform_markup_text(attach["pretext"]))
+                        self._parse_test_and_write(document, LINE_HEIGHT_DEFAULT, self._transform_markup_text(attach["pretext"]))
                         document.set_left_margin(margin_left + TAB_INDENT)
                         document.set_x(margin_left + TAB_INDENT)
                         document.ln()
@@ -189,7 +189,7 @@ class Exporter:
                     
                     if "text" in attach:
                         document.set_font(FONT_FAMILY_DEFAULT, size=FONT_SIZE_NORMAL)
-                        document.write(LINE_HEIGHT_DEFAULT, self._transform_markup_text(attach["text"]))
+                        self._parse_test_and_write(document, LINE_HEIGHT_DEFAULT, self._transform_markup_text(attach["text"]))
                         document.ln()
 
                     if "fields" in attach:
@@ -235,7 +235,7 @@ def draw_line_for_threads(document):
 
 
 def main():    
-    CHANNEL = "G7LULJD46"
+    CHANNEL = "C0HBSD3E0"
 
     # fetch data from Slack
     client = slack.WebClient(token=os.environ['SLACK_TOKEN'])
