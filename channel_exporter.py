@@ -1,6 +1,7 @@
 import re
 import html
 import json
+import os
 from time import sleep
 from datetime import datetime
 from time import sleep
@@ -28,8 +29,7 @@ class ChannelExporter:
 
     Attachments and blocks are supported.
 
-    """
-    
+    """    
     # style and layout settings for PDF
     _FONT_FAMILY_DEFAULT = "Arial"
     _FONT_SIZE_NORMAL = 12
@@ -37,13 +37,13 @@ class ChannelExporter:
     _FONT_SIZE_SMALL = 10
     _LINE_HEIGHT_DEFAULT = 6
     _MARGIN_LEFT = 10
-    _TAB_INDENT = 4
+    _TAB_WIDTH = 4
     _FORMAT_DATETIME_SHORT = '%Y-%m-%d'
     _FORMAT_DATETIME_LONG = '%Y-%m-%d %H:%M:%S'
 
     # limits for fetching messages from Slack
     _MESSAGES_PER_PAGE = 200 # max message retrieved per request during paging
-    _MAX_MESSAGES_PER_CHANNEL = 1000
+    _MAX_MESSAGES_PER_CHANNEL = 10000
     _MAX_MESSAGES_PER_THREAD = 500
 
 
@@ -71,7 +71,7 @@ class ChannelExporter:
     # Methods for fetching data from Slack API
     # *************************************************************************
 
-    def _fetch_messages_for_channel(self, channel_id, max_messages=None):
+    def _fetch_messages_from_channel(self, channel_id, max_messages=None):
         """retrieve messages from a channel on Slack and return as list"""
         
         if max_messages is None:
@@ -89,14 +89,18 @@ class ChannelExporter:
         messages_all = response['messages']
 
         # get additional pages if below max message and if they are any
-        while (len(messages_all) + messages_per_page <= max_messages and 
+        while (len(messages_all) < max_messages and 
                 response['has_more']):
             page += 1
             print("Retrieving page {}".format(page))
             sleep(1)   # need to wait 1 sec before next call due to rate limits
+            # allow smaller page sized to fetch final page
+            page_limit = min(
+                messages_per_page, 
+                max_messages - len(messages_all))
             response = self._client.conversations_history(
                 channel=channel_id,
-                limit=messages_per_page,
+                limit=page_limit,
                 cursor=response['response_metadata']['next_cursor']
             )
             assert response["ok"]
@@ -117,12 +121,16 @@ class ChannelExporter:
         used mainly for testing 
         """     
         filename += '.json'
-        with open(filename, 'r') as f:
-            messages = json.load(f)
-        print("read {} message from file: name {}".format(
-            len(messages),
-            filename
-            ))
+        try:
+            with open(filename, 'r') as f:
+                messages = json.load(f)
+            print("read {} message from file: name {}".format(
+                len(messages),
+                filename
+                ))
+        except:
+            print("failed to read from {}".format(filename))
+            messages = list()
         return messages
 
 
@@ -143,7 +151,7 @@ class ChannelExporter:
         print("written message to file: name {}".format(filename))
     
 
-    def _fetch_messages_for_thread(
+    def _fetch_messages_from_thread(
         self, 
         channel_id, 
         thread_ts, 
@@ -195,7 +203,7 @@ class ChannelExporter:
         return messages_all
 
 
-    def _fetch_threads_for_messages(
+    def _fetch_threads_from_messages(
         self, 
         channel_id, 
         messages, 
@@ -209,7 +217,7 @@ class ChannelExporter:
         for msg in messages:
             if "thread_ts" in msg and msg["thread_ts"] == msg["ts"]:
                 thread_ts = msg["thread_ts"]
-                thread_messages = self._fetch_messages_for_thread(                    
+                thread_messages = self._fetch_messages_from_thread(                    
                     channel_id, 
                     thread_ts,
                     max_messages
@@ -226,12 +234,12 @@ class ChannelExporter:
         col_name_secondary=None):
         """returns dict with selected columns as key and value from list of dict
         
-        Arguments
-        arr: list of dicts to reduce
-        key_name: name of column to become key
-        col_name_primary: colum will become value if it exists
-        col_name_secondary: colum will become value if col_name_primary 
-            does not exist and this argument is provided
+        Args:
+            arr: list of dicts to reduce
+            key_name: name of column to become key
+            col_name_primary: colum will become value if it exists
+            col_name_secondary: colum will become value if col_name_primary 
+                does not exist and this argument is provided
 
         dict items with no matching key_name, col_name_primary and 
         col_name_secondary will not be included in the resulting new dict
@@ -294,12 +302,11 @@ class ChannelExporter:
 
 
     def _transform_markup_text(self, text):    
-        """remove unsupported characters and resolve bracket style markup
+        """transforms markup text into HTML text for PDF output
         
-        Main method to resolve all bracket style markups, 
-        e.g. <C12345678>, <!here>
-        It will NOT resolve formatting style markup like *bold*
-        Returns string that may contain HTML for formatting and links
+        Main method to resolve all markups, e.g. <C12345678>, <!here>, *bold*
+        Will resolve channel and user IDs to their names if possible
+        Returns string with rudimentary HTML for formatting and links
         """
         
         def replace_markup_in_text(matchObj):
@@ -370,8 +377,8 @@ class ChannelExporter:
             return replacement
 
 
-        # pass 1 - adjust encoding
-        s = self._transform_text(text)
+        # pass 1 - adjust encoding and transform HTML entities
+        s = self._transform_text(text)        
 
         # pass 2 - transform markups with brackets
         s2 = re.sub(
@@ -396,6 +403,21 @@ class ChannelExporter:
             s2
             )
 
+        # idents
+        s2 = re.sub(
+            r'^>(.+)',
+            r'<blockquote>\1</blockquote>',
+            s2,
+            0,
+            re.MULTILINE
+            )
+
+        s2 = s2.replace("</blockquote><br>", "</blockquote>")
+
+        # EOF
+        s2 = s2.replace("\n", "<br>")
+
+        
         return s2
 
 
@@ -466,8 +488,8 @@ class ChannelExporter:
 
             if "attachments" in msg:
                 document.ln()
-                document.set_left_margin(margin_left + self._TAB_INDENT)
-                document.set_x(margin_left + self._TAB_INDENT)
+                document.set_left_margin(margin_left + self._TAB_WIDTH)
+                document.set_x(margin_left + self._TAB_WIDTH)
                 
                 for attach in msg["attachments"]:            
                     if "pretext" in attach:
@@ -481,8 +503,8 @@ class ChannelExporter:
                             self._LINE_HEIGHT_DEFAULT, 
                             self._transform_markup_text(attach["pretext"]))
                         document.set_left_margin(
-                            margin_left + self._TAB_INDENT)
-                        document.set_x(margin_left + self._TAB_INDENT)
+                            margin_left + self._TAB_WIDTH)
+                        document.set_x(margin_left + self._TAB_WIDTH)
                         document.ln()
 
                     if "author_name" in attach:
@@ -565,7 +587,7 @@ class ChannelExporter:
 
     def _draw_line_for_threads(self, document):
         """draw line on PDF document at current position to mark threads"""
-        x0 = self._MARGIN_LEFT + self._TAB_INDENT
+        x0 = self._MARGIN_LEFT + self._TAB_WIDTH
         x1 = x0 + 20
         y = document.get_y() + 3
         document.line(x0, y, x1, y)
@@ -576,20 +598,31 @@ class ChannelExporter:
         return self._workspace_info["team_id"] + "_" + channel_id
 
 
-    def run(self, channel_id):
+    def run(self, channel_id, max_messages=None):
         """export all message from a channel and store them in a PDF
         
-        Arguments:
+        Args:
             channel_id: ID of channel to retrieve messages from
+            max_messages: maximum number of messages to retrieve (optional)
         """
         
-        # fetch data from Slack                
-        messages = self._fetch_messages_for_channel(channel_id, 500)
-        threads = self._fetch_threads_for_messages(channel_id, messages)
-        
-        filename_base = self._generate_filename_base(channel_id)
-        self._write_messages_to_file(messages, filename_base)
-        self._write_messages_to_file(threads, filename_base + "_threads")
+        # fetch messages
+        if self._client is not None:
+            # if we have a client fetch data from Slack
+            messages = self._fetch_messages_from_channel(channel_id, max_messages)
+            threads = self._fetch_threads_from_messages(channel_id, messages)
+            
+            filename_base = self._generate_filename_base(channel_id)
+            if os.environ['DEVELOPMENT_MODE'] == "true":
+                # write raw messages and threads to file in development
+                self._write_messages_to_file(messages, filename_base)
+                self._write_messages_to_file(threads, filename_base + "_threads")
+        else:
+            # if we don't have a client we will try to fetch from a file
+            # this is used for testing
+            filename_base = "test/" + str(channel_id)
+            messages = self._read_messages_from_file(filename_base)
+            threads = self._read_messages_from_file(filename_base + "_threads")
 
         # create PDF
         document = FPDF_ext()
@@ -649,7 +682,7 @@ class ChannelExporter:
                         last_user_id = self._parse_message_and_write_pdf(
                             document, 
                             thread_msg, 
-                            self._MARGIN_LEFT + self._TAB_INDENT, 
+                            self._MARGIN_LEFT + self._TAB_WIDTH, 
                             last_user_id
                         )
                     

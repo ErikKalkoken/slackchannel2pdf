@@ -5,7 +5,7 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir) 
 from channel_exporter import ChannelExporter
 
-class TestExporter(unittest.TestCase):
+class TestExporterTransformations(unittest.TestCase):
 
     def setUp(self):
         user_names = {
@@ -25,6 +25,20 @@ class TestExporter(unittest.TestCase):
         self.exporter._channel_names = channel_names
 
 
+    def test_transform_text(self):
+        self.assertEqual(
+            self.exporter._transform_markup_text("special char ✓"), 
+            "special char ?"
+        )
+        self.assertEqual(
+            self.exporter._transform_markup_text("&lt;"), 
+            "<"
+        )
+        self.assertEqual(
+            self.exporter._transform_markup_text("&#60;"), 
+            "<"
+        )
+    
     def test_transform_markup_text(self):
         self.assertEqual(
             self.exporter._transform_markup_text("<@U623456789>"), 
@@ -50,7 +64,7 @@ class TestExporter(unittest.TestCase):
             self.exporter._transform_markup_text(
                 "<!date^1392734382^Posted {date_num} {time_secs}|Posted 2014-02-18 6:39:42 AM PST>"
             ), 
-            self.exporter.get_datetime_formatted_str(1392734382)
+            self.exporter._get_datetime_formatted_str(1392734382)
         )
         self.assertEqual(
             self.exporter._transform_markup_text("<https://www.google.com|Google>"), 
@@ -72,6 +86,101 @@ class TestExporter(unittest.TestCase):
             self.exporter._transform_markup_text("some *text <@U623456789>* more text"), 
             'some <b>text @Janet</b> more text'
         )
+        self.assertEqual(
+            self.exporter._transform_markup_text("first\nsecond\nthird"), 
+            'first<br>second<br>third'
+        )
+        self.assertEqual(
+            self.exporter._transform_markup_text("<!subteam>"), 
+            '[user group]'
+        )
+        self.assertEqual(
+            self.exporter._transform_markup_text("<unsupported tag>"), 
+            '(unknown)'
+        )
+        self.assertEqual(
+            self.exporter._transform_markup_text("before ident\n>indented text\nafter ident"), 
+            'before ident<br><blockquote>indented text</blockquote><br>after ident'
+        )
 
+
+class TestExporterReduceToDict(unittest.TestCase):
+    
+    def setUp(self):
+        self.a = [
+            {
+                "id": "1",
+                "name_1": "Naoko Kobayashi",
+                "name_2": "naoko.kobayashi"
+            },
+            {
+                "id": "2",
+                "name_1": "Janet Hakuli",
+                "name_2": "janet.hakuli"
+            },
+            {
+                "id": "3",                
+                "name_2": "rosie.dunbar"
+            },
+            {
+                "id": "4"
+            },            
+            {
+                "name_1": "John Doe",
+                "name_2": "john.doe"
+            }
+
+        ]
+        self.exporter = ChannelExporter("TEST")
+
+    def test_1(self):        
+        expected = {
+            "1": "Naoko Kobayashi",
+            "2": "Janet Hakuli"
+        }
+        result = self.exporter._reduce_to_dict(
+                self.a,
+                "id",
+                "name_1"
+            )
+        self.assertEqual(
+            result, 
+            expected
+        )
+
+    def test_2(self):        
+        expected = {
+            "1": "Naoko Kobayashi",
+            "2": "Janet Hakuli",
+            "3": "rosie.dunbar"
+        }
+        result = self.exporter._reduce_to_dict(
+                self.a,
+                "id",
+                "name_1",
+                "name_2"
+            )
+        self.assertEqual(
+            result, 
+            expected
+        )
+
+    def test_3(self):        
+        expected = {
+            "1": "naoko.kobayashi",
+            "2": "janet.hakuli",
+            "3": "rosie.dunbar"
+        }
+        result = self.exporter._reduce_to_dict(
+                self.a,
+                "id",
+                "invalid_col",
+                "name_2"
+            )
+        self.assertEqual(
+            result, 
+            expected
+        )
+    
 if __name__ == '__main__':
     unittest.main()

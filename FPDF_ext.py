@@ -1,43 +1,44 @@
-# Copyright (C) 2019 Erik Kalkoken
-#
-# This package extends the FPDF class with the functionality to use 
-# rudimentary HTML for defining text formatting
-#
-# The class is based on the example in Tutorial 6 from 
-# the official FPDF documentation (http://www.fpdf.org/)
-# but has extended functionality
-#
-# It's build upon this pyfpdf variant: https://github.com/alexanderankin/pyfpdf
-#
-# Currently supports: <b>, <i>, <u>, <a>, <br>, <s>
-#
-# <s> is a custom tag for setting the font for part of a text. Example:
-# <s fontfamily="Courier" size="14" style="B"> 
-# Attributes can be omitted and wil then not be set. 
-#
-# Unsupported tags are ignored and removed from the text
-#
-
 from fpdf import FPDF
 import re
 
-""" 
-This class extends FDPF to add the new method write_html()
-"""
 class FPDF_ext(FPDF):
+    """This class extends FDPF to enable formatting with rudimentary HTML
+
+    This package extends the FPDF class with the functionality to use 
+    rudimentary HTML for defining text formatting with the new
+    method write_html()
+
+    The class is based on the example in Tutorial 6 from 
+    the official FPDF documentation (http://www.fpdf.org/)
+    but has extended functionality
+
+    It's build upon the pyfpdf variant from this github: 
+    https://github.com/alexanderankin/pyfpdf
+
+    Currently supports: <b>, <i>, <u>, <a>, <br>, <blockquote> <s>
+
+    <s> is a custom tag for setting the font for part of a text. Example:
+    <s fontfamily="Courier" size="14" style="B"> 
+    Attributes can be omitted and wil then not be set. 
+
+    Unsupported tags are ignored and removed from the text
+    """
     
+    _TAB_WIDTH = 4
+
     def __init__(self, orientation='P', unit='mm', format='A4'):        
         super().__init__(orientation=orientation, unit=unit, format=format)
         self._tags = dict()
         self._tags["B"] = 0
         self._tags["I"] = 0
         self._tags["U"] = 0
+        self._tags["BLOCKQUOTE"] = 0
         self._href = ""
         self._last_font = None
 
     def write_html(self, height, html):
-        """ write text with HTML tags for formatting  """
-        html = html.replace("\n"," ")
+        """write() with support for rudimentary formatting with HTML tags"""
+        html = html.replace("\n", " ")
         
         # split html into parts to identify all HTML tags
         # even numbered parts will contain text
@@ -63,20 +64,26 @@ class FPDF_ext(FPDF):
                     tag = tag_parts.pop(0).upper()
                     attributes = dict()                    
                     for tag_part in tag_parts:
-                        matchObj = re.search(r'([^=]*)=["\']?([^"\']*)', tag_part)
+                        matchObj = re.search(
+                            r'([^=]*)=["\']?([^"\']*)', 
+                            tag_part)
                         if len(matchObj.groups()) == 2:
-                            attributes[matchObj.group(1).upper()] = matchObj.group(2)
+                            attributes[matchObj.group(1).upper()] = \
+                                matchObj.group(2)
                             
                     
                     self._open_tag(tag, attributes)
             
 
     def _open_tag(self, tag, attributes):
-        """ set style for opening tags and singular tags  """
+        """set style for opening tags and singular tags"""
         
         if tag == "B" or tag == "I" or tag == "U":
             self._set_style(tag, True)
         
+        if tag == "BLOCKQUOTE":
+            self._set_ident_plus()
+
         if tag == "A":
             self._href = attributes["HREF"]
         
@@ -112,11 +119,14 @@ class FPDF_ext(FPDF):
 
     
     def _close_tag(self, tag):
-        """ set style for closing tags  """
+        """set style for closing tags"""
         
         if tag == "B" or tag == "I" or tag == "U":
             self._set_style(tag, False)
         
+        if tag == "BLOCKQUOTE":
+            self._set_ident_minus()
+
         if tag == "A":
             self._href = ""
 
@@ -130,7 +140,7 @@ class FPDF_ext(FPDF):
                 self._last_font = None
 
     def _set_style(self, tag, enable):
-        """ set the actual font style based on input  """
+        """set the actual font style based on input"""
         self._tags[tag] += 1 if enable else -1
         style = ""
         for s in ["B", "I", "U"]:
@@ -139,8 +149,23 @@ class FPDF_ext(FPDF):
 
         self.set_font(self.font_family, size=self.font_size_pt, style=style)
 
+    def _set_ident_plus(self):
+        """moves current left margin and position forward by tab width"""
+        self.set_left_margin(self.l_margin + self._TAB_WIDTH)
+        self.set_x(self.get_x() + self._TAB_WIDTH)
+        # self.ln()
+
+    def _set_ident_minus(self):
+        """reduces current left margin and position forward by tab width"""
+        left_margin = self.l_margin
+        x = self.get_x()
+        if left_margin > self._TAB_WIDTH and x > self._TAB_WIDTH:
+            self.set_left_margin(left_margin - self._TAB_WIDTH)
+            self.set_x(x - self._TAB_WIDTH)
+            # self.ln()
+    
     def _put_link(self, url, height, txt):
-        """ set style and write text to create a link  """
+        """ set style and write text to create a link"""
         self.set_text_color(0, 0, 255)
         self._set_style("U", True)
         self.write(height, txt, url)
@@ -148,7 +173,7 @@ class FPDF_ext(FPDF):
         self.set_text_color(0)
 
 
-def main():
+def run_example():
     
     html = """You can now easily print text mixing different styles: <b>bold</b>, <i>italic</i>, <u>underlined</u>, or <b><i><u>all at once</u></i></b>!<br><br>You can also insert links on text, such as <a href="http://www.fpdf.org" blank="_target">www.fpdf.org</a>, or this <s fontfamily="Courier" size="20" style="U">some custom text </s> - yeah!"""
     
@@ -157,8 +182,16 @@ def main():
     document.set_font('Arial', size=12)
     document.cell(w=0, txt="hello world")
     document.write_html(5, html)
+
+    document.ln()
+    document.ln()
+
+    html = "This is some normal text<blockquote>This is more text</blockquote>And this is the final text"
+    document.write_html(5, html)
+
+
     document.output("hello_world.pdf")
 
 
 if __name__ == '__main__':
-    main()        
+    run_example()        
