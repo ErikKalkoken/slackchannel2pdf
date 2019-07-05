@@ -326,14 +326,14 @@ class ChannelExporter:
                 if id in self._user_names:
                     replacement = "@" + self._user_names[id]
                 else:
-                    replacement = "@[unknown user:{}]".format(id)
+                    replacement = "@unknown_{}".format(id)
             
             elif id_chars == "#C":
                 # match is a channel ID
                 if id in self._channel_names:
                     replacement = "#" + self._channel_names[id]
                 else:
-                    replacement = "#[unknown channel:{}]".format(id)
+                    replacement = "#unknown_{}".format(id)
             
             elif match[0:9] == "!subteam":
                 # match is a user group ID
@@ -360,7 +360,7 @@ class ChannelExporter:
                         replacement = "(failed to parse date)"
 
                 else:
-                    replacement = "[unknown: {}]". format(id)
+                    replacement = "unknown_{}". format(id)
             
             else:
                 # match is an URL
@@ -441,17 +441,19 @@ class ChannelExporter:
         
         if "user" in msg:
             user_id = msg["user"]
+            is_bot = False
             if user_id in self._user_names:
                 user_name = self._user_names[user_id]
             else:
-                user_name = "[unknown user]"
+                user_name = "unknown_{}".format(user_id)
         
         elif "bot_id" in msg:
             user_id = msg["bot_id"]
+            is_bot = True
             if "username" in msg:
                 user_name = msg["username"]
             else:
-                user_name = "[unknown bot]"
+                user_name = "unknown_{}".format(user_id)
         else:
             user_name = None
             
@@ -467,12 +469,15 @@ class ChannelExporter:
                     self._FONT_FAMILY_DEFAULT, 
                     size=self._FONT_SIZE_NORMAL, 
                     style="B")
-                document.write(self._LINE_HEIGHT_DEFAULT, user_name + " ")
-                
-                datetime_str = self._get_datetime_formatted_str(msg["ts"])
+                document.write(self._LINE_HEIGHT_DEFAULT, user_name + " ")                
                 document.set_font(
                     self._FONT_FAMILY_DEFAULT, 
                     size=self._FONT_SIZE_SMALL)
+                if is_bot:                    
+                    document.set_text_color(100, 100, 100)
+                    document.write(self._LINE_HEIGHT_DEFAULT, "App ")
+                    document.set_text_color(0)
+                datetime_str = self._get_datetime_formatted_str(msg["ts"])
                 document.write(self._LINE_HEIGHT_DEFAULT, datetime_str)
                 document.ln()            
             

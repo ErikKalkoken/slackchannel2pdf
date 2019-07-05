@@ -45,6 +45,10 @@ class TestExporterTransformations(unittest.TestCase):
             '@Janet'
         )
         self.assertEqual(
+            self.exporter._transform_markup_text("<@U999999999>"), 
+            '@unknown_U999999999'
+        )
+        self.assertEqual(
             self.exporter._transform_markup_text("<#C723456789>"), 
             '#tokio'
         )
