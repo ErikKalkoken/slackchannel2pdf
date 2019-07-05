@@ -1,5 +1,9 @@
 import unittest
-from run import Exporter
+import os,sys,inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0,parentdir) 
+from channel_exporter import ChannelExporter
 
 class TestExporter(unittest.TestCase):
 
@@ -16,7 +20,9 @@ class TestExporter(unittest.TestCase):
             "C423456789": "oslo"
         }
 
-        self.exporter = Exporter(user_names, channel_names)
+        self.exporter = ChannelExporter("TEST")
+        self.exporter._user_names = user_names
+        self.exporter._channel_names = channel_names
 
 
     def test_transform_markup_text(self):
