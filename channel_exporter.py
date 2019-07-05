@@ -27,7 +27,7 @@ class ChannelExporter:
 
     Names of users, bots and channels are automatically resolved if possible.
 
-    Attachments and blocks are supported.
+    Attachments and blocks (sections only for now) are supported.
 
     """    
     # style and layout settings for PDF
@@ -65,6 +65,7 @@ class ChannelExporter:
             self._workspace_info = dict()
             self._user_names = dict()
             self._channel_names = dict()
+            self._bot_names = dict()
 
 
     # *************************************************************************
@@ -290,6 +291,49 @@ class ChannelExporter:
         return response
 
 
+    def _fetch_bot_names_for_messages(self, messages, threads):
+        """Fetches bot names from API for provided messages 
+        
+        Will only fetch names for bots that never appeared with a username
+        in any message (lazy approach since calls to bots_info are very slow)
+        """        
+        # collect bot_ids without user name from messasges
+        bot_ids = list()
+        bot_names = dict()
+        for msg in messages:
+            if "bot_id" in msg: 
+                bot_id = msg["bot_id"]
+                if "username" in msg:
+                    bot_names[bot_id] = msg["username"]
+                else:
+                    bot_ids.append(bot_id)
+
+        # collect bot_ids without user name from thread messages
+        for thread_messages in threads:
+            for msg in thread_messages:
+                if "bot_id" in msg: 
+                    bot_id = msg["bot_id"]
+                    if "username" in msg:
+                        bot_names[bot_id] = msg["username"]
+                    else:
+                        bot_ids.append(bot_id)
+
+        # Find bot IDs that are not in bot_names
+        bot_ids = set(bot_ids).difference(bot_names.keys())
+        
+        # collect bot names from API
+        print("Fetching names for {} bots".format(len(bot_ids)))
+        bot_names = dict()
+        for bot_id in bot_ids:
+            response = self._client.bots_info(bot=bot_id)
+            if response["ok"]:
+                bot_names[bot_id] = response["bot"]["name"]
+                sleep(1)   # need to wait 1 sec before next call due to rate limits
+        
+        return bot_names
+                        
+
+
     # *************************************************************************
     # Methods for parsing and transforming Slack messages
     # *************************************************************************
@@ -396,6 +440,12 @@ class ChannelExporter:
             s2
             )
 
+        s2 = re.sub(
+            r'[_]([^*]+)[_]',
+            r'<i>\1</i>',
+            s2
+            )
+
         # code
         s2 = re.sub(
             r'[`]([^`]+)[`]',
@@ -427,10 +477,6 @@ class ChannelExporter:
             round(float(ts))).strftime(self._FORMAT_DATETIME_LONG)
 
 
-    def _parse_test_and_write(self, document, line_height, html):
-        document.write_html(line_height, html)
-
-
     def _parse_message_and_write_pdf(
             self, 
             document, 
@@ -452,6 +498,8 @@ class ChannelExporter:
             is_bot = True
             if "username" in msg:
                 user_name = msg["username"]
+            elif user_id in self._bot_names:
+                user_name = self._bot_names[user_id]
             else:
                 user_name = "unknown_{}".format(user_id)
         else:
@@ -485,26 +533,27 @@ class ChannelExporter:
                 document.set_font(
                     self._FONT_FAMILY_DEFAULT, 
                     size=self._FONT_SIZE_NORMAL)            
-                self._parse_test_and_write(
-                    document, 
+                document.write_html(
                     self._LINE_HEIGHT_DEFAULT, 
                     self._transform_markup_text(msg["text"]))
                 document.ln()
 
             if "attachments" in msg:
+                # draw attachments
                 document.ln()
                 document.set_left_margin(margin_left + self._TAB_WIDTH)
                 document.set_x(margin_left + self._TAB_WIDTH)
                 
                 for attach in msg["attachments"]:            
+                    
+                    # normal text attachment
                     if "pretext" in attach:
                         document.set_left_margin(margin_left)
                         document.set_x(margin_left)
                         document.set_font(
                             self._FONT_FAMILY_DEFAULT, 
                             size=self._FONT_SIZE_NORMAL)
-                        self._parse_test_and_write(
-                            document, 
+                        document.write_html(
                             self._LINE_HEIGHT_DEFAULT, 
                             self._transform_markup_text(attach["pretext"]))
                         document.set_left_margin(
@@ -522,22 +571,32 @@ class ChannelExporter:
                             self._transform_text(attach["author_name"]))
                         document.ln()
 
+
                     if "title" in attach:
+                        title_text = self._transform_markup_text(attach["title"])
+
+                        # add link to title if defined
+                        if "title_link" in attach:
+                            title_text = ('<a href="' + attach["title_link"] 
+                                + '">' + title_text 
+                                + '</a>')
+                        
+                        # add bold formatting to title
+                        title_text = '<b>' + title_text + '</b>'
+
                         document.set_font(
                             self._FONT_FAMILY_DEFAULT, 
-                            size=self._FONT_SIZE_NORMAL, 
-                            style="B")
-                        document.write(
+                            size=self._FONT_SIZE_NORMAL)
+                        document.write_html(
                             self._LINE_HEIGHT_DEFAULT, 
-                            self._transform_text(attach["title"]))
+                            title_text)
                         document.ln()
                     
                     if "text" in attach:
                         document.set_font(
                             self._FONT_FAMILY_DEFAULT, 
                             size=self._FONT_SIZE_NORMAL)
-                        self._parse_test_and_write(
-                            document, 
+                        document.write_html(
                             self._LINE_HEIGHT_DEFAULT, 
                             self._transform_markup_text(attach["text"]))
                         document.ln()
@@ -576,14 +635,67 @@ class ChannelExporter:
                         document.write(self._LINE_HEIGHT_DEFAULT, text)
                         document.ln()
 
-                    if "image_url" in attach:
+                    if "image_url" in attach:                        
+                        image_url_html = ('<a href="' 
+                            + attach["image_url"] 
+                            + '">[Image]</a>')
                         document.set_font(
                             self._FONT_FAMILY_DEFAULT, 
                             size=self._FONT_SIZE_NORMAL)
-                        document.write(self._LINE_HEIGHT_DEFAULT, "[Image]")
+                        document.write_html(
+                            self._LINE_HEIGHT_DEFAULT, 
+                            image_url_html)
                         document.ln()
 
+                    # action attachments
+                    if "actions" in attach:
+                        for action in attach["actions"]:                            
+                            document.set_font(
+                                self._FONT_FAMILY_DEFAULT, 
+                                size=self._FONT_SIZE_SMALL)                            
+                            document.write_html(
+                                self._LINE_HEIGHT_DEFAULT, 
+                                ("[" 
+                                    + self._transform_text(action["text"]) 
+                                    + "] "))
+                        
+                        document.ln()
                     document.ln()
+                document.ln()
+
+            if "blocks" in msg:                
+                document.ln()
+                document.set_left_margin(margin_left + self._TAB_WIDTH)
+                document.set_x(margin_left + self._TAB_WIDTH)
+                
+                for layout_block in msg["blocks"]:
+                    type = layout_block["type"]
+                    
+                    # section layout blocks
+                    if type == "section":
+                        text = layout_block["text"]["text"]
+                        document.set_font(
+                            self._FONT_FAMILY_DEFAULT, 
+                            size=self._FONT_SIZE_NORMAL)
+                        document.write_html(
+                            self._LINE_HEIGHT_DEFAULT, 
+                            self._transform_markup_text(text))
+                        document.ln()
+
+                        if "fields" in layout_block:
+                            for field in layout_block["fields"]:
+                                document.set_font(
+                                    self._FONT_FAMILY_DEFAULT, 
+                                    size=self._FONT_SIZE_NORMAL)
+                                document.write_html(
+                                    self._LINE_HEIGHT_DEFAULT, 
+                                    self._transform_markup_text(field["text"]))
+                                document.ln()
+
+                    document.ln()
+
+                document.ln()
+                
         else:
             user_id = None
 
@@ -616,6 +728,7 @@ class ChannelExporter:
             # if we have a client fetch data from Slack
             messages = self._fetch_messages_from_channel(channel_id, max_messages)
             threads = self._fetch_threads_from_messages(channel_id, messages)
+            self._bot_names = self._fetch_bot_names_for_messages(messages, threads)
             
             filename_base = self._generate_filename_base(channel_id)
             if os.environ['DEVELOPMENT_MODE'] == "true":
