@@ -1,13 +1,26 @@
+from argparse import ArgumentParser
 
-my_list = [
-    {"id": "one", "name": "Naoko", "ts": 89.4},
-    {"id": "two", "name": "Janet", "ts": 100.2},
-    {"id": "three", "name": "Rosie", "ts": 76.2},
-    {"id": "four", "name": "Erik", "ts": 96.1}
-]
+def main():
+    parser = ArgumentParser(
+        description='Tool for exporting Slack channels to PDF'
+        )
+    parser.add_argument(
+        "-t", 
+        "--token", 
+        dest="token", 
+        help="Slack Oauth token", 
+        required=True
+        )
+    parser.add_argument(
+        "-c", 
+        "--channel", 
+        dest="channel", 
+        help="ID of channel to export", 
+        required=True
+        )
+    args = parser.parse_args()
+    print(args.token)
+    print(args.channel)
 
-my_list = sorted(my_list, key=lambda k: k['ts'])
-
-print(my_list)
-
-
+if __name__ == '__main__':
+    main()

@@ -740,7 +740,7 @@ class ChannelExporter:
                             document.set_font(
                                 self._FONT_FAMILY_DEFAULT, 
                                 size=self._FONT_SIZE_NORMAL)
-                            document.write(
+                            document.write_html(
                                 self._LINE_HEIGHT_DEFAULT, 
                                 self._transform_text(
                                     field["value"], 
@@ -933,7 +933,7 @@ class ChannelExporter:
             )
 
 
-    def run(self, channel_id, max_messages=None):
+    def run(self, channel_id, max_messages=None, developer_mode=False):
         """export all message from a channel and store them in a PDF
         
         Args:
@@ -949,7 +949,7 @@ class ChannelExporter:
             self._bot_names = self._fetch_bot_names_for_messages(messages, threads)
             
             filename_base = self._generate_filename_base(channel_id)
-            if os.environ['DEVELOPMENT_MODE'] == "true":
+            if developer_mode:
                 # write raw messages and threads to file in development
                 self._write_messages_to_file(messages, filename_base)
                 self._write_messages_to_file(threads, filename_base + "_threads")
@@ -969,7 +969,7 @@ class ChannelExporter:
         workspace_name = self._workspace_info["team"]
         channel_name = self._channel_names[channel_id]
         creation_date = datetime.utcnow()
-        creation_date_str = creation_date.strftime(self._FORMAT_DATE)        
+        creation_datetime_str = creation_date.strftime(self._FORMAT_DATETIME)        
         if self._workspace_info["user_id"] in self._user_names:
             author = self._user_names[self._workspace_info["user_id"]]
         else:
@@ -1022,7 +1022,7 @@ class ChannelExporter:
         table_def = {
             "Slack workspace": workspace_name,
             "Channel": channel_name,            
-            "Exported on": creation_date_str,
+            "Exported at": creation_datetime_str,
             "Exported by": author,
             "Start date": start_date.strftime(self._FORMAT_DATETIME),
             "End date": end_date.strftime(self._FORMAT_DATETIME),

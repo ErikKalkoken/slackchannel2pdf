@@ -12,6 +12,8 @@ def main():
         "user_id": "U0HBXN3H8"
     }
     exporter._user_names["U0HBXN3H8"] = "Erik Kalkoken"
+    exporter._user_names["UBBKA171Q"] = "Mr. X"
+    exporter._user_names["U9PTYC16J"] = "Mr. Y"
     exporter._channel_names = {
         "test_attachment": "test-attachments"
     }
