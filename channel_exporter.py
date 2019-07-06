@@ -36,6 +36,16 @@ class MyFPDF(FPDF_ext):
         self.set_y(-15)
         self.cell(0, 10, "Page " + str(self.page_no()) + " / {nb}", 0, 0, "C")
 
+    def _write_info_table(self, table_def):        
+        """write info table defined by dict"""
+        cell_height = 10        
+        for key, value in table_def.items():
+            self.set_font(self.font_family, style="B")
+            self.cell(50, cell_height, str(key), 1)
+            self.set_font(self.font_family)
+            self.cell(0, cell_height, str(value), 1)
+            self.ln()
+
 
 class ChannelExporter:
     """Class for exporting slack channels to PDF files
@@ -67,7 +77,8 @@ class ChannelExporter:
     _MARGIN_LEFT = 10
     _TAB_WIDTH = 4
     _FORMAT_DATE = '%Y-%b-%d'
-    _FORMAT_DATETIME = '%Y-%b-%d %H:%M:%S'
+    _FORMAT_DATETIME = '%Y-%b-%d %H:%M'
+    _FORMAT_TIME = '%H:%M'
 
     # limits for fetching messages from Slack
     _MESSAGES_PER_PAGE = 200 # max message retrieved per request during paging
@@ -516,7 +527,7 @@ class ChannelExporter:
     def _get_datetime_formatted_str(self, ts):
         """return given timestamp as formated datetime string"""
         return datetime.utcfromtimestamp(
-            round(float(ts))).strftime(self._FORMAT_DATETIME)
+            round(float(ts))).strftime(self._FORMAT_TIME)
 
 
     def _parse_message_and_write_to_pdf(
@@ -921,21 +932,6 @@ class ChannelExporter:
                 "I"
             )
 
-    def _write_info_table(self, document, table_def):        
-        cell_height = 10
-        for key, value in table_def.items():
-            document.set_font(
-                self._FONT_FAMILY_DEFAULT, 
-                size=self._FONT_SIZE_NORMAL,
-                style="B"
-                )
-            document.cell(50, cell_height, str(key), 1)
-            document.set_font(
-                self._FONT_FAMILY_DEFAULT, 
-                size=self._FONT_SIZE_NORMAL                
-                )
-            document.cell(0, cell_height, str(value), 1)
-            document.ln()
 
     def run(self, channel_id, max_messages=None):
         """export all message from a channel and store them in a PDF
@@ -981,8 +977,9 @@ class ChannelExporter:
         
         # count all messages including threads
         message_count = len(messages)
-        for thread_ts, thread_messages in threads.items():
-            message_count += len(thread_messages) -1
+        if len(threads) > 0:
+            for thread_ts, thread_messages in threads.items():
+                message_count += len(thread_messages) -1
 
         # find start and end date based on messages
         ts_extract = [d['ts'] for d in messages]
@@ -1030,9 +1027,9 @@ class ChannelExporter:
             "Start date": start_date.strftime(self._FORMAT_DATETIME),
             "End date": end_date.strftime(self._FORMAT_DATETIME),
             "Messages": message_count,
-            "Threads": len(threads.keys())
+            "Threads": len(threads.keys()) if len(threads) > 0 else 0
         }
-        self._write_info_table(document, table_def)
+        document._write_info_table(table_def)
         
         # write messages to PDF
         self._write_messages_to_pdf(document, messages, threads)
