@@ -8,7 +8,8 @@ from channel_exporter import ChannelExporter
 def main():
     exporter = ChannelExporter("TEST")
     exporter._workspace_info = {
-        "team": "Dummy"
+        "team": "Dummy",
+        "user_id": "U0HBXN3H8"
     }
     exporter._user_names["U0HBXN3H8"] = "Erik Kalkoken"
     exporter._channel_names = {

@@ -1,12 +1,13 @@
-import re
 
-s = "this is some *bold* text"
+my_list = [
+    {"id": "one", "name": "Naoko", "ts": 89.4},
+    {"id": "two", "name": "Janet", "ts": 100.2},
+    {"id": "three", "name": "Rosie", "ts": 76.2},
+    {"id": "four", "name": "Erik", "ts": 96.1}
+]
 
-s2 = re.sub(
-    r'[*]([^*]+)[*]',
-    r'<b>\1</b>',
-    s
-)
+my_list = sorted(my_list, key=lambda k: k['ts'])
 
-print(s2)
+print(my_list)
+
 

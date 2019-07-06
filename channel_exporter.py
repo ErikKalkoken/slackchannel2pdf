@@ -140,7 +140,7 @@ class ChannelExporter:
             len(messages_all),
             channel_id
             ))
-
+        
         return messages_all
 
 
@@ -160,6 +160,7 @@ class ChannelExporter:
         except:
             print("failed to read from {}".format(filename))
             messages = list()
+                
         return messages
 
 
@@ -228,7 +229,7 @@ class ChannelExporter:
                 len(messages_all),                
                 thread_ts
             ))
-
+        
         return messages_all
 
 
@@ -366,25 +367,25 @@ class ChannelExporter:
     # Methods for parsing and transforming Slack messages
     # *************************************************************************
 
-    def _transform_text(self, text):    
-        """return string where non latin-1 characters have been replaced"""
-        text = html.unescape(text)
-        text2 = text.encode('latin-1', 'replace').decode('latin-1')
-        return text2
-
-
-    def _transform_markup_text(self, text):    
-        """transforms markup text into HTML text for PDF output
+    def _transform_text(self, text, use_mrkdwn=False):    
+        """transforms mrkdwn text into HTML text for PDF output
         
-        Main method to resolve all markups, e.g. <C12345678>, <!here>, *bold*
+        Main method to resolve all mrkdwn, e.g. <C12345678>, <!here>, *bold*
         Will resolve channel and user IDs to their names if possible
         Returns string with rudimentary HTML for formatting and links
+
+        Attr:
+            text: text string to be transformed
+            use_mrkdwn: will transform mrkdwn if set to true
+
+        Returns:
+            transformed text string with HTML formatting
         """
         
-        def replace_markup_in_text(matchObj):
+        def replace_mrkdwn_in_text(matchObj):
             """inline function returns replacement string for re.sub            
             
-            This function does the actual resolving of IDs and markup key words
+            This function does the actual resolving of IDs and mrkdwn key words
             """             
             match = matchObj.group(1)
 
@@ -459,53 +460,56 @@ class ChannelExporter:
             return replacement
 
 
-        # pass 1 - adjust encoding and transform HTML entities
-        s = self._transform_text(text)        
+        # pass 1 - adjust encoding to latin-1 and transform HTML entities        
+        text = html.unescape(text)
+        s2 = text.encode('latin-1', 'replace').decode('latin-1')
 
-        # pass 2 - transform markups with brackets
-        s2 = re.sub(
-            r'<(.*?)>',
-            replace_markup_in_text,
-            s
-            )
+        # if requested try to transform mrkdwn in text
+        if use_mrkdwn:
 
-        # pass 3 - transform formatting markups
+            # pass 2 - transform mrkdwns with brackets
+            s2 = re.sub(
+                r'<(.*?)>',
+                replace_mrkdwn_in_text,
+                s2
+                )
 
-        # bold
-        s2 = re.sub(
-            r'[*]([^*]+)[*]',
-            r'<b>\1</b>',
-            s2
-            )
+            # pass 3 - transform formatting mrkdwns
 
-        s2 = re.sub(
-            r'[_]([^*]+)[_]',
-            r'<i>\1</i>',
-            s2
-            )
+            # bold
+            s2 = re.sub(
+                r'\*(.+)\*',
+                r'<b>\1</b>',
+                s2
+                )
 
-        # code
-        s2 = re.sub(
-            r'[`]([^`]+)[`]',
-            r'<s fontfamily="Courier">\1</s>',
-            s2
-            )
+            s2 = re.sub(
+                r'\b_(.+)_\b',
+                r'<i>\1</i>',
+                s2
+                )
 
-        # idents
-        s2 = re.sub(
-            r'^>(.+)',
-            r'<blockquote>\1</blockquote>',
-            s2,
-            0,
-            re.MULTILINE
-            )
+            # code
+            s2 = re.sub(
+                r'`(.*)`',
+                r'<s fontfamily="Courier">\1</s>',
+                s2
+                )
 
-        s2 = s2.replace("</blockquote><br>", "</blockquote>")
+            # idents
+            s2 = re.sub(
+                r'^>(.+)',
+                r'<blockquote>\1</blockquote>',
+                s2,
+                0,
+                re.MULTILINE
+                )
 
-        # EOF
-        s2 = s2.replace("\n", "<br>")
+            s2 = s2.replace("</blockquote><br>", "</blockquote>")
 
-        
+            # EOF
+            s2 = s2.replace("\n", "<br>")
+
         return s2
 
 
@@ -515,13 +519,13 @@ class ChannelExporter:
             round(float(ts))).strftime(self._FORMAT_DATETIME)
 
 
-    def _parse_message_and_write_pdf(
+    def _parse_message_and_write_to_pdf(
             self, 
             document, 
             msg, 
             margin_left, 
             last_user_id):
-        """parse message to write and add to PDF"""
+        """parse a message and write it to the PDF"""
         
         if "user" in msg:
             user_id = msg["user"]
@@ -529,7 +533,7 @@ class ChannelExporter:
             if user_id in self._user_names:
                 user_name = self._user_names[user_id]
             else:
-                user_name = "unknown_{}".format(user_id)
+                user_name = "unknown_user_{}".format(user_id)
         
         elif "bot_id" in msg:
             user_id = msg["bot_id"]
@@ -539,7 +543,7 @@ class ChannelExporter:
             elif user_id in self._bot_names:
                 user_name = self._bot_names[user_id]
             else:
-                user_name = "unknown_{}".format(user_id)
+                user_name = "unknown_bot_{}".format(user_id)
         else:
             user_name = None
             
@@ -567,14 +571,72 @@ class ChannelExporter:
                 document.write(self._LINE_HEIGHT_DEFAULT, datetime_str)
                 document.ln()            
             
-            if "text" in msg:
+            if "text" in msg and len(msg["text"]) > 0:
                 document.set_font(
                     self._FONT_FAMILY_DEFAULT, 
-                    size=self._FONT_SIZE_NORMAL)            
+                    size=self._FONT_SIZE_NORMAL)                            
                 document.write_html(
                     self._LINE_HEIGHT_DEFAULT, 
-                    self._transform_markup_text(msg["text"]))
+                    self._transform_text(
+                        msg["text"], 
+                        msg["mrkdwn"] if "mrkdwn" in msg else True
+                    ))
                 document.ln()
+
+            if "reactions" in msg:
+                 # draw reactions                
+                for reaction in msg["reactions"]:        
+                    document.set_left_margin(margin_left + self._TAB_WIDTH)
+                    document.set_x(margin_left + self._TAB_WIDTH)
+                    document.set_font(
+                        self._FONT_FAMILY_DEFAULT, 
+                        size=self._FONT_SIZE_NORMAL)                           
+                    document.write_html(
+                        self._LINE_HEIGHT_DEFAULT, 
+                        ("[" 
+                            + reaction["name"]
+                            + "] ("
+                            + str(reaction["count"])
+                            + "):"))
+                    document.ln()
+                    
+                    # convert user IDs to names
+                    users_with_names = list()
+                    for user in reaction["users"]:
+                        if user in self._user_names:
+                            user_name = self._user_names[user]
+                        else:
+                            user_name = "unknown_user_" + user
+
+                        users_with_names.append('<b>' + user_name + '</b>')
+
+                    document.set_left_margin(margin_left + self._TAB_WIDTH + self._TAB_WIDTH)
+                    document.set_x(margin_left + self._TAB_WIDTH + self._TAB_WIDTH)                    
+                    document.write_html(
+                        self._LINE_HEIGHT_DEFAULT, 
+                        ", ".join(users_with_names)
+                    )
+                    document.ln()
+                
+                document.ln(self._LINE_HEIGHT_SMALL)
+
+            if "files" in msg:
+                # draw files
+                document.set_left_margin(margin_left + self._TAB_WIDTH)
+                document.set_x(margin_left + self._TAB_WIDTH)
+
+                for file in msg["files"]:
+                    text = ('[' 
+                        + file["pretty_type"]
+                        + ' file: <b>'
+                        + file["name"] 
+                        + '</b>'
+                        + ']')
+                    document.set_font(
+                        self._FONT_FAMILY_DEFAULT, 
+                        size=self._FONT_SIZE_NORMAL)
+                    document.write_html(self._LINE_HEIGHT_DEFAULT, text)
+                    document.ln()
 
             if "attachments" in msg:
                 # draw attachments                                
@@ -583,7 +645,12 @@ class ChannelExporter:
                 
                 # draw normal text attachments
                 for attach in msg["attachments"]:            
-                                        
+                        
+                    if "mrkdwn_in" in attach:
+                        mrkdwn_in = attach["mrkdwn_in"]
+                    else:
+                        mrkdwn_in = []
+                    
                     if "pretext" in attach:
                         document.set_left_margin(margin_left)
                         document.set_x(margin_left)
@@ -592,7 +659,10 @@ class ChannelExporter:
                             size=self._FONT_SIZE_NORMAL)
                         document.write_html(
                             self._LINE_HEIGHT_DEFAULT, 
-                            self._transform_markup_text(attach["pretext"]))
+                            self._transform_text(
+                                attach["pretext"], 
+                                "pretext" in mrkdwn_in
+                            ))
                         document.set_left_margin(
                             margin_left + self._TAB_WIDTH)
                         document.set_x(margin_left + self._TAB_WIDTH)
@@ -612,7 +682,10 @@ class ChannelExporter:
 
 
                     if "title" in attach:
-                        title_text = self._transform_markup_text(attach["title"])
+                        title_text = self._transform_text(
+                            attach["title"], 
+                            "title" in mrkdwn_in
+                            )
 
                         # add link to title if defined
                         if "title_link" in attach:
@@ -637,7 +710,10 @@ class ChannelExporter:
                             size=self._FONT_SIZE_NORMAL)
                         document.write_html(
                             self._LINE_HEIGHT_DEFAULT, 
-                            self._transform_markup_text(attach["text"]))
+                            self._transform_text(
+                                attach["text"],
+                                "text" in mrkdwn_in
+                            ))
                         document.ln()
 
                     if "fields" in attach:
@@ -655,7 +731,10 @@ class ChannelExporter:
                                 size=self._FONT_SIZE_NORMAL)
                             document.write(
                                 self._LINE_HEIGHT_DEFAULT, 
-                                self._transform_markup_text(field["value"]))
+                                self._transform_text(
+                                    field["value"], 
+                                    "fields" in mrkdwn_in
+                                ))
                             document.ln()
 
                     
@@ -711,14 +790,16 @@ class ChannelExporter:
                     document.ln(self._LINE_HEIGHT_SMALL)
 
                     # section layout blocks
-                    if type == "section":
-                        text = layout_block["text"]["text"]
+                    if type == "section":                        
                         document.set_font(
                             self._FONT_FAMILY_DEFAULT, 
                             size=self._FONT_SIZE_NORMAL)
                         document.write_html(
                             self._LINE_HEIGHT_DEFAULT, 
-                            self._transform_markup_text(text))
+                            self._transform_text(
+                                layout_block["text"]["text"],
+                                layout_block["text"]["type"] == "mrkdwn"
+                            ))
                         document.ln()
 
                         if "fields" in layout_block:
@@ -728,29 +809,133 @@ class ChannelExporter:
                                     size=self._FONT_SIZE_NORMAL)
                                 document.write_html(
                                     self._LINE_HEIGHT_DEFAULT, 
-                                    self._transform_markup_text(field["text"]))
+                                    self._transform_text(
+                                        field["text"], 
+                                        field["type"] == "mrkdwn" 
+                                    ))
                                 document.ln()
                     
                 document.ln(self._LINE_HEIGHT_SMALL)
                 
         else:
             user_id = None
+            print("WARN: Can not process message with ts {}".format(msg["ts"]))
 
         return user_id   
-
-
-    def _draw_line_for_threads(self, document):
-        """draw line on PDF document at current position to mark threads"""
-        # x0 = self._MARGIN_LEFT + self._TAB_WIDTH
-        # x1 = x0 + 20
-        # y = document.get_y() + 3
-        # document.line(x0, y, x1, y)
 
 
     def _generate_filename_base(self, channel_id):
         """returns base string for filename from team ID and channel ID"""
         return self._workspace_info["team_id"] + "_" + channel_id
 
+
+    def _write_messages_to_pdf(self, document, messages, threads):
+        """writes messages with their threads to the PDF document"""
+        last_user_id = None
+        last_date = None
+        last_page = None
+        
+        if len(messages) > 0:
+            messages = sorted(messages, key=lambda k: k['ts'])
+            for msg in messages:
+                
+                # write day seperator if needed
+                msg_date = datetime.utcfromtimestamp(
+                    round(float(msg["ts"]))).date()
+                
+                if msg_date != last_date:
+                    document.ln(self._LINE_HEIGHT_SMALL)
+                    document.ln(self._LINE_HEIGHT_SMALL)
+                    document.set_font(
+                        self._FONT_FAMILY_DEFAULT, 
+                        size=self._FONT_SIZE_NORMAL
+                        )
+                    
+                    # draw divider line for next day
+                    width = document.fw - 2 * self._MARGIN_LEFT
+                    x1 = self._MARGIN_LEFT
+                    x2 = x1 + width
+                    y1 = document.get_y() + 3                
+                    document.line(x1, y1, x2, y1)
+                    
+                    # stamp date on divider
+                    date_text = msg_date.strftime(self._FORMAT_DATE)
+                    width = document.get_string_width(date_text)
+                    cell_x = (x2 - x1 - width) / 2
+                    cell_y = y1                
+                    document.cell(cell_x)
+                    document.set_fill_color(255, 255, 255)
+                    document.cell(
+                        30,
+                        self._LINE_HEIGHT_DEFAULT,
+                        date_text, 
+                        0,
+                        0,
+                        "C",
+                        True
+                    )
+                    
+                    document.ln()
+                    last_date = msg_date
+                    last_user_id = None     # repeat user name for new day
+                
+                # repeat user name for new page
+                if last_page != document.page_no():
+                    last_user_id = None
+                    last_page = document.page_no()
+
+                last_user_id = self._parse_message_and_write_to_pdf(
+                    document, 
+                    msg, 
+                    self._MARGIN_LEFT, 
+                    last_user_id
+                )
+                if "thread_ts" in msg and msg["thread_ts"] == msg["ts"]:
+                    thread_ts = msg["thread_ts"]
+                    
+                    if thread_ts in threads:
+                        thread_messages = threads[thread_ts]                       
+                        last_user_id = None                                                
+                        thread_messages = sorted(
+                            thread_messages, 
+                            key=lambda k: k['ts']
+                            )
+                        for thread_msg in thread_messages:                            
+                            if thread_msg['ts'] != thread_msg['thread_ts']:
+                                last_user_id = self._parse_message_and_write_to_pdf(
+                                    document, 
+                                    thread_msg, 
+                                    self._MARGIN_LEFT + self._TAB_WIDTH, 
+                                    last_user_id
+                                )
+                        
+                    last_user_id = None
+        else:
+            document.set_font(
+                self._FONT_FAMILY_DEFAULT, 
+                size=self._FONT_SIZE_NORMAL
+                )
+            document.write(
+                self._LINE_HEIGHT_DEFAULT, 
+                "This channel is empty", 
+                "I"
+            )
+
+    def _write_info_table(self, document, table_def):        
+        cell_height = 10
+        for key, value in table_def.items():
+            document.set_font(
+                self._FONT_FAMILY_DEFAULT, 
+                size=self._FONT_SIZE_NORMAL,
+                style="B"
+                )
+            document.cell(50, cell_height, str(key), 1)
+            document.set_font(
+                self._FONT_FAMILY_DEFAULT, 
+                size=self._FONT_SIZE_NORMAL                
+                )
+            document.cell(0, cell_height, str(value), 1)
+            document.ln()
 
     def run(self, channel_id, max_messages=None):
         """export all message from a channel and store them in a PDF
@@ -778,25 +963,42 @@ class ChannelExporter:
             filename_base = "test/" + str(channel_id)
             messages = self._read_messages_from_file(filename_base)
             threads = self._read_messages_from_file(filename_base + "_threads")
-
+        
         # create PDF
         document = MyFPDF()
         document.alias_nb_pages()
         document.add_page()
 
-        title = "{} / {}".format(            
-            self._workspace_info["team"],
-            self._channel_names[channel_id]
-            )
+        # compile all values
+        workspace_name = self._workspace_info["team"]
+        channel_name = self._channel_names[channel_id]
         creation_date = datetime.utcnow()
-        sub_title = "Export from Slack channel on {}".format(
-            creation_date.strftime(self._FORMAT_DATE)
-            )
-        page_title = title + " - Channel export from Slack"
+        creation_date_str = creation_date.strftime(self._FORMAT_DATE)        
+        if self._workspace_info["user_id"] in self._user_names:
+            author = self._user_names[self._workspace_info["user_id"]]
+        else:
+            author = "unknown_user_" + self._workspace_info["user_id"]
+        
+        # count all messages including threads
+        message_count = len(messages)
+        for thread_ts, thread_messages in threads.items():
+            message_count += len(thread_messages) -1
+
+        # find start and end date based on messages
+        ts_extract = [d['ts'] for d in messages]
+        ts_min = min(float(s) for s in ts_extract)
+        ts_max = max(float(s) for s in ts_extract)
+        start_date = datetime.utcfromtimestamp(float(ts_min))
+        end_date = datetime.utcfromtimestamp(float(ts_max))
+
+        # set variables for title, header, footer
+        title = "Slack channel PDF export" 
+        sub_title = workspace_name + " / " + channel_name
+        page_title = title + "from " + sub_title
                 
-        # set general properties in document
-        document.set_author("channelexport")
-        document.set_creator("channelexport")
+        # set general properties in document        
+        document.set_author(author)
+        document.set_creator("Channel Export")
         document.set_title(title)
         document.set_creation_date(creation_date)
         document.set_subject(sub_title)                        
@@ -819,84 +1021,24 @@ class ChannelExporter:
         document.cell(0, 0, sub_title, 0, 1, "C")
         document.ln(self._LINE_HEIGHT_DEFAULT)
 
-        last_user_id = None
-        last_date = None
-        last_page = None
-        for msg in reversed(messages):
-            
-            # write day seperator if needed
-            msg_date = datetime.utcfromtimestamp(
-                round(float(msg["ts"]))).date()
-            
-            if msg_date != last_date:
-                document.ln(self._LINE_HEIGHT_SMALL)
-                document.ln(self._LINE_HEIGHT_SMALL)
-                document.set_font(
-                    self._FONT_FAMILY_DEFAULT, 
-                    size=self._FONT_SIZE_NORMAL
-                    )
-                
-                # draw divider line for next day
-                width = document.fw - 2 * document.l_margin
-                x1 = document.l_margin
-                x2 = x1 + width
-                y1 = document.get_y() + 3                
-                document.line(x1, y1, x2, y1)
-                
-                # stamp date on divider
-                date_text = msg_date.strftime(self._FORMAT_DATE)
-                width = document.get_string_width(date_text)
-                cell_x = (x2 - x1 - width) / 2
-                cell_y = y1                
-                document.cell(cell_x)
-                document.set_fill_color(255, 255, 255)
-                document.cell(
-                    30,
-                    self._LINE_HEIGHT_DEFAULT,
-                    date_text, 
-                    0,
-                    0,
-                    "C",
-                    True
-                )
-                
-                document.ln()
-                last_date = msg_date
-                last_user_id = None     # repeat user name for new day
-            
-            # repeat user name for new page
-            if last_page != document.page_no():
-                last_user_id = None
-                last_page = document.page_no()
-
-            last_user_id = self._parse_message_and_write_pdf(
-                document, 
-                msg, 
-                self._MARGIN_LEFT, 
-                last_user_id
-            )
-            if "thread_ts" in msg and msg["thread_ts"] == msg["ts"]:
-                thread_ts = msg["thread_ts"]
-                
-                if thread_ts in threads:
-                    self._draw_line_for_threads(document)
-
-                    last_user_id = None
-                    
-                    for thread_msg in reversed(threads[thread_ts]):
-                        last_user_id = self._parse_message_and_write_pdf(
-                            document, 
-                            thread_msg, 
-                            self._MARGIN_LEFT + self._TAB_WIDTH, 
-                            last_user_id
-                        )
-                    
-                    self._draw_line_for_threads(document)
-                
-                last_user_id = None
-    
+        # write info block after title
+        table_def = {
+            "Slack workspace": workspace_name,
+            "Channel": channel_name,            
+            "Exported on": creation_date_str,
+            "Exported by": author,
+            "Start date": start_date.strftime(self._FORMAT_DATETIME),
+            "End date": end_date.strftime(self._FORMAT_DATETIME),
+            "Messages": message_count,
+            "Threads": len(threads.keys())
+        }
+        self._write_info_table(document, table_def)
+        
+        # write messages to PDF
+        self._write_messages_to_pdf(document, messages, threads)
+        
         # store PDF
         filenamePdf = filename_base + ".pdf"
-        print("Writing messages as PDF to file: " + filenamePdf)
+        print("Writing PDF file: " + filenamePdf)
         document.output(filenamePdf)
     

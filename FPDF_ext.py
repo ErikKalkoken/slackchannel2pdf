@@ -67,7 +67,7 @@ class FPDF_ext(FPDF):
                         matchObj = re.search(
                             r'([^=]*)=["\']?([^"\']*)', 
                             tag_part)
-                        if len(matchObj.groups()) == 2:
+                        if matchObj is not None and len(matchObj.groups()) == 2:
                             attributes[matchObj.group(1).upper()] = \
                                 matchObj.group(2)
                             
