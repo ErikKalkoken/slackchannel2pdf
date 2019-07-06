@@ -10,6 +10,33 @@ import fpdf
 from fpdf_ext import FPDF_ext
 
 
+class MyFPDF(FPDF_ext):
+    """Inheritance of FPDF class to add header and footers"""
+    
+    def __init__(self, orientation='P', unit='mm', format='A4'):
+        super().__init__(orientation=orientation, unit=unit, format=format)
+        self._page_title = ""
+
+    def set_page_title(self, text):
+        """set text to appear as title on every page"""
+        self._page_title = str(text)
+    
+    def header(self):
+        """definition of custom header"""
+        self.set_font(
+            ChannelExporter._FONT_FAMILY_DEFAULT, 
+            size=ChannelExporter._FONT_SIZE_NORMAL, 
+            style="B"
+            )
+        self.cell(0, 0, self._page_title, 0, 1, "C")
+        self.ln(ChannelExporter._LINE_HEIGHT_DEFAULT)
+    
+    def footer(self):
+        """definition of custom footer"""
+        self.set_y(-15)
+        self.cell(0, 10, "Page " + str(self.page_no()) + " / {nb}", 0, 0, "C")
+
+
 class ChannelExporter:
     """Class for exporting slack channels to PDF files
 
@@ -36,10 +63,11 @@ class ChannelExporter:
     _FONT_SIZE_LARGE = 14
     _FONT_SIZE_SMALL = 10
     _LINE_HEIGHT_DEFAULT = 6
+    _LINE_HEIGHT_SMALL = 2
     _MARGIN_LEFT = 10
     _TAB_WIDTH = 4
-    _FORMAT_DATETIME_SHORT = '%Y-%m-%d'
-    _FORMAT_DATETIME_LONG = '%Y-%m-%d %H:%M:%S'
+    _FORMAT_DATE = '%Y-%b-%d'
+    _FORMAT_DATETIME = '%Y-%b-%d %H:%M:%S'
 
     # limits for fetching messages from Slack
     _MESSAGES_PER_PAGE = 200 # max message retrieved per request during paging
@@ -365,6 +393,7 @@ class ChannelExporter:
             parts = id_raw.split("|", 1)
             id = parts[0]
 
+            make_bold = True
             if id_chars == "@U" or id_chars == "@W":
                 # match is a user ID
                 if id in self._user_names:
@@ -381,7 +410,7 @@ class ChannelExporter:
             
             elif match[0:9] == "!subteam":
                 # match is a user group ID
-                replacement = "[user group]"
+                replacement = "@usergroup_dummy"
             
             elif match[0:1] == "!":
                 # match is a special mention
@@ -395,7 +424,8 @@ class ChannelExporter:
                     replacement = "@everyone"                    
             
                 elif match[0:5] == "!date":
-                    date_parts = match.split("^")
+                    make_bold = False
+                    date_parts = match.split("^")                    
                     if len(date_parts) > 1:
                         replacement = self._get_datetime_formatted_str(
                             date_parts[1]
@@ -410,13 +440,21 @@ class ChannelExporter:
                 # match is an URL
                 link_parts = match.split("|")
                 if len(link_parts) == 2:
-                    replacement = ('<a href="' 
-                        + link_parts[0] 
-                        + '">' 
-                        + link_parts[1] 
-                        + '</a>')
+                    url = link_parts[0]
+                    text = link_parts[1] 
                 else:
-                    replacement = "(unknown)"
+                    url = match
+                    text = match  
+
+                make_bold = False
+                replacement = ('<a href="' 
+                        + url 
+                        + '">' 
+                        + text
+                        + '</a>')
+
+            if make_bold:
+                replacement =  '<b>' + replacement + '</b>'
 
             return replacement
 
@@ -474,7 +512,7 @@ class ChannelExporter:
     def _get_datetime_formatted_str(self, ts):
         """return given timestamp as formated datetime string"""
         return datetime.utcfromtimestamp(
-            round(float(ts))).strftime(self._FORMAT_DATETIME_LONG)
+            round(float(ts))).strftime(self._FORMAT_DATETIME)
 
 
     def _parse_message_and_write_pdf(
@@ -512,7 +550,7 @@ class ChannelExporter:
             
             if last_user_id != user_id:
                 # write user name and date only when user switches
-                document.ln()
+                document.ln(self._LINE_HEIGHT_SMALL)
                 document.set_font(
                     self._FONT_FAMILY_DEFAULT, 
                     size=self._FONT_SIZE_NORMAL, 
@@ -539,14 +577,13 @@ class ChannelExporter:
                 document.ln()
 
             if "attachments" in msg:
-                # draw attachments
-                document.ln()
+                # draw attachments                                
                 document.set_left_margin(margin_left + self._TAB_WIDTH)
                 document.set_x(margin_left + self._TAB_WIDTH)
                 
+                # draw normal text attachments
                 for attach in msg["attachments"]:            
-                    
-                    # normal text attachment
+                                        
                     if "pretext" in attach:
                         document.set_left_margin(margin_left)
                         document.set_x(margin_left)
@@ -560,6 +597,8 @@ class ChannelExporter:
                             margin_left + self._TAB_WIDTH)
                         document.set_x(margin_left + self._TAB_WIDTH)
                         document.ln()
+
+                    document.ln(self._LINE_HEIGHT_SMALL)
 
                     if "author_name" in attach:
                         document.set_font(
@@ -660,17 +699,17 @@ class ChannelExporter:
                                     + "] "))
                         
                         document.ln()
-                    document.ln()
-                document.ln()
+                
+                document.ln(self._LINE_HEIGHT_SMALL)
 
-            if "blocks" in msg:                
-                document.ln()
+            if "blocks" in msg:                                
                 document.set_left_margin(margin_left + self._TAB_WIDTH)
                 document.set_x(margin_left + self._TAB_WIDTH)
                 
                 for layout_block in msg["blocks"]:
                     type = layout_block["type"]
-                    
+                    document.ln(self._LINE_HEIGHT_SMALL)
+
                     # section layout blocks
                     if type == "section":
                         text = layout_block["text"]["text"]
@@ -691,10 +730,8 @@ class ChannelExporter:
                                     self._LINE_HEIGHT_DEFAULT, 
                                     self._transform_markup_text(field["text"]))
                                 document.ln()
-
-                    document.ln()
-
-                document.ln()
+                    
+                document.ln(self._LINE_HEIGHT_SMALL)
                 
         else:
             user_id = None
@@ -704,10 +741,10 @@ class ChannelExporter:
 
     def _draw_line_for_threads(self, document):
         """draw line on PDF document at current position to mark threads"""
-        x0 = self._MARGIN_LEFT + self._TAB_WIDTH
-        x1 = x0 + 20
-        y = document.get_y() + 3
-        document.line(x0, y, x1, y)
+        # x0 = self._MARGIN_LEFT + self._TAB_WIDTH
+        # x1 = x0 + 20
+        # y = document.get_y() + 3
+        # document.line(x0, y, x1, y)
 
 
     def _generate_filename_base(self, channel_id):
@@ -743,47 +780,95 @@ class ChannelExporter:
             threads = self._read_messages_from_file(filename_base + "_threads")
 
         # create PDF
-        document = FPDF_ext()
+        document = MyFPDF()
+        document.alias_nb_pages()
         document.add_page()
 
-        # write title
-        title = "Slack Workspace: {} / Channel: {}".format(
+        title = "{} / {}".format(            
             self._workspace_info["team"],
             self._channel_names[channel_id]
-        )
+            )
+        creation_date = datetime.utcnow()
+        sub_title = "Export from Slack channel on {}".format(
+            creation_date.strftime(self._FORMAT_DATE)
+            )
+        page_title = title + " - Channel export from Slack"
+                
+        # set general properties in document
+        document.set_author("channelexport")
+        document.set_creator("channelexport")
+        document.set_title(title)
+        document.set_creation_date(creation_date)
+        document.set_subject(sub_title)                        
+        document.set_page_title(page_title)
+        
+        # write title on first page        
         document.set_font(
             self._FONT_FAMILY_DEFAULT, 
             size=self._FONT_SIZE_LARGE, 
             style="B"
             )
-        document.set_left_margin(self._MARGIN_LEFT)
-        document.set_x(self._MARGIN_LEFT)
-        document.write(self._LINE_HEIGHT_DEFAULT, title)
-        document.ln()
+        document.cell(0, 0, title, 0, 1, "C")
+        document.ln(self._LINE_HEIGHT_DEFAULT)
+        
+        document.set_font(
+            self._FONT_FAMILY_DEFAULT, 
+            size=self._FONT_SIZE_NORMAL, 
+            style="B"
+            )
+        document.cell(0, 0, sub_title, 0, 1, "C")
+        document.ln(self._LINE_HEIGHT_DEFAULT)
 
         last_user_id = None
-        latest_date = None
+        last_date = None
+        last_page = None
         for msg in reversed(messages):
             
             # write day seperator if needed
             msg_date = datetime.utcfromtimestamp(
                 round(float(msg["ts"]))).date()
             
-            if msg_date != latest_date:
-                document.ln()
-                document.ln()
+            if msg_date != last_date:
+                document.ln(self._LINE_HEIGHT_SMALL)
+                document.ln(self._LINE_HEIGHT_SMALL)
                 document.set_font(
                     self._FONT_FAMILY_DEFAULT, 
-                    size=self._FONT_SIZE_NORMAL, 
-                    style="U")
-                document.set_left_margin(self._MARGIN_LEFT)
-                document.set_x(self._MARGIN_LEFT)
-                document.write(
-                    self._LINE_HEIGHT_DEFAULT, 
-                    msg_date.strftime(self._FORMAT_DATETIME_SHORT))
+                    size=self._FONT_SIZE_NORMAL
+                    )
+                
+                # draw divider line for next day
+                width = document.fw - 2 * document.l_margin
+                x1 = document.l_margin
+                x2 = x1 + width
+                y1 = document.get_y() + 3                
+                document.line(x1, y1, x2, y1)
+                
+                # stamp date on divider
+                date_text = msg_date.strftime(self._FORMAT_DATE)
+                width = document.get_string_width(date_text)
+                cell_x = (x2 - x1 - width) / 2
+                cell_y = y1                
+                document.cell(cell_x)
+                document.set_fill_color(255, 255, 255)
+                document.cell(
+                    30,
+                    self._LINE_HEIGHT_DEFAULT,
+                    date_text, 
+                    0,
+                    0,
+                    "C",
+                    True
+                )
+                
                 document.ln()
-                latest_date = msg_date
+                last_date = msg_date
+                last_user_id = None     # repeat user name for new day
             
+            # repeat user name for new page
+            if last_page != document.page_no():
+                last_user_id = None
+                last_page = document.page_no()
+
             last_user_id = self._parse_message_and_write_pdf(
                 document, 
                 msg, 
@@ -796,6 +881,8 @@ class ChannelExporter:
                 if thread_ts in threads:
                     self._draw_line_for_threads(document)
 
+                    last_user_id = None
+                    
                     for thread_msg in reversed(threads[thread_ts]):
                         last_user_id = self._parse_message_and_write_pdf(
                             document, 

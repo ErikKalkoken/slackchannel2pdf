@@ -42,27 +42,27 @@ class TestExporterTransformations(unittest.TestCase):
     def test_transform_markup_text(self):
         self.assertEqual(
             self.exporter._transform_markup_text("<@U623456789>"), 
-            '@Janet'
+            '<b>@Janet</b>'
         )
         self.assertEqual(
             self.exporter._transform_markup_text("<@U999999999>"), 
-            '@unknown_U999999999'
+            '<b>@unknown_U999999999</b>'
         )
         self.assertEqual(
             self.exporter._transform_markup_text("<#C723456789>"), 
-            '#tokio'
+            '<b>#tokio</b>'
         )
         self.assertEqual(
             self.exporter._transform_markup_text("<!everyone>"), 
-            '@everyone'
+            '<b>@everyone</b>'
         )        
         self.assertEqual(
             self.exporter._transform_markup_text("<!here>"), 
-            '@here'
+            '<b>@here</b>'
         )
         self.assertEqual(
             self.exporter._transform_markup_text("<!channel>"), 
-            '@channel'
+            '<b>@channel</b>'
         )
         self.assertEqual(
             self.exporter._transform_markup_text(
@@ -75,8 +75,12 @@ class TestExporterTransformations(unittest.TestCase):
             '<a href="https://www.google.com">Google</a>'            
         )
         self.assertEqual(
+            self.exporter._transform_markup_text("<https://www.google.com>"), 
+            '<a href="https://www.google.com">https://www.google.com</a>'
+        )
+        self.assertEqual(
             self.exporter._transform_markup_text("some text <@U623456789> more text"), 
-            'some text @Janet more text'
+            'some text <b>@Janet</b> more text'
         )
         self.assertEqual(
             self.exporter._transform_markup_text("*bold*"), 
@@ -87,8 +91,8 @@ class TestExporterTransformations(unittest.TestCase):
             '<s fontfamily="Courier">code</s>'
         )
         self.assertEqual(
-            self.exporter._transform_markup_text("some *text <@U623456789>* more text"), 
-            'some <b>text @Janet</b> more text'
+            self.exporter._transform_markup_text("some *text* <@U623456789> more text"), 
+            'some <b>text</b> <b>@Janet</b> more text'
         )
         self.assertEqual(
             self.exporter._transform_markup_text("first\nsecond\nthird"), 
@@ -96,12 +100,8 @@ class TestExporterTransformations(unittest.TestCase):
         )
         self.assertEqual(
             self.exporter._transform_markup_text("<!subteam>"), 
-            '[user group]'
-        )
-        self.assertEqual(
-            self.exporter._transform_markup_text("<unsupported tag>"), 
-            '(unknown)'
-        )
+            '<b>@usergroup_dummy</b>'
+        )        
         self.assertEqual(
             self.exporter._transform_markup_text("before ident\n>indented text\nafter ident"), 
             'before ident<br><blockquote>indented text</blockquote><br>after ident'

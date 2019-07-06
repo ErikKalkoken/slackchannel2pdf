@@ -10,9 +10,7 @@ def main():
     exporter._workspace_info = {
         "team": "Dummy"
     }
-    exporter._user_names = {
-        "U0HBXN3H8": "Erik Kalkoken"
-    },
+    exporter._user_names["U0HBXN3H8"] = "Erik Kalkoken"
     exporter._channel_names = {
         "test_attachment": "test-attachments"
     }
