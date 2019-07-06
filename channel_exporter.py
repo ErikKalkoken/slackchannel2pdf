@@ -117,10 +117,14 @@ class ChannelExporter:
         if max_messages is None:
             max_messages = self._MAX_MESSAGES_PER_CHANNEL
 
+        channel_name = self._channel_names[channel_id]
         messages_per_page = min(self._MESSAGES_PER_PAGE, max_messages)
         # get first page
         page = 1
-        print("Retrieving page {}".format(page))
+        print("Messages from channel '{}' - Retrieving page {}".format(
+            channel_name, 
+            page
+            ))
         response = self._client.conversations_history(
             channel=channel_id,
             limit=messages_per_page,
@@ -132,7 +136,10 @@ class ChannelExporter:
         while (len(messages_all) < max_messages and 
                 response['has_more']):
             page += 1
-            print("Retrieving page {}".format(page))
+            print("Messages from channel '{}' - Retrieving page {}".format(
+                channel_name, 
+                page
+                ))
             sleep(1)   # need to wait 1 sec before next call due to rate limits
             # allow smaller page sized to fetch final page
             page_limit = min(
@@ -147,9 +154,8 @@ class ChannelExporter:
             messages = response['messages']
             messages_all = messages_all + messages
 
-        print("Fetched a total of {} messages from channel {}".format(
-            len(messages_all),
-            channel_id
+        print("Fetched a total of {} messages from channel".format(
+            len(messages_all)
             ))
         
         return messages_all
@@ -196,6 +202,7 @@ class ChannelExporter:
         self, 
         channel_id, 
         thread_ts, 
+        thread_num,
         max_messages=None):
         """retrieve messages from a Slack thread and return as list"""
         
@@ -205,8 +212,8 @@ class ChannelExporter:
         messages_per_page = min(self._MESSAGES_PER_PAGE, max_messages)
         # get first page
         page = 1
-        print("Threads for message {} - retrieving page {}".format(
-            thread_ts,
+        print("Messages from thread {} - retrieving page {}".format(
+            thread_num,
             page
             ))
         response = self._client.conversations_replies(
@@ -221,8 +228,8 @@ class ChannelExporter:
         while (len(messages_all) + messages_per_page <= max_messages and 
                 response['has_more']):
             page += 1
-            print("Threads for message {} - retrieving page {}".format(
-                thread_ts,
+            print("Messages from thread {} - retrieving page {}".format(
+                thread_num,
                 page
                 ))
             sleep(1)   # need to wait 1 sec before next call due to rate limits
@@ -236,11 +243,6 @@ class ChannelExporter:
             messages = response['messages']
             messages_all = messages_all + messages
 
-        print("Fetched a total of {} thread messages from message {}".format(
-                len(messages_all),                
-                thread_ts
-            ))
-        
         return messages_all
 
 
@@ -255,15 +257,26 @@ class ChannelExporter:
             max_messages = self._MAX_MESSAGES_PER_THREAD
         
         threads = dict()
+        thread_num = 0
+        thread_messages_total = 0
         for msg in messages:
             if "thread_ts" in msg and msg["thread_ts"] == msg["ts"]:
                 thread_ts = msg["thread_ts"]
+                thread_num += 1
                 thread_messages = self._fetch_messages_from_thread(                    
                     channel_id, 
                     thread_ts,
+                    thread_num,
                     max_messages
                 )            
                 threads[thread_ts] = thread_messages
+                thread_messages_total += len(thread_messages)
+        
+        print("Fetched a total of {} messages from {} threads".format(
+            thread_messages_total,                
+            thread_num
+            ))
+        
         return threads
 
 
@@ -337,7 +350,7 @@ class ChannelExporter:
         Will only fetch names for bots that never appeared with a username
         in any message (lazy approach since calls to bots_info are very slow)
         """        
-        # collect bot_ids without user name from messasges
+        # collect bot_ids without user name from messages
         bot_ids = list()
         bot_names = dict()
         for msg in messages:
@@ -361,14 +374,14 @@ class ChannelExporter:
         # Find bot IDs that are not in bot_names
         bot_ids = set(bot_ids).difference(bot_names.keys())
         
-        # collect bot names from API
-        print("Fetching names for {} bots".format(len(bot_ids)))
-        bot_names = dict()
-        for bot_id in bot_ids:
-            response = self._client.bots_info(bot=bot_id)
-            if response["ok"]:
-                bot_names[bot_id] = response["bot"]["name"]
-                sleep(1)   # need to wait 1 sec before next call due to rate limits
+        # collect bot names from API if needed        
+        if len(bot_ids) > 0:
+            print("Fetching names for {} bots".format(len(bot_ids)))
+            for bot_id in bot_ids:
+                response = self._client.bots_info(bot=bot_id)
+                if response["ok"]:
+                    bot_names[bot_id] = response["bot"]["name"]
+                    sleep(1)   # need to wait 1 sec before next call due to rate limits
         
         return bot_names
                         
