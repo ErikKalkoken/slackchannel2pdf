@@ -1,4 +1,4 @@
-from channel_exporter import ChannelExporter
+from channelexport import ChannelExporter
 from argparse import ArgumentParser
 
 def main():
@@ -33,10 +33,18 @@ def main():
         choices=['true', 'false'],
         default='false'
         )
+    parser.add_argument(        
+        "--version", 
+        dest="version", 
+        help="show the program version"
+        )
     args = parser.parse_args()
     
-    exporter = ChannelExporter(args.token)
-    exporter.run(args.channel, args.max_messages, args.debug_mode=='true')
+    if "version" in args:
+        print(ChannelExporter._VERSION)            
+    else:
+        exporter = ChannelExporter(args.token)
+        exporter.run(args.channel, args.max_messages, args.debug_mode=='true')
 
 if __name__ == '__main__':
     main()

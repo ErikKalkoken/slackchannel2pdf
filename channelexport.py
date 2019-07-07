@@ -4,6 +4,7 @@ import json
 import os
 from time import sleep
 from datetime import datetime
+from argparse import ArgumentParser
 from time import sleep
 import slack
 import fpdf
@@ -11,13 +12,22 @@ from fpdf_ext import FPDF_ext
 
 
 class MyFPDF(FPDF_ext):
-    """Inheritance of FPDF class to add header and footers"""
+    """Inheritance of FPDF class to add header and footers
+    
+    Public properties:
+        page_title: text shown as title on every page
+    """
     
     def __init__(self, orientation='P', unit='mm', format='A4'):
         super().__init__(orientation=orientation, unit=unit, format=format)
         self._page_title = ""
 
-    def set_page_title(self, text):
+    @property
+    def page_title(self):
+        return self._page_title
+    
+    @page_title.setter
+    def page_title(self, text):
         """set text to appear as title on every page"""
         self._page_title = str(text)
     
@@ -67,6 +77,9 @@ class ChannelExporter:
     Attachments and blocks (sections only for now) are supported.
 
     """    
+    # general
+    _VERSION = "0.1.0"
+    
     # style and layout settings for PDF
     _FONT_FAMILY_DEFAULT = "Arial"
     _FONT_SIZE_NORMAL = 12
@@ -86,10 +99,13 @@ class ChannelExporter:
     _MAX_MESSAGES_PER_THREAD = 500
 
 
-    def __init__(self, slack_token):        
+    def __init__(self, slack_token, config=None):        
         """CONSTRUCTOR
-        Slack token needs to be provided for init
-        class will run in test mode if given a token called "TEST"
+        
+        Args:
+            slack_token: Ouath token to be used for all calls to the Slack API
+                "TEST" can be provided to start test mode
+
         """
         if slack_token != "TEST":
             self._client = slack.WebClient(token=slack_token)        
@@ -113,6 +129,9 @@ class ChannelExporter:
 
     def _fetch_messages_from_channel(self, channel_id, max_messages=None):
         """retrieve messages from a channel on Slack and return as list"""
+        
+        # make sure slack client is set
+        assert self._client is not None
         
         if max_messages is None:
             max_messages = self._MAX_MESSAGES_PER_CHANNEL
@@ -161,35 +180,25 @@ class ChannelExporter:
         return messages_all
 
 
-    def _read_messages_from_file(self, filename):
-        """reads list of message from a json file and returns it
-        
-        used mainly for testing 
-        """     
+    def _read_array_from_json_file(self, filename):
+        """reads a json file and returns its contents as array"""     
         filename += '.json'
         try:
             with open(filename, 'r') as f:
-                messages = json.load(f)
-            print("read {} message from file: name {}".format(
-                len(messages),
-                filename
-                ))
+                arr = json.load(f)            
         except:
-            print("failed to read from {}".format(filename))
-            messages = list()
+            print("ERROR: failed to read from {}".format(filename))
+            arr = list()
                 
-        return messages
+        return arr
 
 
-    def _write_messages_to_file(self, messages, filename='messages'):
-        """writes list of message to a json file 
-
-        used mainly for testing 
-        """     
+    def _write_array_to_json_file(self, arr, filename):
+        """writes list of message to a json file"""     
         filename += '.json' 
         with open(filename , 'w', encoding='utf-8') as f:
             json.dump(
-                messages, 
+                arr, 
                 f, 
                 sort_keys=True, 
                 indent=4, 
@@ -206,6 +215,9 @@ class ChannelExporter:
         max_messages=None):
         """retrieve messages from a Slack thread and return as list"""
         
+        # make sure slack client is set
+        assert self._client is not None
+
         if max_messages is None:
             max_messages = self._MAX_MESSAGES_PER_THREAD
         
@@ -313,6 +325,10 @@ class ChannelExporter:
 
     def _fetch_user_names(self):    
         """returns dict of user names with user ID as key"""
+        
+        # make sure slack client is set
+        assert self._client is not None
+
         response = self._client.users_list()
         assert response["ok"]    
         user_names = self._reduce_to_dict(
@@ -326,6 +342,10 @@ class ChannelExporter:
 
     def _fetch_channel_names(self):
         """returns dict of channel names with channel ID as key"""
+        
+        # make sure slack client is set
+        assert self._client is not None
+        
         response = self._client.conversations_list(
             types="public_channel,private_channel")
         assert response["ok"]    
@@ -339,6 +359,10 @@ class ChannelExporter:
 
     def _fetch_workspace_info(self):    
         """returns dict with info about current workspace"""
+        
+        # make sure slack client is set
+        assert self._client is not None
+        
         response = self._client.auth_test()
         assert response["ok"]
         return response
@@ -350,6 +374,10 @@ class ChannelExporter:
         Will only fetch names for bots that never appeared with a username
         in any message (lazy approach since calls to bots_info are very slow)
         """        
+        
+        # make sure slack client is set
+        assert self._client is not None
+        
         # collect bot_ids without user name from messages
         bot_ids = list()
         bot_names = dict()
@@ -963,15 +991,19 @@ class ChannelExporter:
             
             filename_base = self._generate_filename_base(channel_id)
             if developer_mode:
-                # write raw messages and threads to file in development
-                self._write_messages_to_file(messages, filename_base)
-                self._write_messages_to_file(threads, filename_base + "_threads")
+                # write raw data received from Slack API to file                
+                self._write_array_to_json_file(self._user_names, filename_base + "_users")
+                self._write_array_to_json_file(self._bot_names, filename_base + "_bots")
+                self._write_array_to_json_file(self._channel_names, filename_base + "_channels")
+                self._write_array_to_json_file(messages, filename_base + "_messages")
+                if len(threads) > 0:
+                    self._write_array_to_json_file(threads, filename_base + "_threads")
         else:
             # if we don't have a client we will try to fetch from a file
             # this is used for testing
             filename_base = "test/" + str(channel_id)
-            messages = self._read_messages_from_file(filename_base)
-            threads = self._read_messages_from_file(filename_base + "_threads")
+            messages = self._read_array_from_json_file(filename_base + "_messages")
+            threads = self._read_array_from_json_file(filename_base + "_threads")
         
         # create PDF
         document = MyFPDF()
@@ -1012,7 +1044,7 @@ class ChannelExporter:
         document.set_title(title)
         document.set_creation_date(creation_date)
         document.set_subject(sub_title)                        
-        document.set_page_title(page_title)
+        document.page_title = page_title
         
         # write title on first page        
         document.set_font(
@@ -1052,3 +1084,49 @@ class ChannelExporter:
         print("Writing PDF file: " + filenamePdf)
         document.output(filenamePdf)
     
+def main():
+    parser = ArgumentParser(
+        description = "Tool for exporting Slack channels to PDF"
+        )
+    parser.add_argument(
+        "token",         
+        help = "Slack Oauth token"
+        )
+    parser.add_argument(        
+        "channel", 
+        help = "ID of channel to export"
+        )
+    parser.add_argument(
+        "-m", 
+        "--max-messages", 
+        dest = "max_messages", 
+        help = "max number of messages to export"
+        )
+    parser.add_argument(        
+        "--write-raw-data",
+        help = "will also write all raw data returned from the API to files,"\
+            + " e.g. messages.json with all messages",        
+        dest = "write_raw_data",
+        action = "store_const",
+        const = True
+        )
+    parser.add_argument(        
+        "--version",         
+        help="show the program version and exit", 
+        action="version", 
+        version=ChannelExporter._VERSION
+        )
+    args = parser.parse_args()
+    
+    if "version" in args:
+        print(ChannelExporter._VERSION)            
+    else:
+        exporter = ChannelExporter(args.token)
+        exporter.run(
+            args.channel, 
+            args.max_messages, 
+            args.write_raw_data == True
+        )
+
+if __name__ == '__main__':
+    main()
