@@ -3,7 +3,7 @@
 block_cipher = None
 
 
-a = Analysis(['run.py'],
+a = Analysis(['channelexport.py'],
              pathex=['D:\\Users\\bji74\\Documents\\Python\\channelexport'],
              binaries=[],
              datas=[],
