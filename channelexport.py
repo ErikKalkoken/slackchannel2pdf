@@ -81,7 +81,10 @@ class ChannelExporter:
     # general
     _VERSION = "0.1.0"
     
-    # style and layout settings for PDF
+    # style and layout settings for PDF    
+    _PAGE_ORIENTATION_DEFAULT = "portrait"
+    _PAGE_FORMAT_DEFAULT = "a4"
+    _PAGE_UNITS_DEFAULT = "mm"
     _FONT_FAMILY_DEFAULT = "Arial"
     _FONT_SIZE_NORMAL = 12
     _FONT_SIZE_LARGE = 14
@@ -152,8 +155,11 @@ class ChannelExporter:
             "id", 
             "real_name", 
             "name"
-            )
-        return user_names    
+            )        
+        for user in user_names:
+            user_names[user] = self._transform_encoding(user_names[user])
+        
+        return user_names
 
 
     def _fetch_channel_names(self):
@@ -163,13 +169,19 @@ class ChannelExporter:
         assert self._client is not None
         
         response = self._client.conversations_list(
-            types="public_channel,private_channel")
+            types="public_channel,private_channel"
+            )
         assert response["ok"]    
         channel_names = self._reduce_to_dict(
             response["channels"], 
             "id", 
             "name"
-            )
+            )        
+        for channel in channel_names:
+            channel_names[channel] = self._transform_encoding(
+                channel_names[channel]
+                )
+        
         return channel_names    
 
 
@@ -379,7 +391,7 @@ class ChannelExporter:
             if "bot_id" in msg: 
                 bot_id = msg["bot_id"]
                 if "username" in msg:
-                    bot_names[bot_id] = msg["username"]
+                    bot_names[bot_id] = self._transform_encoding(msg["username"])
                 else:
                     bot_ids.append(bot_id)
 
@@ -389,7 +401,7 @@ class ChannelExporter:
                 if "bot_id" in msg: 
                     bot_id = msg["bot_id"]
                     if "username" in msg:
-                        bot_names[bot_id] = msg["username"]
+                        bot_names[bot_id] = self._transform_encoding(msg["username"])
                     else:
                         bot_ids.append(bot_id)
 
@@ -402,7 +414,7 @@ class ChannelExporter:
             for bot_id in bot_ids:
                 response = self._client.bots_info(bot=bot_id)
                 if response["ok"]:
-                    bot_names[bot_id] = response["bot"]["name"]
+                    bot_names[bot_id] = self._transform_encoding(response["bot"]["name"])
                     sleep(1)   # need to wait 1 sec before next call due to rate limits
         
         return bot_names
@@ -413,6 +425,12 @@ class ChannelExporter:
     # Methods for parsing and transforming Slack messages
     # *************************************************************************
 
+    def _transform_encoding(self, text):
+        """adjust encoding to latin-1 and transform HTML entities"""        
+        text2 = html.unescape(text)
+        text2 = text2.encode('latin-1', 'replace').decode('latin-1')
+        return text2
+    
     def _transform_text(self, text, use_mrkdwn=False):    
         """transforms mrkdwn text into HTML text for PDF output
         
@@ -507,9 +525,8 @@ class ChannelExporter:
 
 
         # pass 1 - adjust encoding to latin-1 and transform HTML entities        
-        text = html.unescape(text)
-        s2 = text.encode('latin-1', 'replace').decode('latin-1')
-
+        s2 = self._transform_encoding(text)
+        
         # if requested try to transform mrkdwn in text
         if use_mrkdwn:
 
@@ -585,7 +602,7 @@ class ChannelExporter:
             user_id = msg["bot_id"]
             is_bot = True
             if "username" in msg:
-                user_name = msg["username"]
+                user_name = self._transform_encoding(msg["username"])
             elif user_id in self._bot_names:
                 user_name = self._bot_names[user_id]
             else:
@@ -963,12 +980,22 @@ class ChannelExporter:
             )
 
 
-    def run(self, channel_input, max_messages=None, write_raw_data=False):
+    def run(
+        self, 
+        channel_input, 
+        max_messages=None, 
+        write_raw_data=False,
+        page_orientation="portrait",
+        page_format="a4"
+        ):
         """export all message from a channel and store them in a PDF
         
         Args:
             channel_input: Name or ID of channel to retrieve messages from
-            max_messages: maximum number of messages to retrieve (optional)
+            max_messages: maximum number of messages to retrieve
+            write_raw_data: will safe data recveived from API to files if true
+            page_orientation: orientation of pages  as defined in FPDF class,
+            page_format: format of pages, see as defined in FPDF class
         """
                 
         # fetch messages
@@ -1042,7 +1069,11 @@ class ChannelExporter:
                 + "_threads")
         
         # create PDF
-        document = MyFPDF()
+        document = MyFPDF(
+            page_orientation, 
+            self._PAGE_UNITS_DEFAULT, 
+            page_format
+        )
         document.alias_nb_pages()
         document.add_page()
 
@@ -1152,13 +1183,13 @@ def main():
         "--page-orientation",         
         help = "Orientation of PDF pages",
         choices = ["portrait", "landscape"],
-        default = "portrait"
+        default = ChannelExporter._PAGE_ORIENTATION_DEFAULT
         )
     parser.add_argument(        
         "--page-format",         
         help = "Format of PDF pages",
         choices = ["a3", "a4", "a5", "letter", "legal"],
-        default = "a4"
+        default = ChannelExporter._PAGE_FORMAT_DEFAULT
         )
     parser.add_argument(
         "--timezone",         
@@ -1199,16 +1230,14 @@ def main():
 
     if "version" in args:
         print(ChannelExporter._VERSION)            
-    else:
-        try:
-            exporter = ChannelExporter(args.token)
-            exporter.run(
-                args.channel, 
-                args.max_messages, 
-                args.write_raw_data == True
-            )
-        except Exception as e:
-            print("ERROR: ", e)
+    else:        
+        exporter = ChannelExporter(args.token)
+        exporter.run(
+            args.channel, 
+            args.max_messages, 
+            args.write_raw_data == True
+        )
+    
 
 if __name__ == '__main__':
     main()
