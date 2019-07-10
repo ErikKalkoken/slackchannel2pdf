@@ -1009,7 +1009,7 @@ class ChannelExporter:
             page_orientation: orientation of pages  as defined in FPDF class,
             page_format: format of pages, see as defined in FPDF class
         """
-        print("++++++ channelexport v" + self._VERSION + " ++++++")
+        print("Channelexport v" + self._VERSION)
         if self._debug:
             print("Running in DEBUG mode")
         

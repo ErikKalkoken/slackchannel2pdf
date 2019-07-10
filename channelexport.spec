@@ -6,7 +6,9 @@ block_cipher = None
 a = Analysis(['channelexport.py'],
              pathex=['D:\\Users\\bji74\\Documents\\Python\\channelexport'],
              binaries=[],
-             datas=[],
+             datas=[
+                 ('fonts/*.ttf', 'fonts')
+             ],
              hiddenimports=[],
              hookspath=[],
              runtime_hooks=[],
