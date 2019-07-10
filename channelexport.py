@@ -10,6 +10,37 @@ from time import sleep
 import slack
 from fpdf_ext import FPDF_ext
 
+
+def reduce_to_dict(    
+    arr, 
+    key_name, 
+    col_name_primary, 
+    col_name_secondary=None):
+    """returns dict with selected columns as key and value from list of dict
+    
+    Args:
+        arr: list of dicts to reduce
+        key_name: name of column to become key
+        col_name_primary: colum will become value if it exists
+        col_name_secondary: colum will become value if col_name_primary 
+            does not exist and this argument is provided
+
+    dict items with no matching key_name, col_name_primary and 
+    col_name_secondary will not be included in the resulting new dict
+
+    """
+    arr2 = dict()
+    for item in arr:
+        if key_name in item:
+            key = item[key_name]
+            if col_name_primary in item:
+                arr2[key] = item[col_name_primary]
+            elif (col_name_secondary is not None and 
+                    col_name_secondary in item):
+                arr2[key] = item[col_name_secondary]            
+    return arr2
+
+
 class MyFPDF(FPDF_ext):
     """Inheritance of FPDF class to add header and footers
     
@@ -78,13 +109,17 @@ class ChannelExporter:
     """    
     # general
     _VERSION = "0.1.0"
+
+    # files
+    _FILE_EMOJIS = "fonts/emoji.json"
     
     # style and layout settings for PDF    
     _PAGE_ORIENTATION_DEFAULT = "portrait"
     _PAGE_FORMAT_DEFAULT = "a4"
     _PAGE_UNITS_DEFAULT = "mm"
-    _FONT_FAMILY_DEFAULT = "NoSans"
-    _FONT_FAMILY_MONO_DEFAULT = "NoSansMono"
+    _FONT_FAMILY_DEFAULT = "NotoSans"
+    _FONT_FAMILY_MONO_DEFAULT = "NotoSansMono"
+    _FONT_FAMILY_EMOJI_DEFAULT = "NotoEmoji"
     _FONT_SIZE_NORMAL = 12
     _FONT_SIZE_LARGE = 14
     _FONT_SIZE_SMALL = 10
@@ -127,11 +162,34 @@ class ChannelExporter:
             self._channel_names = dict()
             self._bot_names = dict()
 
+        self._emoji_map = self._generate_emoji_map()
+
 
     # *************************************************************************
     # Methods for fetching data from Slack API
     # *************************************************************************
 
+    def _generate_emoji_map(self):
+        """returns a dict of names to UTF-8 string for all known emojis"""
+        map = dict()
+        try:
+            with open(self._FILE_EMOJIS, 'r', encoding="utf-8") as f:
+                emojis = json.load(f)
+            for emoji in emojis:
+                if "short_name" in emoji:
+                    k = emoji["short_name"]
+                    cps = emoji["unified"].split("-")
+                    chars = ""
+                    for cp in cps:
+                        chars += chr(int(cp, 16))
+                    map[k] = chars
+            
+        except Exception as ex:
+            print("WARN: failed to load emojis", ex)
+            map = []
+
+        return map
+    
     def _fetch_workspace_info(self):    
         """returns dict with info about current workspace"""
         
@@ -151,7 +209,7 @@ class ChannelExporter:
 
         response = self._client.users_list()
         assert response["ok"]    
-        user_names = self._reduce_to_dict(
+        user_names = reduce_to_dict(
             response["members"], 
             "id", 
             "real_name", 
@@ -173,7 +231,7 @@ class ChannelExporter:
             types="public_channel,private_channel"
             )
         assert response["ok"]    
-        channel_names = self._reduce_to_dict(
+        channel_names = reduce_to_dict(
             response["channels"], 
             "id", 
             "name"
@@ -350,37 +408,6 @@ class ChannelExporter:
         return threads
 
 
-    def _reduce_to_dict(
-        self, 
-        arr, 
-        key_name, 
-        col_name_primary, 
-        col_name_secondary=None):
-        """returns dict with selected columns as key and value from list of dict
-        
-        Args:
-            arr: list of dicts to reduce
-            key_name: name of column to become key
-            col_name_primary: colum will become value if it exists
-            col_name_secondary: colum will become value if col_name_primary 
-                does not exist and this argument is provided
-
-        dict items with no matching key_name, col_name_primary and 
-        col_name_secondary will not be included in the resulting new dict
-
-        """
-        arr2 = dict()
-        for item in arr:
-            if key_name in item:
-                key = item[key_name]
-                if col_name_primary in item:
-                    arr2[key] = item[col_name_primary]
-                elif (col_name_secondary is not None and 
-                        col_name_secondary in item):
-                    arr2[key] = item[col_name_secondary]            
-        return arr2
-
-
     def _fetch_bot_names_for_messages(self, messages, threads):
         """Fetches bot names from API for provided messages 
         
@@ -531,6 +558,19 @@ class ChannelExporter:
 
             return replacement
 
+        def replace_emoji_name(matchObj):
+            match = matchObj.group(1).lower()
+            
+            if match in self._emoji_map:
+                replacement = ('<s fontfamily="' 
+                    + self._FONT_FAMILY_EMOJI_DEFAULT 
+                    + '">'
+                    + self._emoji_map[match]
+                    + '</s>')
+            else:
+                replacement = matchObj.group(0)
+
+            return replacement
 
         # pass 1 - adjust encoding to latin-1 and transform HTML entities        
         s2 = self._transform_encoding(text)
@@ -578,6 +618,13 @@ class ChannelExporter:
 
             s2 = s2.replace("</blockquote><br>", "</blockquote>")
 
+            # emojis
+            s2 = re.sub(
+                r':(\S+):',
+                replace_emoji_name,
+                s2
+                )
+            
             # EOF
             s2 = s2.replace("\n", "<br>")
 
@@ -1104,6 +1151,7 @@ class ChannelExporter:
         document.add_font(self._FONT_FAMILY_DEFAULT, style="BI", fname="NotoSans-BoldItalic.ttf", uni=True)
         document.add_font(self._FONT_FAMILY_MONO_DEFAULT, style="", fname="NotoSansMono-Regular.ttf", uni=True)
         document.add_font(self._FONT_FAMILY_MONO_DEFAULT, style="B", fname="NotoSansMono-Bold.ttf", uni=True)
+        document.add_font(self._FONT_FAMILY_EMOJI_DEFAULT, style="", fname="NotoEmoji-Regular.ttf", uni=True)
         document.alias_nb_pages()
         document.add_page()
 
