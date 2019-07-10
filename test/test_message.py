@@ -13,9 +13,9 @@ def main():
     }
     exporter._user_names["U0HBXN3H8"] = "Erik Kalkoken"
     exporter._channel_names = {
-        "test_message": "test-attachments"
+        "TEST-MESSAGE": "test-message"
     }
-    exporter.run("test_message")
+    exporter.run("test-message")
 
 if __name__ == '__main__':
     main()

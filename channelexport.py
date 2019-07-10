@@ -8,9 +8,7 @@ from datetime import datetime
 import argparse
 from time import sleep
 import slack
-import fpdf
 from fpdf_ext import FPDF_ext
-
 
 class MyFPDF(FPDF_ext):
     """Inheritance of FPDF class to add header and footers
@@ -85,7 +83,8 @@ class ChannelExporter:
     _PAGE_ORIENTATION_DEFAULT = "portrait"
     _PAGE_FORMAT_DEFAULT = "a4"
     _PAGE_UNITS_DEFAULT = "mm"
-    _FONT_FAMILY_DEFAULT = "Arial"
+    _FONT_FAMILY_DEFAULT = "NoSans"
+    _FONT_FAMILY_MONO_DEFAULT = "NoSansMono"
     _FONT_SIZE_NORMAL = 12
     _FONT_SIZE_LARGE = 14
     _FONT_SIZE_SMALL = 10
@@ -103,7 +102,7 @@ class ChannelExporter:
     _MAX_MESSAGES_PER_THREAD = 500
 
 
-    def __init__(self, slack_token, config=None):        
+    def __init__(self, slack_token, debug=False):        
         """CONSTRUCTOR
         
         Args:
@@ -111,6 +110,8 @@ class ChannelExporter:
                 "TEST" can be provided to start test mode
 
         """
+        self._debug = debug
+        
         if slack_token != "TEST":
             self._client = slack.WebClient(token=slack_token)        
             self._workspace_info = self._fetch_workspace_info()
@@ -236,10 +237,10 @@ class ChannelExporter:
         """reads a json file and returns its contents as array"""     
         filename += '.json'
         try:
-            with open(filename, 'r') as f:
+            with open(filename, 'r', encoding="utf-8") as f:
                 arr = json.load(f)            
-        except:
-            print("ERROR: failed to read from {}".format(filename))
+        except Exception as e:
+            print("WARN: failed to read from {}: ".format(filename), e)
             arr = list()
                 
         return arr
@@ -249,14 +250,17 @@ class ChannelExporter:
         """writes array to a json file"""     
         filename += '.json' 
         print("Writing file: name {}".format(filename))
-        with open(filename , 'w', encoding='utf-8') as f:
-            json.dump(
-                arr, 
-                f, 
-                sort_keys=True, 
-                indent=4, 
-                ensure_ascii=False
-                )        
+        try:
+            with open(filename , 'w', encoding="utf-8") as f:
+                json.dump(
+                    arr, 
+                    f, 
+                    sort_keys=True, 
+                    indent=4, 
+                    ensure_ascii=False
+                    )
+        except Exception as e:
+            print("ERROR: failed to write to {}: ".format(filename), e)        
     
     def _fetch_messages_from_thread(
         self, 
@@ -335,10 +339,13 @@ class ChannelExporter:
                 threads[thread_ts] = thread_messages
                 thread_messages_total += len(thread_messages)
         
-        print("Fetched a total of {} messages from {} threads".format(
-            thread_messages_total,                
-            thread_num
-            ))
+        if thread_messages_total > 0:
+            print("Fetched a total of {} messages from {} threads".format(
+                thread_messages_total,
+                thread_num
+                ))
+        else:
+            print("This channel has no threads.")
         
         return threads
 
@@ -428,7 +435,8 @@ class ChannelExporter:
     def _transform_encoding(self, text):
         """adjust encoding to latin-1 and transform HTML entities"""        
         text2 = html.unescape(text)
-        text2 = text2.encode('latin-1', 'replace').decode('latin-1')
+        text2 = text2.encode('utf-8', 'replace').decode('utf-8')
+        text2 = text2.replace("\t", "    ")
         return text2
     
     def _transform_text(self, text, use_mrkdwn=False):    
@@ -555,7 +563,7 @@ class ChannelExporter:
             # code
             s2 = re.sub(
                 r'`(.*)`',
-                r'<s fontfamily="Courier">\1</s>',
+                r'<s fontfamily="' + self._FONT_FAMILY_MONO_DEFAULT + r'">\1</s>',
                 s2
                 )
 
@@ -635,13 +643,16 @@ class ChannelExporter:
                 document.ln()            
             
             if "text" in msg and len(msg["text"]) > 0:
+                text = msg["text"]
+                if self._debug:
+                    text += " [" + msg["ts"] + "]"
                 document.set_font(
                     self._FONT_FAMILY_DEFAULT, 
                     size=self._FONT_SIZE_NORMAL)                            
                 document.write_html(
                     self._LINE_HEIGHT_DEFAULT, 
                     self._transform_text(
-                        msg["text"], 
+                        text, 
                         msg["mrkdwn"] if "mrkdwn" in msg else True
                     ))
                 document.ln()
@@ -973,6 +984,7 @@ class ChannelExporter:
                 self._FONT_FAMILY_DEFAULT, 
                 size=self._FONT_SIZE_NORMAL
                 )
+            document.ln()                        
             document.write(
                 self._LINE_HEIGHT_DEFAULT, 
                 "This channel is empty", 
@@ -997,26 +1009,36 @@ class ChannelExporter:
             page_orientation: orientation of pages  as defined in FPDF class,
             page_format: format of pages, see as defined in FPDF class
         """
-                
-        # fetch messages
-        team_name = self._workspace_info["team"]
-        if self._client is not None:            
-            # if we have a client fetch data from Slack            
-            if channel_input.upper() in self._channel_names:
-                channel_id = channel_input.upper()
-            else:
-                # flip channel_names since channel names are unique
-                channel_names_ids = {v:k for k,v in self._channel_names.items()}
-                if channel_input.lower() not in channel_names_ids:
-                    raise RuntimeError("Unknown channel '" 
-                        + channel_input 
-                        + "' on " 
-                        + team_name)                    
-                else:
-                    channel_id = channel_names_ids[channel_input.lower()]
-            
-            channel_name = self._channel_names[channel_id]
+        print("++++++ channelexport v" + self._VERSION + " ++++++")
+        if self._debug:
+            print("Running in DEBUG mode")
+        
+        if self._workspace_info["user_id"] in self._user_names:
+            author = self._user_names[self._workspace_info["user_id"]]
+        else:
+            author = "unknown_user_" + self._workspace_info["user_id"]
 
+        print("Welcome " + author)
+        
+        team_name = self._workspace_info["team"]
+        if channel_input.upper() in self._channel_names:
+            channel_id = channel_input.upper()
+        else:
+            # flip channel_names since channel names are unique
+            channel_names_ids = {v:k for k,v in self._channel_names.items()}
+            if channel_input.lower() not in channel_names_ids:
+                raise RuntimeError("Unknown channel '" 
+                    + channel_input 
+                    + "' on " 
+                    + team_name)                    
+            else:
+                channel_id = channel_names_ids[channel_input.lower()]
+        
+        channel_name = self._channel_names[channel_id]
+        
+        # fetch messages        
+        # if we have a client fetch data from Slack            
+        if self._client is not None:                       
             print("Retrieving messages from " 
                 + team_name 
                 + " / " 
@@ -1074,6 +1096,14 @@ class ChannelExporter:
             self._PAGE_UNITS_DEFAULT, 
             page_format
         )
+        
+        # add all fonts to support unicode
+        document.add_font(self._FONT_FAMILY_DEFAULT, style="", fname="NotoSans-Regular.ttf", uni=True)
+        document.add_font(self._FONT_FAMILY_DEFAULT, style="B", fname="NotoSans-Bold.ttf", uni=True)
+        document.add_font(self._FONT_FAMILY_DEFAULT, style="I", fname="NotoSans-Italic.ttf", uni=True)
+        document.add_font(self._FONT_FAMILY_DEFAULT, style="BI", fname="NotoSans-BoldItalic.ttf", uni=True)
+        document.add_font(self._FONT_FAMILY_MONO_DEFAULT, style="", fname="NotoSansMono-Regular.ttf", uni=True)
+        document.add_font(self._FONT_FAMILY_MONO_DEFAULT, style="B", fname="NotoSansMono-Bold.ttf", uni=True)
         document.alias_nb_pages()
         document.add_page()
 
@@ -1093,12 +1123,18 @@ class ChannelExporter:
             for thread_ts, thread_messages in threads.items():
                 message_count += len(thread_messages) -1
 
-        # find start and end date based on messages
-        ts_extract = [d['ts'] for d in messages]
-        ts_min = min(float(s) for s in ts_extract)
-        ts_max = max(float(s) for s in ts_extract)
-        start_date = datetime.utcfromtimestamp(float(ts_min))
-        end_date = datetime.utcfromtimestamp(float(ts_max))
+        if message_count > 0:
+            # find start and end date based on messages
+            ts_extract = [d['ts'] for d in messages]
+            ts_min = min(float(s) for s in ts_extract)
+            ts_max = max(float(s) for s in ts_extract)
+            start_date = datetime.utcfromtimestamp(float(ts_min))
+            start_date_str = start_date.strftime(self._FORMAT_DATETIME)
+            end_date = datetime.utcfromtimestamp(float(ts_max))
+            end_date_str = end_date.strftime(self._FORMAT_DATETIME)
+        else:
+            start_date_str = ""
+            end_date_str = ""
 
         # set variables for title, header, footer
         title = "Slack channel PDF export" 
@@ -1109,7 +1145,7 @@ class ChannelExporter:
         document.set_author(author)
         document.set_creator("Channel Export")
         document.set_title(title)
-        document.set_creation_date(creation_date)
+        #document.set_creation_date(creation_date)
         document.set_subject(sub_title)                        
         document.page_title = page_title
         
@@ -1136,8 +1172,8 @@ class ChannelExporter:
             "Channel": channel_name,            
             "Exported at": creation_datetime_str,
             "Exported by": author,
-            "Start date": start_date.strftime(self._FORMAT_DATETIME),
-            "End date": end_date.strftime(self._FORMAT_DATETIME),
+            "Start date": start_date_str,
+            "End date": end_date_str,
             "Messages": message_count,
             "Threads": len(threads.keys()) if len(threads) > 0 else 0
         }
@@ -1225,13 +1261,20 @@ def main():
         action = "store_const",
         const = True
         )    
+    
+    parser.add_argument(        
+        "--debug",
+        help = "will run in debug mode",
+        action = "store_const",
+        const = True
+        )
 
     args = parser.parse_args()
 
     if "version" in args:
         print(ChannelExporter._VERSION)            
     else:        
-        exporter = ChannelExporter(args.token)
+        exporter = ChannelExporter(args.token, "debug" in args)
         exporter.run(
             args.channel, 
             args.max_messages, 

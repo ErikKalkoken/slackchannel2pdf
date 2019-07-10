@@ -1,7 +1,12 @@
-from fpdf import FPDF
+import fpdf_mod
 import re
+import os
 
-class FPDF_ext(FPDF):
+#SYSTEM_TTFONTS = os.path.dirname(__file__)
+fpdf_mod.set_global("FPDF_CACHE_MODE", 1)
+fpdf_mod.set_global("SYSTEM_TTFONTS", os.path.join(os.path.dirname(__file__),'fonts'))
+
+class FPDF_ext(fpdf_mod.FPDF):
     """This class extends FDPF to enable formatting with rudimentary HTML
 
     This package extends the FPDF class with the functionality to use 
