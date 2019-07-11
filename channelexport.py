@@ -4,7 +4,8 @@ import json
 import os
 import sys
 from time import sleep
-from datetime import datetime
+from datetime import datetime, timedelta
+import pytz
 import argparse
 from time import sleep
 import slack
@@ -130,6 +131,7 @@ class ChannelExporter:
     _FORMAT_DATE = '%Y-%b-%d'
     _FORMAT_DATETIME = '%Y-%b-%d %H:%M'
     _FORMAT_TIME = '%H:%M'
+    _TZ_DEFAULT = "UTC"
 
     # limits for fetching messages from Slack
     _MESSAGES_PER_PAGE = 200 # max message retrieved per request during paging
@@ -147,6 +149,11 @@ class ChannelExporter:
         """
         self._debug = debug
         
+        # timezone used for all outputs of datetime
+        # UTC is default
+        self._tz_local_name = self._TZ_DEFAULT
+        self._tz_local = None        
+        
         if slack_token != "TEST":
             self._client = slack.WebClient(token=slack_token)        
             self._workspace_info = self._fetch_workspace_info()
@@ -162,7 +169,20 @@ class ChannelExporter:
             self._channel_names = dict()
             self._bot_names = dict()
 
-        self._emoji_map = self._generate_emoji_map()
+        # self._emoji_map = self._generate_emoji_map()
+
+
+    # *************************************************************************
+    # Getter and Setters
+    # *************************************************************************
+
+    @property
+    def tz_local_name(self):
+        return self._tz_local_name
+
+    @tz_local_name.setter
+    def tz_local_name(self, v):
+        self._tz_local_name = v
 
 
     # *************************************************************************
@@ -558,6 +578,7 @@ class ChannelExporter:
 
             return replacement
 
+        """
         def replace_emoji_name(matchObj):
             match = matchObj.group(1).lower()
             
@@ -571,6 +592,7 @@ class ChannelExporter:
                 replacement = matchObj.group(0)
 
             return replacement
+        """
 
         # pass 1 - adjust encoding to latin-1 and transform HTML entities        
         s2 = self._transform_encoding(text)
@@ -618,13 +640,15 @@ class ChannelExporter:
 
             s2 = s2.replace("</blockquote><br>", "</blockquote>")
 
+            """
             # emojis
             s2 = re.sub(
                 r':(\S+):',
                 replace_emoji_name,
                 s2
                 )
-            
+            """
+
             # EOF
             s2 = s2.replace("\n", "<br>")
 
@@ -632,9 +656,15 @@ class ChannelExporter:
 
 
     def _get_datetime_formatted_str(self, ts):
-        """return given timestamp as formated datetime string"""
-        return datetime.utcfromtimestamp(
-            round(float(ts))).strftime(self._FORMAT_TIME)
+        """return given timestamp as formated datetime string"""        
+        dt = self._get_datetime_from_ts(ts)
+        return dt.strftime(self._FORMAT_TIME)
+
+
+    def _get_datetime_from_ts(self, ts):
+        """returns datetime object of a unix timestamp with local timezone"""
+        dt = datetime.fromtimestamp(float(ts), pytz.UTC)
+        return dt.astimezone(self._tz_local)
 
 
     def _parse_message_and_write_to_pdf(
@@ -948,18 +978,24 @@ class ChannelExporter:
     def _write_messages_to_pdf(self, document, messages, threads):
         """writes messages with their threads to the PDF document"""
         last_user_id = None
-        last_date = None
+        last_dt = None
         last_page = None
         
         if len(messages) > 0:
             messages = sorted(messages, key=lambda k: k['ts'])
             for msg in messages:
                 
-                # write day seperator if needed
-                msg_date = datetime.utcfromtimestamp(
-                    round(float(msg["ts"]))).date()
+                msg_dt = self._get_datetime_from_ts(msg["ts"])                                
                 
-                if msg_date != last_date:
+                # repeat user name for if last post from same user is older
+                if last_dt is not None:                    
+                    dt_delta = msg_dt - last_dt
+                    minutes_delta = dt_delta / timedelta(minutes=1)
+                    if minutes_delta > 30:
+                        last_user_id = None                    
+                
+                # write day seperator if needed                                
+                if last_dt is None or msg_dt.date() != last_dt.date():
                     document.ln(self._LINE_HEIGHT_SMALL)
                     document.ln(self._LINE_HEIGHT_SMALL)
                     document.set_font(
@@ -975,7 +1011,7 @@ class ChannelExporter:
                     document.line(x1, y1, x2, y1)
                     
                     # stamp date on divider
-                    date_text = msg_date.strftime(self._FORMAT_DATE)
+                    date_text = msg_dt.strftime(self._FORMAT_DATE)
                     width = document.get_string_width(date_text)
                     cell_x = (x2 - x1 - width) / 2
                     cell_y = y1                
@@ -991,10 +1027,10 @@ class ChannelExporter:
                         True
                     )
                     
-                    document.ln()
-                    last_date = msg_date
+                    document.ln()                    
                     last_user_id = None     # repeat user name for new day
                 
+
                 # repeat user name for new page
                 if last_page != document.page_no():
                     last_user_id = None
@@ -1026,6 +1062,8 @@ class ChannelExporter:
                                 )
                         
                     last_user_id = None
+                
+                last_dt = msg_dt
         else:
             document.set_font(
                 self._FONT_FAMILY_DEFAULT, 
@@ -1052,20 +1090,26 @@ class ChannelExporter:
         Args:
             channel_input: Name or ID of channel to retrieve messages from
             max_messages: maximum number of messages to retrieve
-            write_raw_data: will safe data recveived from API to files if true
+            write_raw_data: will safe data received from API to files if true
             page_orientation: orientation of pages  as defined in FPDF class,
             page_format: format of pages, see as defined in FPDF class
         """
-        print("Channelexport v" + self._VERSION)
-        if self._debug:
-            print("Running in DEBUG mode")
+        # set timezone
+        self._tz_local = pytz.timezone(self._tz_local_name)
         
         if self._workspace_info["user_id"] in self._user_names:
             author = self._user_names[self._workspace_info["user_id"]]
         else:
             author = "unknown_user_" + self._workspace_info["user_id"]
 
+        print("Channelexport v" + self._VERSION)
+        print("=============================================")
         print("Welcome " + author)
+        
+        if self._debug:
+            print("Running in DEBUG mode")
+        
+        print("Timezone is: " + self._tz_local_name)
         
         team_name = self._workspace_info["team"]
         if channel_input.upper() in self._channel_names:
@@ -1077,7 +1121,7 @@ class ChannelExporter:
                 raise RuntimeError("Unknown channel '" 
                     + channel_input 
                     + "' on " 
-                    + team_name)                    
+                    + team_name)
             else:
                 channel_id = channel_names_ids[channel_input.lower()]
         
@@ -1151,14 +1195,14 @@ class ChannelExporter:
         document.add_font(self._FONT_FAMILY_DEFAULT, style="BI", fname="NotoSans-BoldItalic.ttf", uni=True)
         document.add_font(self._FONT_FAMILY_MONO_DEFAULT, style="", fname="NotoSansMono-Regular.ttf", uni=True)
         document.add_font(self._FONT_FAMILY_MONO_DEFAULT, style="B", fname="NotoSansMono-Bold.ttf", uni=True)
-        document.add_font(self._FONT_FAMILY_EMOJI_DEFAULT, style="", fname="NotoEmoji-Regular.ttf", uni=True)
+        # document.add_font(self._FONT_FAMILY_EMOJI_DEFAULT, style="", fname="NotoEmoji-Regular.ttf", uni=True)
         document.alias_nb_pages()
         document.add_page()
 
         # compile all values
         workspace_name = self._workspace_info["team"]
         channel_name = self._channel_names[channel_id]
-        creation_date = datetime.utcnow()
+        creation_date = datetime.now(tz=self._tz_local)
         creation_datetime_str = creation_date.strftime(self._FORMAT_DATETIME)        
         if self._workspace_info["user_id"] in self._user_names:
             author = self._user_names[self._workspace_info["user_id"]]
@@ -1176,9 +1220,10 @@ class ChannelExporter:
             ts_extract = [d['ts'] for d in messages]
             ts_min = min(float(s) for s in ts_extract)
             ts_max = max(float(s) for s in ts_extract)
-            start_date = datetime.utcfromtimestamp(float(ts_min))
+            
+            start_date = self._get_datetime_from_ts(ts_min)
             start_date_str = start_date.strftime(self._FORMAT_DATETIME)
-            end_date = datetime.utcfromtimestamp(float(ts_max))
+            end_date = self._get_datetime_from_ts(ts_max)
             end_date_str = end_date.strftime(self._FORMAT_DATETIME)
         else:
             start_date_str = ""
@@ -1274,16 +1319,11 @@ def main():
         help = "Format of PDF pages",
         choices = ["a3", "a4", "a5", "letter", "legal"],
         default = ChannelExporter._PAGE_FORMAT_DEFAULT
-        )
+        )    
     parser.add_argument(
         "--timezone",         
-        help = "timezone for rending all dates (TBD)",
-        default = "portrait"
-        )
-    parser.add_argument(
-        "--tz-offset",         
-        help = "timezone offset (TBD)",
-        default = "portrait"
+        help = "timezone name as defined here: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones",
+        default = ChannelExporter._TZ_DEFAULT
         )    
 
     # standards
@@ -1317,12 +1357,21 @@ def main():
         const = True
         )
 
+    start_export = True
     args = parser.parse_args()
 
+    if args.timezone not in pytz.all_timezones:
+        print("ERROR: Unknown timezone: " + args.timezone)
+        start_export = False
+    
     if "version" in args:
         print(ChannelExporter._VERSION)            
-    else:        
+        start_export = False
+
+    if start_export:
         exporter = ChannelExporter(args.token, "debug" in args)
+        if "timezone" in args:
+            exporter.tz_local_name = args.timezone
         exporter.run(
             args.channel, 
             args.max_messages, 
