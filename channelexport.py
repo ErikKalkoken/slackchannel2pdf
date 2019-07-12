@@ -6,7 +6,6 @@ import sys
 from time import sleep
 from datetime import datetime, timedelta
 import pytz
-import argparse
 from time import sleep
 import slack
 from fpdf_ext import FPDF_ext
@@ -114,6 +113,14 @@ class ChannelExporter:
     # files
     _FILE_EMOJIS = "fonts/emoji.json"
     
+    # time systems
+    _TIME_SYSTEM_12HRS = 12
+    _TIME_SYSTEM_24HRS = 24
+    _TIME_SYSTEMS = [
+        _TIME_SYSTEM_12HRS,
+        _TIME_SYSTEM_24HRS
+    ]
+
     # style and layout settings for PDF    
     _PAGE_ORIENTATION_DEFAULT = "portrait"
     _PAGE_FORMAT_DEFAULT = "a4"
@@ -129,10 +136,17 @@ class ChannelExporter:
     _MARGIN_LEFT = 10
     _TAB_WIDTH = 4
     _FORMAT_DATE = '%Y-%b-%d'
-    _FORMAT_DATETIME = '%Y-%b-%d %H:%M'
-    _FORMAT_TIME = '%H:%M'
+    _FORMAT_DATETIME = {
+        _TIME_SYSTEM_24HRS: _FORMAT_DATE + ' %H:%M',
+        _TIME_SYSTEM_12HRS: _FORMAT_DATE + ' %I:%M %p'
+    }    
+    _FORMAT_TIME = {
+        _TIME_SYSTEM_24HRS: '%H:%M',
+        _TIME_SYSTEM_12HRS: '%I:%M %p'
+    }        
     _TZ_DEFAULT = "UTC"
-
+    _TIME_SYSTEM_DEFAULT = _TIME_SYSTEM_24HRS
+    
     # limits for fetching messages from Slack
     _MESSAGES_PER_PAGE = 200 # max message retrieved per request during paging
     _MAX_MESSAGES_PER_CHANNEL = 10000
@@ -152,7 +166,14 @@ class ChannelExporter:
         # timezone used for all outputs of datetime
         # UTC is default
         self._tz_local_name = self._TZ_DEFAULT
-        self._tz_local = None        
+        self._tz_local = None
+        
+        # format strings for datetime output
+        self._format_date = self._FORMAT_DATE
+        self._time_system = None
+        self._format_datetime = None
+        self._format_time = None
+        self.set_time_system(self._TIME_SYSTEM_DEFAULT)
         
         if slack_token != "TEST":
             self._client = slack.WebClient(token=slack_token)        
@@ -183,6 +204,14 @@ class ChannelExporter:
     @tz_local_name.setter
     def tz_local_name(self, v):
         self._tz_local_name = v
+
+    def set_time_system(self, system):
+        """sets the time system to 12 hrs 24 hrs """
+        if system not in self._TIME_SYSTEMS:
+            raise ValueError("Invalid time system")
+        self._time_system = system
+        self._format_datetime = self._FORMAT_DATETIME[system]
+        self._format_time = self._FORMAT_TIME[system]
 
 
     # *************************************************************************
@@ -658,7 +687,7 @@ class ChannelExporter:
     def _get_datetime_formatted_str(self, ts):
         """return given timestamp as formated datetime string"""        
         dt = self._get_datetime_from_ts(ts)
-        return dt.strftime(self._FORMAT_TIME)
+        return dt.strftime(self._format_time)
 
 
     def _get_datetime_from_ts(self, ts):
@@ -692,6 +721,18 @@ class ChannelExporter:
                 user_name = self._bot_names[user_id]
             else:
                 user_name = "unknown_bot_{}".format(user_id)
+        
+        elif "subtype" in msg and msg["subtype"] == "file_comment":
+            if "user" in msg["comment"]:
+                user_id = msg["comment"]["user"]
+                is_bot = False
+                if user_id in self._user_names:
+                    user_name = self._user_names[user_id]
+                else:
+                    user_name = "unknown_user_{}".format(user_id)
+            else:
+                user_name = None
+
         else:
             user_name = None
             
@@ -770,7 +811,7 @@ class ChannelExporter:
                     document.ln()
                 
                 document.ln(self._LINE_HEIGHT_SMALL)
-
+            
             if "files" in msg:
                 # draw files
                 document.set_left_margin(margin_left + self._TAB_WIDTH)
@@ -971,6 +1012,8 @@ class ChannelExporter:
         else:
             user_id = None
             print("WARN: Can not process message with ts {}".format(msg["ts"]))
+            document.write(self._LINE_HEIGHT_DEFAULT, "[Can not process this message]")
+            document.ln()
 
         return user_id   
 
@@ -1011,7 +1054,7 @@ class ChannelExporter:
                     document.line(x1, y1, x2, y1)
                     
                     # stamp date on divider
-                    date_text = msg_dt.strftime(self._FORMAT_DATE)
+                    date_text = msg_dt.strftime(self._format_date)
                     width = document.get_string_width(date_text)
                     cell_x = (x2 - x1 - width) / 2
                     cell_y = y1                
@@ -1110,6 +1153,7 @@ class ChannelExporter:
             print("Running in DEBUG mode")
         
         print("Timezone is: " + self._tz_local_name)
+        print("Time system is: " + str(self._time_system) + " hrs")
         
         team_name = self._workspace_info["team"]
         if channel_input.upper() in self._channel_names:
@@ -1203,7 +1247,7 @@ class ChannelExporter:
         workspace_name = self._workspace_info["team"]
         channel_name = self._channel_names[channel_id]
         creation_date = datetime.now(tz=self._tz_local)
-        creation_datetime_str = creation_date.strftime(self._FORMAT_DATETIME)        
+        creation_datetime_str = creation_date.strftime(self._format_datetime)        
         if self._workspace_info["user_id"] in self._user_names:
             author = self._user_names[self._workspace_info["user_id"]]
         else:
@@ -1222,9 +1266,9 @@ class ChannelExporter:
             ts_max = max(float(s) for s in ts_extract)
             
             start_date = self._get_datetime_from_ts(ts_min)
-            start_date_str = start_date.strftime(self._FORMAT_DATETIME)
+            start_date_str = start_date.strftime(self._format_datetime)
             end_date = self._get_datetime_from_ts(ts_max)
-            end_date_str = end_date.strftime(self._FORMAT_DATETIME)
+            end_date_str = end_date.strftime(self._format_datetime)
         else:
             start_date_str = ""
             end_date_str = ""
@@ -1267,6 +1311,7 @@ class ChannelExporter:
             "Exported by": author,
             "Start date": start_date_str,
             "End date": end_date_str,
+            "Timezone": self._tz_local_name,
             "Messages": message_count,
             "Threads": len(threads.keys()) if len(threads) > 0 else 0
         }
@@ -1280,104 +1325,3 @@ class ChannelExporter:
         print("Writing PDF file: " + filenamePdf)
         document.output(filenamePdf)
     
-        
-    
-def main():
-    """Implements the arg parser and starts the channelexporter with its input"""
-
-    # main arguments
-    parser = argparse.ArgumentParser(
-        description = "This program exports the text of a Slack channel to a PDF file",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-        )
-    parser.add_argument(
-        "token",         
-        help = "Slack Oauth token"
-        )
-    parser.add_argument(        
-        "channel", 
-        help = "Name or ID of channel to export"
-        )
-    
-    # PDF file
-    parser.add_argument(        
-        "-d",
-        "--destination",         
-        help = "Specify a destination path to store the PDF file. (TBD)",
-        default = "."
-        )
-    
-    # formatting
-    parser.add_argument(        
-        "--page-orientation",         
-        help = "Orientation of PDF pages",
-        choices = ["portrait", "landscape"],
-        default = ChannelExporter._PAGE_ORIENTATION_DEFAULT
-        )
-    parser.add_argument(        
-        "--page-format",         
-        help = "Format of PDF pages",
-        choices = ["a3", "a4", "a5", "letter", "legal"],
-        default = ChannelExporter._PAGE_FORMAT_DEFAULT
-        )    
-    parser.add_argument(
-        "--timezone",         
-        help = "timezone name as defined here: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones",
-        default = ChannelExporter._TZ_DEFAULT
-        )    
-
-    # standards
-    parser.add_argument(        
-        "--version",         
-        help="show the program version and exit", 
-        action="version", 
-        version=ChannelExporter._VERSION
-        )    
-
-    # exporter config
-    parser.add_argument(        
-        "--max-messages",         
-        help = "max number of messages to export",
-        type = int
-        )
-
-    # Developer needs
-    parser.add_argument(        
-        "--write-raw-data",
-        help = "will also write all raw data returned from the API to files,"\
-            + " e.g. messages.json with all messages",                
-        action = "store_const",
-        const = True
-        )    
-    
-    parser.add_argument(        
-        "--debug",
-        help = "will run in debug mode",
-        action = "store_const",
-        const = True
-        )
-
-    start_export = True
-    args = parser.parse_args()
-
-    if args.timezone not in pytz.all_timezones:
-        print("ERROR: Unknown timezone: " + args.timezone)
-        start_export = False
-    
-    if "version" in args:
-        print(ChannelExporter._VERSION)            
-        start_export = False
-
-    if start_export:
-        exporter = ChannelExporter(args.token, "debug" in args)
-        if "timezone" in args:
-            exporter.tz_local_name = args.timezone
-        exporter.run(
-            args.channel, 
-            args.max_messages, 
-            args.write_raw_data == True
-        )
-    
-
-if __name__ == '__main__':
-    main()
