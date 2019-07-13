@@ -30,6 +30,15 @@ class FPDF_ext(fpdf_mod.FPDF):
     """
     
     _TAB_WIDTH = 4
+    _TAGS_SUPPORTED = [
+        "b",
+        "i",
+        "u",
+        "a",        
+        "br"
+        "blockquote",
+        "s"
+    ]
 
     def __init__(self, orientation='P', unit='mm', format='A4'):        
         super().__init__(orientation=orientation, unit=unit, format=format)

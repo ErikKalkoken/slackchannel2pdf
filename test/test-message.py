@@ -16,7 +16,7 @@ def main():
         "TEST-MESSAGE": "test-message"
     }
     exporter.set_time_system(ChannelExporter._TIME_SYSTEM_12HRS)
-    exporter.run("test-message")
+    exporter.run(["test-message"])
 
 if __name__ == '__main__':
     main()

@@ -830,6 +830,24 @@ class ChannelExporter:
                     document.write_html(self._LINE_HEIGHT_DEFAULT, text)
                     document.ln()
 
+                    if "preview" in file:
+                        text = file["preview"]
+                        # remove document tag if any
+                        match = re.match(r'<document>(.+)<\/document>', text)
+                        if match is not None:
+                            text = match.group(1)
+                        # replace <p> with <br>
+                        text = re.sub(r'<p>(.+)<\/p>', r'\1<br>', text)
+                        # replace \r\n with <br>
+                        text = re.sub(r'\n|\r\n', r'<br>', text)
+                        #output
+                        document.set_font(
+                            self._FONT_FAMILY_DEFAULT, 
+                            size=self._FONT_SIZE_NORMAL)                            
+                        document.write_html(self._LINE_HEIGHT_DEFAULT, text)
+                        document.ln()
+
+
             if "attachments" in msg:
                 # draw attachments                                
                 document.set_left_margin(margin_left + self._TAB_WIDTH)
@@ -1122,7 +1140,7 @@ class ChannelExporter:
 
     def run(
         self, 
-        channel_input, 
+        channel_inputs, 
         max_messages=None, 
         write_raw_data=False,
         page_orientation="portrait",
@@ -1131,12 +1149,16 @@ class ChannelExporter:
         """export all message from a channel and store them in a PDF
         
         Args:
-            channel_input: Name or ID of channel to retrieve messages from
+            channel_inputs: list of names and/or IDs of channels to retrieve messages from
             max_messages: maximum number of messages to retrieve
             write_raw_data: will safe data received from API to files if true
             page_orientation: orientation of pages  as defined in FPDF class,
             page_format: format of pages, see as defined in FPDF class
         """
+        # input validation
+        if type(channel_inputs) is not list:
+            raise TypeError("channel_inputs must be of type list")
+        
         # set timezone
         self._tz_local = pytz.timezone(self._tz_local_name)
         
@@ -1156,172 +1178,181 @@ class ChannelExporter:
         print("Time system is: " + str(self._time_system) + " hrs")
         
         team_name = self._workspace_info["team"]
-        if channel_input.upper() in self._channel_names:
-            channel_id = channel_input.upper()
-        else:
-            # flip channel_names since channel names are unique
-            channel_names_ids = {v:k for k,v in self._channel_names.items()}
-            if channel_input.lower() not in channel_names_ids:
-                raise RuntimeError("Unknown channel '" 
-                    + channel_input 
-                    + "' on " 
-                    + team_name)
+
+        channel_count = 0
+        for channel_input in channel_inputs:
+            channel_count += 1
+            if channel_input.upper() in self._channel_names:
+                channel_id = channel_input.upper()
             else:
-                channel_id = channel_names_ids[channel_input.lower()]
-        
-        channel_name = self._channel_names[channel_id]
-        
-        # fetch messages        
-        # if we have a client fetch data from Slack            
-        if self._client is not None:                       
-            print("Retrieving messages from " 
-                + team_name 
-                + " / " 
-                + channel_name 
-                + " ...")
+                # flip channel_names since channel names are unique
+                channel_names_ids = {v:k for k,v in self._channel_names.items()}
+                if channel_input.lower() not in channel_names_ids:
+                    print("({}/{}) ERROR: Unknown channel '".format(
+                            channel_count, 
+                            len(channel_inputs)) 
+                        + channel_input 
+                        + "' on " 
+                        + team_name)
+                    continue
+                else:
+                    channel_id = channel_names_ids[channel_input.lower()]
             
-            messages = self._fetch_messages_from_channel(
-                channel_id, 
-                max_messages
-                )
-            threads = self._fetch_threads_from_messages(
-                channel_id, 
-                messages
-                )
-            self._bot_names = self._fetch_bot_names_for_messages(
-                messages, 
-                threads
-                )
+            channel_name = self._channel_names[channel_id]
             
-            filename_base = team_name + "_" + channel_name
-            if write_raw_data:
-                # write raw data received from Slack API to file                
-                self._write_array_to_json_file(
-                    self._user_names, 
-                    filename_base + "_users"
-                    )
-                self._write_array_to_json_file(
-                    self._bot_names, 
-                    filename_base + "_bots"
-                    )
-                self._write_array_to_json_file(
-                    self._channel_names, 
-                    filename_base + "_channels"
-                    )
-                self._write_array_to_json_file(
-                    messages, 
-                    filename_base + "_messages"
-                    )
-                if len(threads) > 0:
-                    self._write_array_to_json_file(
-                        threads, filename_base + "_threads"
-                        )
-        else:
-            # if we don't have a client we will try to fetch from a file
-            # this is used for testing
-            filename_base = "test/" + str(channel_input)
-            messages = self._read_array_from_json_file(filename_base 
-                + "_messages")
-            threads = self._read_array_from_json_file(filename_base 
-                + "_threads")
-        
-        # create PDF
-        document = MyFPDF(
-            page_orientation, 
-            self._PAGE_UNITS_DEFAULT, 
-            page_format
-        )
-        
-        # add all fonts to support unicode
-        document.add_font(self._FONT_FAMILY_DEFAULT, style="", fname="NotoSans-Regular.ttf", uni=True)
-        document.add_font(self._FONT_FAMILY_DEFAULT, style="B", fname="NotoSans-Bold.ttf", uni=True)
-        document.add_font(self._FONT_FAMILY_DEFAULT, style="I", fname="NotoSans-Italic.ttf", uni=True)
-        document.add_font(self._FONT_FAMILY_DEFAULT, style="BI", fname="NotoSans-BoldItalic.ttf", uni=True)
-        document.add_font(self._FONT_FAMILY_MONO_DEFAULT, style="", fname="NotoSansMono-Regular.ttf", uni=True)
-        document.add_font(self._FONT_FAMILY_MONO_DEFAULT, style="B", fname="NotoSansMono-Bold.ttf", uni=True)
-        # document.add_font(self._FONT_FAMILY_EMOJI_DEFAULT, style="", fname="NotoEmoji-Regular.ttf", uni=True)
-        document.alias_nb_pages()
-        document.add_page()
-
-        # compile all values
-        workspace_name = self._workspace_info["team"]
-        channel_name = self._channel_names[channel_id]
-        creation_date = datetime.now(tz=self._tz_local)
-        creation_datetime_str = creation_date.strftime(self._format_datetime)        
-        if self._workspace_info["user_id"] in self._user_names:
-            author = self._user_names[self._workspace_info["user_id"]]
-        else:
-            author = "unknown_user_" + self._workspace_info["user_id"]
-        
-        # count all messages including threads
-        message_count = len(messages)
-        if len(threads) > 0:
-            for thread_ts, thread_messages in threads.items():
-                message_count += len(thread_messages) -1
-
-        if message_count > 0:
-            # find start and end date based on messages
-            ts_extract = [d['ts'] for d in messages]
-            ts_min = min(float(s) for s in ts_extract)
-            ts_max = max(float(s) for s in ts_extract)
-            
-            start_date = self._get_datetime_from_ts(ts_min)
-            start_date_str = start_date.strftime(self._format_datetime)
-            end_date = self._get_datetime_from_ts(ts_max)
-            end_date_str = end_date.strftime(self._format_datetime)
-        else:
-            start_date_str = ""
-            end_date_str = ""
-
-        # set variables for title, header, footer
-        title = "Slack channel PDF export" 
-        sub_title = workspace_name + " / " + channel_name
-        page_title = title + "from " + sub_title
+            # fetch messages        
+            # if we have a client fetch data from Slack            
+            if self._client is not None:                                       
+                print("({}/{}) Retrieving messages from ".format(
+                        channel_count, 
+                        len(channel_inputs))
+                    + team_name 
+                    + " / " 
+                    + channel_name 
+                    + " ...")
                 
-        # set general properties in document        
-        document.set_author(author)
-        document.set_creator("Channel Export")
-        document.set_title(title)
-        #document.set_creation_date(creation_date)
-        document.set_subject(sub_title)                        
-        document.page_title = page_title
-        
-        # write title on first page        
-        document.set_font(
-            self._FONT_FAMILY_DEFAULT, 
-            size=self._FONT_SIZE_LARGE, 
-            style="B"
+                messages = self._fetch_messages_from_channel(
+                    channel_id, 
+                    max_messages
+                    )
+                threads = self._fetch_threads_from_messages(
+                    channel_id, 
+                    messages
+                    )
+                self._bot_names = self._fetch_bot_names_for_messages(
+                    messages, 
+                    threads
+                    )
+                
+                filename_base = team_name + "_" + channel_name
+                if write_raw_data:
+                    # write raw data received from Slack API to file                
+                    self._write_array_to_json_file(
+                        self._user_names, 
+                        filename_base + "_users"
+                        )
+                    self._write_array_to_json_file(
+                        self._bot_names, 
+                        filename_base + "_bots"
+                        )
+                    self._write_array_to_json_file(
+                        self._channel_names, 
+                        filename_base + "_channels"
+                        )
+                    self._write_array_to_json_file(
+                        messages, 
+                        filename_base + "_messages"
+                        )
+                    if len(threads) > 0:
+                        self._write_array_to_json_file(
+                            threads, filename_base + "_threads"
+                            )
+            else:
+                # if we don't have a client we will try to fetch from a file
+                # this is used for testing
+                filename_base = "test/" + str(channel_input)
+                messages = self._read_array_from_json_file(filename_base 
+                    + "_messages")
+                threads = self._read_array_from_json_file(filename_base 
+                    + "_threads")
+            
+            # create PDF
+            document = MyFPDF(
+                page_orientation, 
+                self._PAGE_UNITS_DEFAULT, 
+                page_format
             )
-        document.cell(0, 0, title, 0, 1, "C")
-        document.ln(self._LINE_HEIGHT_DEFAULT)
-        
-        document.set_font(
-            self._FONT_FAMILY_DEFAULT, 
-            size=self._FONT_SIZE_NORMAL, 
-            style="B"
-            )
-        document.cell(0, 0, sub_title, 0, 1, "C")
-        document.ln(self._LINE_HEIGHT_DEFAULT)
+            
+            # add all fonts to support unicode
+            document.add_font(self._FONT_FAMILY_DEFAULT, style="", fname="NotoSans-Regular.ttf", uni=True)
+            document.add_font(self._FONT_FAMILY_DEFAULT, style="B", fname="NotoSans-Bold.ttf", uni=True)
+            document.add_font(self._FONT_FAMILY_DEFAULT, style="I", fname="NotoSans-Italic.ttf", uni=True)
+            document.add_font(self._FONT_FAMILY_DEFAULT, style="BI", fname="NotoSans-BoldItalic.ttf", uni=True)
+            document.add_font(self._FONT_FAMILY_MONO_DEFAULT, style="", fname="NotoSansMono-Regular.ttf", uni=True)
+            document.add_font(self._FONT_FAMILY_MONO_DEFAULT, style="B", fname="NotoSansMono-Bold.ttf", uni=True)
+            # document.add_font(self._FONT_FAMILY_EMOJI_DEFAULT, style="", fname="NotoEmoji-Regular.ttf", uni=True)
+            document.alias_nb_pages()
+            document.add_page()
 
-        # write info block after title
-        table_def = {
-            "Slack workspace": workspace_name,
-            "Channel": channel_name,            
-            "Exported at": creation_datetime_str,
-            "Exported by": author,
-            "Start date": start_date_str,
-            "End date": end_date_str,
-            "Timezone": self._tz_local_name,
-            "Messages": message_count,
-            "Threads": len(threads.keys()) if len(threads) > 0 else 0
-        }
-        document._write_info_table(table_def)
-        
-        # write messages to PDF
-        self._write_messages_to_pdf(document, messages, threads)
-        
-        # store PDF
-        filenamePdf = filename_base + ".pdf"
-        print("Writing PDF file: " + filenamePdf)
-        document.output(filenamePdf)
+            # compile all values
+            workspace_name = self._workspace_info["team"]
+            channel_name = self._channel_names[channel_id]
+            creation_date = datetime.now(tz=self._tz_local)
+            creation_datetime_str = creation_date.strftime(self._format_datetime)        
+            if self._workspace_info["user_id"] in self._user_names:
+                author = self._user_names[self._workspace_info["user_id"]]
+            else:
+                author = "unknown_user_" + self._workspace_info["user_id"]
+            
+            # count all messages including threads
+            message_count = len(messages)
+            if len(threads) > 0:
+                for thread_ts, thread_messages in threads.items():
+                    message_count += len(thread_messages) -1
+
+            if message_count > 0:
+                # find start and end date based on messages
+                ts_extract = [d['ts'] for d in messages]
+                ts_min = min(float(s) for s in ts_extract)
+                ts_max = max(float(s) for s in ts_extract)
+                
+                start_date = self._get_datetime_from_ts(ts_min)
+                start_date_str = start_date.strftime(self._format_datetime)
+                end_date = self._get_datetime_from_ts(ts_max)
+                end_date_str = end_date.strftime(self._format_datetime)
+            else:
+                start_date_str = ""
+                end_date_str = ""
+
+            # set variables for title, header, footer
+            title = "Slack channel PDF export" 
+            sub_title = workspace_name + " / " + channel_name
+            page_title = title + "from " + sub_title
+                    
+            # set general properties in document        
+            document.set_author(author)
+            document.set_creator("Channel Export")
+            document.set_title(title)
+            #document.set_creation_date(creation_date)
+            document.set_subject(sub_title)                        
+            document.page_title = page_title
+            
+            # write title on first page        
+            document.set_font(
+                self._FONT_FAMILY_DEFAULT, 
+                size=self._FONT_SIZE_LARGE, 
+                style="B"
+                )
+            document.cell(0, 0, title, 0, 1, "C")
+            document.ln(self._LINE_HEIGHT_DEFAULT)
+            
+            document.set_font(
+                self._FONT_FAMILY_DEFAULT, 
+                size=self._FONT_SIZE_NORMAL, 
+                style="B"
+                )
+            document.cell(0, 0, sub_title, 0, 1, "C")
+            document.ln(self._LINE_HEIGHT_DEFAULT)
+
+            # write info block after title
+            table_def = {
+                "Slack workspace": workspace_name,
+                "Channel": channel_name,            
+                "Exported at": creation_datetime_str,
+                "Exported by": author,
+                "Start date": start_date_str,
+                "End date": end_date_str,
+                "Timezone": self._tz_local_name,
+                "Messages": message_count,
+                "Threads": len(threads.keys()) if len(threads) > 0 else 0
+            }
+            document._write_info_table(table_def)
+            
+            # write messages to PDF
+            self._write_messages_to_pdf(document, messages, threads)
+            
+            # store PDF
+            filenamePdf = filename_base + ".pdf"
+            print("Writing PDF file: " + filenamePdf)
+            document.output(filenamePdf)
     

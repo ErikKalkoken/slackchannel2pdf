@@ -16,7 +16,8 @@ def main():
         )
     parser.add_argument(        
         "channel", 
-        help = "Name or ID of channel to export"
+        help = "One or several: name or ID of channel to export.",
+        nargs="+"
         )
     
     # PDF file

@@ -7,6 +7,11 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     "first"
     )
+
+parser.add_argument(
+    "second",
+    nargs="+"
+    )
     
 parser.add_argument(        
     "--messages",
