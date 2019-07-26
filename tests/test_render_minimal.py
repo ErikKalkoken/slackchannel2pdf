@@ -13,10 +13,10 @@ def main():
     }
     exporter._user_names["U92345678"] = "Erik Kalkoken"
     exporter._channel_names = {
-        "TEST-MESSAGE": "test_message"
+        "TEST-MESSAGE": "test_render_minimal"
     }
     exporter.set_time_system(ChannelExporter._TIME_SYSTEM_12HRS)
-    exporter.run(["test_message"])
+    exporter.run(["test_render_minimal"])
 
 if __name__ == '__main__':
     main()

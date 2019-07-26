@@ -8,16 +8,17 @@ from channelexport import ChannelExporter
 def main():
     exporter = ChannelExporter("TEST")
     exporter._workspace_info = {
-        "team": "Dummy",
+        "team": "Test",
         "user_id": "U92345678"
     }
     exporter._user_names["U92345678"] = "Erik Kalkoken"
-    exporter._user_names["U82345678"] = "Mr. X"
+    exporter._user_names["U82345678"] = "Mei Tsukaya"
     exporter._user_names["U72345678"] = "Mr. Y"
+    
     exporter._channel_names = {
-        "TEST-ATTACHMENT": "test_attachment"
+        "TEST-RENDER-COMPLETE": "test_render_complete"
     }
-    exporter.run(["test_attachment"])
+    exporter.run(["test_render_complete"])
 
 if __name__ == '__main__':
     main()
