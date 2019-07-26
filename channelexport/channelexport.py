@@ -165,7 +165,7 @@ class ChannelExporter:
         """CONSTRUCTOR
         
         Args:
-            slack_token: Ouath token to be used for all calls to the Slack API
+            slack_token: OAuth token to be used for all calls to the Slack API
                 "TEST" can be provided to start test mode
 
         """
@@ -188,6 +188,7 @@ class ChannelExporter:
             self._workspace_info = self._fetch_workspace_info()
             self._user_names = self._fetch_user_names()
             self._channel_names = self._fetch_channel_names()
+            self._usergroup_names = self._fetch_usergroup_names()
 
         else:
             # if started with TEST parameter class properties will be
@@ -196,6 +197,7 @@ class ChannelExporter:
             self._workspace_info = dict()
             self._user_names = dict()
             self._channel_names = dict()
+            self._usergroup_names = dict()
             self._bot_names = dict()
 
         # self._emoji_map = self._generate_emoji_map()
@@ -298,7 +300,27 @@ class ChannelExporter:
                 channel_names[channel]
                 )
         
-        return channel_names    
+        return channel_names
+
+    def _fetch_usergroup_names(self):
+        """returns dict of usergroup names with usergroup ID as key"""
+        
+        # make sure slack client is set
+        assert self._client is not None
+        
+        response = self._client.usergroups_list()
+        assert response["ok"]    
+        usergroup_names = reduce_to_dict(
+            response["usergroups"], 
+            "id",             
+            "handle"
+            )        
+        for usergroup in usergroup_names:
+            usergroup_names[usergroup] = self._transform_encoding(
+                usergroup_names[usergroup]
+                )
+        
+        return usergroup_names
 
 
     def _fetch_messages_from_channel(self, channel_id, max_messages=None):
@@ -556,18 +578,27 @@ class ChannelExporter:
                 if id in self._user_names:
                     replacement = "@" + self._user_names[id]
                 else:
-                    replacement = "@unknown_{}".format(id)
+                    replacement = "@user_{}".format(id)
             
             elif id_chars == "#C":
                 # match is a channel ID
                 if id in self._channel_names:
                     replacement = "#" + self._channel_names[id]
                 else:
-                    replacement = "#unknown_{}".format(id)
+                    replacement = "#channel_{}".format(id)
             
-            elif match[0:9] == "!subteam":
+            elif match[0:9] == "!subteam^":
                 # match is a user group ID
-                replacement = "@usergroup_dummy"
+                match2 = re.match(r'!subteam\^(S[A-Z0-9]+)', match)
+                if match2 is not None and len(match2.groups()) == 1:
+                    id = match2.group(1)
+                    if id in self._usergroup_names:
+                        usergroup_name = self._usergroup_names[id]
+                    else:
+                        usergroup_name = "usergroup_{}".format(id)
+                else:
+                    usergroup_name = "usergroup_unknown"
+                replacement = "@" + usergroup_name
             
             elif match[0:1] == "!":
                 # match is a special mention
@@ -591,7 +622,7 @@ class ChannelExporter:
                         replacement = "(failed to parse date)"
 
                 else:
-                    replacement = "unknown_{}". format(id)
+                    replacement = "@special_{}". format(id)
             
             else:
                 # match is an URL
@@ -653,6 +684,7 @@ class ChannelExporter:
                 s2
                 )
 
+            # italic
             s2 = re.sub(
                 r'\b_(.+)_\b',
                 r'<i>\1</i>',
@@ -666,7 +698,7 @@ class ChannelExporter:
                 s2
                 )
 
-            # idents
+            # indents
             s2 = re.sub(
                 r'^>(.+)',
                 r'<blockquote>\1</blockquote>',
@@ -1247,6 +1279,10 @@ class ChannelExporter:
                     self._write_array_to_json_file(
                         self._channel_names, 
                         filename_base + "_channels"
+                        )
+                    self._write_array_to_json_file(
+                        self._usergroup_names, 
+                        filename_base + "_usergroups"
                         )
                     self._write_array_to_json_file(
                         messages, 
