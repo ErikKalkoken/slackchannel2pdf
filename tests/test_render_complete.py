@@ -6,7 +6,7 @@ sys.path.insert(0,parentdir + "/channelexport")
 from channelexport import ChannelExporter
 
 def main():
-    exporter = ChannelExporter("TEST")
+    exporter = ChannelExporter(slack_token="TEST", debug=True)
     exporter._workspace_info = {
         "team": "Test",
         "user_id": "U92345678"
@@ -18,6 +18,7 @@ def main():
     exporter._channel_names = {
         "TEST-RENDER-COMPLETE": "test_render_complete"
     }
+    
     exporter.run(["test_render_complete"])
 
 if __name__ == '__main__':

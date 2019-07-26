@@ -803,16 +803,25 @@ class ChannelExporter:
             if "text" in msg and len(msg["text"]) > 0:
                 text = msg["text"]
                 if self._debug:
-                    text += " [" + msg["ts"] + "]"
+                    debug_text = (' ['
+                        + '<s fontfamily="' 
+                        + self._FONT_FAMILY_MONO_DEFAULT                         
+                        + '" size="8">' 
+                        + msg["ts"] 
+                        + ']</s>')
+                else:
+                    debug_text = ""
                 document.set_font(
                     self._FONT_FAMILY_DEFAULT, 
                     size=self._FONT_SIZE_NORMAL)                            
-                document.write_html(
-                    self._LINE_HEIGHT_DEFAULT, 
-                    self._transform_text(
+                text_html = self._transform_text(
                         text, 
                         msg["mrkdwn"] if "mrkdwn" in msg else True
-                    ))
+                    )
+                document.write_html(
+                    self._LINE_HEIGHT_DEFAULT, 
+                    text_html + debug_text
+                    )
                 document.ln()
 
             if "reactions" in msg:

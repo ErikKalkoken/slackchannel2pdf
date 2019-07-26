@@ -1,7 +1,7 @@
 [
     {     
         "team": "T12345678",
-        "text": "*Simple messages* testing",
+        "text": "*Simple messages*",
         "ts": "1515045940.000800",
         "type": "message",
         "user": "U92345678"
@@ -14,51 +14,47 @@
         "user": "U92345678"
     },
     {
-        "bot_id": "B0HBSJ2KE",
+        "bot_id": "B12345678",
         "subtype": "bot_message",
-        "text": "<!here>\nHere is the current status on finding a new alliance\n<https://docs.google.com/document/d/1gQMDS0r9LUJAVob3oybMwsX8ivxXDAHA5v_b53E4biE/edit?usp=sharing>",        
+        "text": "<!here>\nHere we have a bot message\n",        
         "ts": "1515045942.000110",
         "type": "message",
         "username": "magic-webhook"
-    },
-    {
-        "bot_id": "B0HBSJ2KE",
-        "icons": {
-            "image_48": "https://slack-files2.s3-us-west-2.amazonaws.com/bot_icons/2016-10-06/88350053281_48.png"
-        },
-        "subtype": "bot_message",
-        "text": "Monitor is DOWN: contract notifier SWEG ( <https://www.kalkoken.org/apps/contractsrv/notifycontracts.php?status> ) - Reason: Keyword Does Not Exist <!channel>",
-        "ts": "1515045943.000800",
-        "type": "message",
-        "username": "Uptime Robot"
-    },
+    },    
     {        
         "team": "T12345678",
-        "text": "*Unicode testing*:\nGreek: Γειά σου κόσμος\nPolish: Witaj świecie\nPortuguese: Olá mundo\nRussian: Здравствуй, Мир\nVietnamese: Xin chào thế giới\nArabic: مرحبا العالم\nHebrew: שלום עולם\n testing `courier` testing",
+        "text": "*Unicode text*:\nGreek: Γειά σου κόσμος\nPolish: Witaj świecie\nPortuguese: Olá mundo\nRussian: Здравствуй, Мир\nVietnamese: Xin chào thế giới\nArabic: مرحبا العالم\nHebrew: שלום עולם\n testing `courier` testing",
         "ts": "1515045944.000800",
         "type": "message",
         "user": "U92345678"
     },   
+    {     
+        "team": "T12345678",
+        "text": "*File uploads*",
+        "ts": "1525302151.900800",
+        "type": "message",
+        "user": "U92345678"
+    },
     {
         "comment": 
         {
             "comment": "Added by <@U92345678>",
             "created": 1515045945,
-            "id": "FcAGN2PAHE",
+            "id": "F12345678",
             "is_intro": false,
             "timestamp": 1515045945,
             "user": "U92345678"
         },
         "file": 
         {
-            "created": 1515045944,
+            "created": 1525302151,
             "display_as_bot": false,
-            "edit_link": "https://kalkoken.slack.com/files/U92345678/FAGN2NXUY/alliance_fleet_schedule___motd__beta_.txt/edit",
+            "edit_link": "https://test.slack.com/files/U92345678/F22345678/alliance_fleet_schedule___motd__beta_.txt/edit",
             "editable": true,
             "external_type": "",
             "filetype": "text",
             "has_rich_preview": false,
-            "id": "FAGN2NXUY",
+            "id": "F22345678",
             "is_external": false,
             "is_public": false,
             "is_starred": false,
@@ -67,31 +63,31 @@
             "mimetype": "text/plain",
             "mode": "snippet",
             "name": "Alliance_Fleet_Schedule___MOTD__beta_.txt",
-            "permalink": "https://kalkoken.slack.com/files/U92345678/FAGN2NXUY/alliance_fleet_schedule___motd__beta_.txt",
-            "permalink_public": "https://slack-files.com/T12345678-FAGN2NXUY-a621d88ebe",
+            "permalink": "https://test.slack.com/files/U92345678/F22345678/alliance_fleet_schedule___motd__beta_.txt",
+            "permalink_public": "https://slack-files.com/T12345678-F22345678-a621d88ebe",
             "pretty_type": "Plain Text",
-            "preview": "Alliance Staging   Akidagi - Mans Got Home \r\n\r\nSWEG. TS :\r\n------------\r\nIP: ts.nohandlebars.space\r",
-            "preview_highlight": "<div class=\"CodeMirror cm-s-default CodeMirrorServer\" oncopy=\"if(event.clipboardData){event.clipboardData.setData('text/plain',window.getSelection().toString().replace(/\\u200b/g,''));event.preventDefault();event.stopPropagation();}\">\n<div class=\"CodeMirror-code\">\n<div><pre>Alliance Staging   Akidagi - Mans Got Home </pre></div>\n<div><pre></pre></div>\n<div><pre>SWEG. TS :</pre></div>\n<div><pre>------------</pre></div>\n<div><pre>IP: ts.nohandlebars.space</pre></div>\n<div><pre></pre></div>\n</div>\n</div>\n",
+            "preview": "Alliance Staging   Akidagi - Mans Got Home \r\n\r\nSWEG. TS :\r\n------------\r\nIP: ts.dummy.org\r",
+            "preview_highlight": "<div class=\"CodeMirror cm-s-default CodeMirrorServer\" oncopy=\"if(event.clipboardData){event.clipboardData.setData('text/plain',window.getSelection().toString().replace(/\\u200b/g,''));event.preventDefault();event.stopPropagation();}\">\n<div class=\"CodeMirror-code\">\n<div><pre>Alliance Staging   Akidagi - Mans Got Home </pre></div>\n<div><pre></pre></div>\n<div><pre>SWEG. TS :</pre></div>\n<div><pre>------------</pre></div>\n<div><pre>IP: ts.dummy.org</pre></div>\n<div><pre></pre></div>\n</div>\n</div>\n",
             "preview_is_truncated": false,
             "public_url_shared": false,
             "size": 657,
-            "timestamp": 1515045944,
+            "timestamp": 1525302152,
             "title": "Alliance Fleet Schedule / MOTD (beta)",
-            "url_private": "https://files.slack.com/files-pri/T12345678-FAGN2NXUY/alliance_fleet_schedule___motd__beta_.txt",
-            "url_private_download": "https://files.slack.com/files-pri/T12345678-FAGN2NXUY/download/alliance_fleet_schedule___motd__beta_.txt",
+            "url_private": "https://files.slack.com/files-pri/T12345678-F22345678/alliance_fleet_schedule___motd__beta_.txt",
+            "url_private_download": "https://files.slack.com/files-pri/T12345678-F22345678/download/alliance_fleet_schedule___motd__beta_.txt",
             "user": "U92345678",
             "username": ""
         },
         "files": [
             {
-                "created": 1515045944,
+                "created": 1525302151,
                 "display_as_bot": false,
-                "edit_link": "https://kalkoken.slack.com/files/U92345678/FAGN2NXUY/alliance_fleet_schedule___motd__beta_.txt/edit",
+                "edit_link": "https://test.slack.com/files/U92345678/F22345678/alliance_fleet_schedule___motd__beta_.txt/edit",
                 "editable": true,
                 "external_type": "",
                 "filetype": "text",
                 "has_rich_preview": false,
-                "id": "FAGN2NXUY",
+                "id": "F22345678",
                 "is_external": false,
                 "is_public": false,
                 "is_starred": false,
@@ -100,25 +96,25 @@
                 "mimetype": "text/plain",
                 "mode": "snippet",
                 "name": "Alliance_Fleet_Schedule___MOTD__beta_.txt",
-                "permalink": "https://kalkoken.slack.com/files/U92345678/FAGN2NXUY/alliance_fleet_schedule___motd__beta_.txt",
-                "permalink_public": "https://slack-files.com/T12345678-FAGN2NXUY-a621d88ebe",
+                "permalink": "https://test.slack.com/files/U92345678/F22345678/alliance_fleet_schedule___motd__beta_.txt",
+                "permalink_public": "https://slack-files.com/T12345678-F22345678-a621d88ebe",
                 "pretty_type": "Plain Text",
-                "preview": "Alliance Staging   Akidagi - Mans Got Home \r\n\r\nSWEG. TS :\r\n------------\r\nIP: ts.nohandlebars.space\r",
-                "preview_highlight": "<div class=\"CodeMirror cm-s-default CodeMirrorServer\" oncopy=\"if(event.clipboardData){event.clipboardData.setData('text/plain',window.getSelection().toString().replace(/\\u200b/g,''));event.preventDefault();event.stopPropagation();}\">\n<div class=\"CodeMirror-code\">\n<div><pre>Alliance Staging   Akidagi - Mans Got Home </pre></div>\n<div><pre></pre></div>\n<div><pre>SWEG. TS :</pre></div>\n<div><pre>------------</pre></div>\n<div><pre>IP: ts.nohandlebars.space</pre></div>\n<div><pre></pre></div>\n</div>\n</div>\n",
+                "preview": "Alliance Staging   Akidagi - Mans Got Home \r\n\r\nSWEG. TS :\r\n------------\r\nIP: ts.dummy.org\r",
+                "preview_highlight": "<div class=\"CodeMirror cm-s-default CodeMirrorServer\" oncopy=\"if(event.clipboardData){event.clipboardData.setData('text/plain',window.getSelection().toString().replace(/\\u200b/g,''));event.preventDefault();event.stopPropagation();}\">\n<div class=\"CodeMirror-code\">\n<div><pre>Alliance Staging   Akidagi - Mans Got Home </pre></div>\n<div><pre></pre></div>\n<div><pre>SWEG. TS :</pre></div>\n<div><pre>------------</pre></div>\n<div><pre>IP: ts.dummy.org</pre></div>\n<div><pre></pre></div>\n</div>\n</div>\n",
                 "preview_is_truncated": false,
                 "public_url_shared": false,
                 "size": 657,
-                "timestamp": 1515045944,
+                "timestamp": 1525302151,
                 "title": "Alliance Fleet Schedule / MOTD (beta)",
-                "url_private": "https://files.slack.com/files-pri/T12345678-FAGN2NXUY/alliance_fleet_schedule___motd__beta_.txt",
-                "url_private_download": "https://files.slack.com/files-pri/T12345678-FAGN2NXUY/download/alliance_fleet_schedule___motd__beta_.txt",
+                "url_private": "https://files.slack.com/files-pri/T12345678-F22345678/alliance_fleet_schedule___motd__beta_.txt",
+                "url_private_download": "https://files.slack.com/files-pri/T12345678-F22345678/download/alliance_fleet_schedule___motd__beta_.txt",
                 "user": "U92345678",
                 "username": ""
             }
         ],
         "is_intro": false,
         "subtype": "file_comment",
-        "text": "<@U92345678> commented on <@U92345678>’s file <https://kalkoken.slack.com/files/U92345678/FAGN2NXUY/alliance_fleet_schedule___motd__beta_.txt|Alliance Fleet Schedule / MOTD (beta)>: Added by <@U92345678>",
+        "text": "<@U92345678> commented on <@U92345678>’s file <https://test.slack.com/files/U92345678/F22345678/alliance_fleet_schedule___motd__beta_.txt|Alliance Fleet Schedule / MOTD (beta)>: Added by <@U92345678>",
         "ts": "1525302154.000077",
         "type": "message"
     },
@@ -126,7 +122,7 @@
         "display_as_bot": false,
         "files": [
             {
-                "created": 1515045948,
+                "created": 1525302153,
                 "display_as_bot": false,
                 "editable": true,
                 "editor": "U92345678",
@@ -141,16 +137,16 @@
                 "mimetype": "text/plain",
                 "mode": "space",
                 "name": "-",
-                "permalink": "https://kalkoken.slack.com/files/U92345678/F8T2693JP/-",
+                "permalink": "https://test.slack.com/files/U92345678/F8T2693JP/-",
                 "permalink_public": "https://slack-files.com/T12345678-F8T2693JP-64641a2f94",
                 "pretty_type": "Post",
                 "preview": "<document><p>This is a test file! Hyperlink: <a href=\"https://www.google.de/\">https://www.google.de/</a></p></document>",
                 "public_url_shared": false,
                 "size": 58,
                 "state": "locked",
-                "timestamp": 1515045948,
+                "timestamp": 1525302153,
                 "title": "Untitled",
-                "updated": 1515045948,
+                "updated": 1525302153,
                 "url_private": "https://files.slack.com/files-pri/T12345678-F8T2693JP/-",
                 "url_private_download": "https://files.slack.com/files-pri/T12345678-F8T2693JP/download/-",
                 "user": "U92345678",
@@ -158,14 +154,14 @@
             }
         ],
         "text": "",
-        "ts": "1515045948.000033",
+        "ts": "1525302153.000033",
         "type": "message",
         "upload": true,
         "user": "U92345678"
     },    
     {     
         "team": "T12345678",
-        "text": "*Attachment* testing",
+        "text": "*Attachments*",
         "ts": "1537212919.000800",
         "type": "message",
         "user": "U92345678"
@@ -224,7 +220,7 @@
                 ]
               }
         ],
-        "bot_id": "B0HBSJ2KE",
+        "bot_id": "B12345678",
         "subtype": "bot_message",
         "text": "How are you doing",
         "ts": "1537212980.000300",
@@ -232,7 +228,7 @@
         "username": "magic-webhook"       
     },
     {
-        "bot_id": "B0HBSJ2KE",
+        "bot_id": "B12345678",
         "subtype": "bot_message",
         "text": "How are you doing now ??",
         "ts": "1537212981.000300",
@@ -327,7 +323,7 @@
     },    
     {        
         "team": "T12345678",
-        "text": "*Thread testing*",
+        "text": "*Threads*",
         "ts": "1561764001.000800",
         "type": "message",
         "user": "U92345678"
@@ -363,7 +359,7 @@
     },
     {     
         "team": "T12345678",
-        "text": "*Blocks* testing",
+        "text": "*Blocks*",
         "ts": "1562274542.000800",
         "type": "message",
         "user": "U92345678"
