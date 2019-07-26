@@ -228,8 +228,9 @@ class ChannelExporter:
     # Methods for fetching data from Slack API
     # *************************************************************************
 
+    """
     def _generate_emoji_map(self):
-        """returns a dict of names to UTF-8 string for all known emojis"""
+        returns a dict of names to UTF-8 string for all known emojis
         map = dict()
         try:
             with open(self._FILE_EMOJIS, 'r', encoding="utf-8") as f:
@@ -248,7 +249,8 @@ class ChannelExporter:
             map = []
 
         return map
-    
+    """
+
     def _fetch_workspace_info(self):    
         """returns dict with info about current workspace"""
         
@@ -287,13 +289,14 @@ class ChannelExporter:
         assert self._client is not None
         
         response = self._client.conversations_list(
-            types="public_channel,private_channel"
+            types="public_channel,private_channel,im"
             )
         assert response["ok"]    
         channel_names = reduce_to_dict(
             response["channels"], 
             "id", 
-            "name"
+            "name",
+            "user"
             )        
         for channel in channel_names:
             channel_names[channel] = self._transform_encoding(
@@ -1282,19 +1285,19 @@ class ChannelExporter:
                     # write raw data received from Slack API to file                
                     self._write_array_to_json_file(
                         self._user_names, 
-                        filename_base + "_users"
+                        team_name + "_users"
                         )
                     self._write_array_to_json_file(
                         self._bot_names, 
-                        filename_base + "_bots"
+                        team_name + "_bots"
                         )
                     self._write_array_to_json_file(
                         self._channel_names, 
-                        filename_base + "_channels"
+                        team_name + "_channels"
                         )
                     self._write_array_to_json_file(
                         self._usergroup_names, 
-                        filename_base + "_usergroups"
+                        team_name + "_usergroups"
                         )
                     self._write_array_to_json_file(
                         messages, 
