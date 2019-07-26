@@ -174,7 +174,7 @@ class FPDF_ext(fpdf_mod.FPDF):
         """moves current left margin and position forward by tab width"""
         self.set_left_margin(self.l_margin + self._TAB_WIDTH)
         self.set_x(self.get_x() + self._TAB_WIDTH)
-        # self.ln()
+        self.ln()
 
     def _set_ident_minus(self):
         """reduces current left margin and position forward by tab width"""
@@ -183,7 +183,7 @@ class FPDF_ext(fpdf_mod.FPDF):
         if left_margin > self._TAB_WIDTH and x > self._TAB_WIDTH:
             self.set_left_margin(left_margin - self._TAB_WIDTH)
             self.set_x(x - self._TAB_WIDTH)
-            # self.ln()
+            self.ln()
     
     def _put_link(self, url, height, txt):
         """ set style and write text to create a link"""
@@ -192,27 +192,3 @@ class FPDF_ext(fpdf_mod.FPDF):
         self.write(height, txt, url)
         self._set_style("U", False)
         self.set_text_color(0)
-
-
-def run_example():
-    
-    html = """You can now easily print text mixing different styles: <b>bold</b>, <i>italic</i>, <u>underlined</u>, or <b><i><u>all at once</u></i></b>!<br><br>You can also insert links on text, such as <a href="http://www.fpdf.org" blank="_target">www.fpdf.org</a>, or this <s fontfamily="Courier" size="20" style="U">some custom text </s> - yeah!"""
-    
-    document = FPDF_ext()
-    document.add_page()
-    document.set_font('Arial', size=12)
-    document.cell(w=0, txt="hello world")
-    document.write_html(5, html)
-
-    document.ln()
-    document.ln()
-
-    html = "This is some normal text<blockquote>This is more text</blockquote>And this is the final text"
-    document.write_html(5, html)
-
-
-    document.output("hello_world.pdf")
-
-
-if __name__ == '__main__':
-    run_example()        
