@@ -10,11 +10,11 @@ def main():
     exporter._workspace_info = {
         "team": "Dummy"
     }
-    exporter._user_names["U0HBXN3H8"] = "Erik Kalkoken"
+    exporter._user_names["U92345678"] = "Erik Kalkoken"
     exporter._channel_names = {
-        "test_blocks": "test_blocks"
+        "TEST-BLOCKS": "test_blocks"
     }
-    exporter.run("test_blocks")
+    exporter.run(["test_blocks"])
 
 if __name__ == '__main__':
     main()

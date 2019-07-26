@@ -1202,10 +1202,13 @@ class ChannelExporter:
         # set timezone
         self._tz_local = pytz.timezone(self._tz_local_name)
         
-        if self._workspace_info["user_id"] in self._user_names:
-            author = self._user_names[self._workspace_info["user_id"]]
+        if "user_id" in self._workspace_info:
+            if self._workspace_info["user_id"] in self._user_names:
+                author = self._user_names[self._workspace_info["user_id"]]
+            else:
+                author = "unknown_user_" + self._workspace_info["user_id"]
         else:
-            author = "unknown_user_" + self._workspace_info["user_id"]
+            author = "unknown user"
 
         print("Channelexport v" + self._VERSION + " by Erik Kalkoken")
         print("")
@@ -1295,7 +1298,7 @@ class ChannelExporter:
             else:
                 # if we don't have a client we will try to fetch from a file
                 # this is used for testing
-                filename_base = "test/" + str(channel_input)
+                filename_base = "tests/" + str(channel_input)
                 messages = self._read_array_from_json_file(filename_base 
                     + "_messages")
                 threads = self._read_array_from_json_file(filename_base 
@@ -1324,11 +1327,7 @@ class ChannelExporter:
             channel_name = self._channel_names[channel_id]
             creation_date = datetime.now(tz=self._tz_local)
             creation_datetime_str = creation_date.strftime(self._format_datetime)        
-            if self._workspace_info["user_id"] in self._user_names:
-                author = self._user_names[self._workspace_info["user_id"]]
-            else:
-                author = "unknown_user_" + self._workspace_info["user_id"]
-            
+                        
             # count all messages including threads
             message_count = len(messages)
             if len(threads) > 0:
@@ -1399,5 +1398,8 @@ class ChannelExporter:
             # store PDF
             filenamePdf = filename_base + ".pdf"
             print("Writing PDF file: " + filenamePdf)
-            document.output(filenamePdf)
+            try:
+                document.output(filenamePdf)
+            except Exception as e:
+                print("ERROR: Failed to write PDF file: ", e)
     

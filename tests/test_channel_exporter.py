@@ -10,21 +10,21 @@ class TestExporterTransformText(unittest.TestCase):
 
     def setUp(self):
         user_names = {
-            "U123456789": "Naoko",
-            "U623456789": "Janet",
-            "U723456789": "Yuna"
+            "U12345678": "Naoko",
+            "U62345678": "Janet",
+            "U72345678": "Yuna"
         }
 
         channel_names = {
-            "C123456789": "berlin",
-            "C723456789": "tokio",
-            "C423456789": "oslo"
+            "C12345678": "berlin",
+            "C72345678": "tokio",
+            "C42345678": "oslo"
         }
 
         usergroup_names = {
-            "S123456789": "admins",
-            "S723456789": "marketing",
-            "S423456789": "sales"
+            "S12345678": "admins",
+            "S72345678": "marketing",
+            "S42345678": "sales"
         }
 
         self.exporter = ChannelExporter("TEST")
@@ -49,7 +49,7 @@ class TestExporterTransformText(unittest.TestCase):
 
     def test_transform_text_user(self):
         self.assertEqual(
-            self.exporter._transform_text("<@U623456789>", True), 
+            self.exporter._transform_text("<@U62345678>", True), 
             '<b>@Janet</b>'
         )
         self.assertEqual(
@@ -63,7 +63,7 @@ class TestExporterTransformText(unittest.TestCase):
     
     def test_transform_text_channel(self):        
         self.assertEqual(
-            self.exporter._transform_text("<#C723456789>", True), 
+            self.exporter._transform_text("<#C72345678>", True), 
             '<b>#tokio</b>'
         )
         self.assertEqual(
@@ -73,7 +73,7 @@ class TestExporterTransformText(unittest.TestCase):
     
     def test_transform_text_usergroup(self):
         self.assertEqual(
-            self.exporter._transform_text("<!subteam^S723456789>", True), 
+            self.exporter._transform_text("<!subteam^S72345678>", True), 
             '<b>@marketing</b>'
         )
 
@@ -151,7 +151,7 @@ class TestExporterTransformText(unittest.TestCase):
     def test_transform_text_general(self):
         self.assertEqual(
             self.exporter._transform_text(
-                "some *text* <@U623456789> more text", 
+                "some *text* <@U62345678> more text", 
                 True
                 ), 
             'some <b>text</b> <b>@Janet</b> more text'
@@ -163,7 +163,7 @@ class TestExporterTransformText(unittest.TestCase):
         
         self.assertEqual(
             self.exporter._transform_text(
-                "some text <@U623456789> more text", 
+                "some text <@U62345678> more text", 
                 True
                 ), 
             'some text <b>@Janet</b> more text'

@@ -9,14 +9,14 @@ def main():
     exporter = ChannelExporter("TEST")
     exporter._workspace_info = {
         "team": "Dummy",
-        "user_id": "U0HBXN3H8"
+        "user_id": "U92345678"
     }
-    exporter._user_names["U0HBXN3H8"] = "Erik Kalkoken"
-    exporter._user_names["U0UGVN9GF"] = "Mei Tsukaya"
+    exporter._user_names["U92345678"] = "Erik Kalkoken"
+    exporter._user_names["U82345678"] = "Mei Tsukaya"
     exporter._channel_names = {
-        "test_thread": "test-thread"
+        "test_thread": "test_thread"
     }
-    exporter.run("test_thread")
+    exporter.run(["test_thread"])
 
 if __name__ == '__main__':
     main()

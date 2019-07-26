@@ -9,15 +9,15 @@ def main():
     exporter = ChannelExporter("TEST")
     exporter._workspace_info = {
         "team": "Dummy",
-        "user_id": "U0HBXN3H8"
+        "user_id": "U92345678"
     }
-    exporter._user_names["U0HBXN3H8"] = "Erik Kalkoken"
-    exporter._user_names["UBBKA171Q"] = "Mr. X"
-    exporter._user_names["U9PTYC16J"] = "Mr. Y"
+    exporter._user_names["U92345678"] = "Erik Kalkoken"
+    exporter._user_names["U82345678"] = "Mr. X"
+    exporter._user_names["U72345678"] = "Mr. Y"
     exporter._channel_names = {
-        "test_attachment": "test-attachments"
+        "TEST-ATTACHMENT": "test_attachment"
     }
-    exporter.run("test_attachment")
+    exporter.run(["test_attachment"])
 
 if __name__ == '__main__':
     main()
