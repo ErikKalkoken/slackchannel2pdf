@@ -1175,8 +1175,8 @@ class ChannelExporter:
         else:
             author = "unknown_user_" + self._workspace_info["user_id"]
 
-        print("Channelexport v" + self._VERSION)
-        print("=============================================")
+        print("Channelexport v" + self._VERSION + " by Erik Kalkoken")
+        print("")
         print("Welcome " + author)
         
         if self._debug:

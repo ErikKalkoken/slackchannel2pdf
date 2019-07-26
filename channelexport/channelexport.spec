@@ -3,8 +3,7 @@
 block_cipher = None
 
 
-a = Analysis(['run.py'],
-             pathex=['D:\\Users\\bji74\\Documents\\Python\\channelexport'],
+a = Analysis(['run.py'],             
              binaries=[],
              datas=[
                  ('fonts/*.ttf', 'fonts')

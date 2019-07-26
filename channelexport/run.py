@@ -1,3 +1,11 @@
+# Copyright 2019 Erik Kalkoken
+#
+# Licensed under MIT license. See attached file for details
+#
+# This package contains the implementation of the command line interface
+# for Channelexport
+#
+
 import argparse
 import pytz
 from channelexport import ChannelExporter

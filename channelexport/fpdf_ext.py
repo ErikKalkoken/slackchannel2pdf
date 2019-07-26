@@ -1,8 +1,15 @@
+# Copyright 2019 Erik Kalkoken
+#
+# Licensed under MIT license. See attached file for details
+#
+# This package contains the implementation of an extended FPDF class 
+# with rudimentary HTML support
+#
+
 import fpdf_mod
 import re
 import os
 
-#SYSTEM_TTFONTS = os.path.dirname(__file__)
 fpdf_mod.set_global("FPDF_CACHE_MODE", 1)
 fpdf_mod.set_global("SYSTEM_TTFONTS", os.path.join(os.path.dirname(__file__),'fonts'))
 
