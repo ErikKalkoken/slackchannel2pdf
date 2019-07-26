@@ -83,7 +83,8 @@ def main():
         "--debug",
         help = "will run in debug mode",
         action = "store_const",
-        const = True
+        const = True,
+        default = False
         )
 
     start_export = True
@@ -98,7 +99,7 @@ def main():
         start_export = False
 
     if start_export:
-        exporter = ChannelExporter(args.token, "debug" in args)
+        exporter = ChannelExporter(args.token, args.debug)
         if "timezone" in args:
             exporter.tz_local_name = args.timezone
         if "timesystem" in args:

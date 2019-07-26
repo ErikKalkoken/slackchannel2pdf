@@ -1,3 +1,11 @@
+# Copyright 2019 Erik Kalkoken
+#
+# Licensed under MIT license. See attached file for details
+#
+# This package contains the main functionality of channelexport
+# User interfaces to this tool (e.g. commnad line) are in a separate package
+#
+
 import re
 import html
 import json
@@ -1182,6 +1190,7 @@ class ChannelExporter:
         channel_count = 0
         for channel_input in channel_inputs:
             channel_count += 1
+            print()
             if channel_input.upper() in self._channel_names:
                 channel_id = channel_input.upper()
             else:

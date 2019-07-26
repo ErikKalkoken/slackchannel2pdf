@@ -8,5 +8,6 @@ __pycache__/
 *.json
 build/
 dist/
+playground/
 
 
