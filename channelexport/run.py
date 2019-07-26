@@ -88,8 +88,8 @@ def main():
         )    
     
     parser.add_argument(        
-        "--debug",
-        help = "will run in debug mode",
+        "--add-debug-info",
+        help = "wether to add debug info to PDF",
         action = "store_const",
         const = True,
         default = False
@@ -107,7 +107,7 @@ def main():
         start_export = False
 
     if start_export:
-        exporter = ChannelExporter(args.token, args.debug)
+        exporter = ChannelExporter(args.token, args.add_debug_info)
         if "timezone" in args:
             exporter.tz_local_name = args.timezone
         if "timesystem" in args:

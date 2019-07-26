@@ -161,7 +161,7 @@ class ChannelExporter:
     _MAX_MESSAGES_PER_THREAD = 500
 
 
-    def __init__(self, slack_token, debug=False):        
+    def __init__(self, slack_token, add_debug_info=False):        
         """CONSTRUCTOR
         
         Args:
@@ -169,7 +169,7 @@ class ChannelExporter:
                 "TEST" can be provided to start test mode
 
         """
-        self._debug = debug
+        self._add_debug_info = add_debug_info
         
         # timezone used for all outputs of datetime
         # UTC is default
@@ -802,7 +802,7 @@ class ChannelExporter:
             
             if "text" in msg and len(msg["text"]) > 0:
                 text = msg["text"]
-                if self._debug:
+                if self._add_debug_info:
                     debug_text = (' ['
                         + '<s fontfamily="' 
                         + self._FONT_FAMILY_MONO_DEFAULT                         
@@ -1223,8 +1223,8 @@ class ChannelExporter:
         print("")
         print("Welcome " + author)
         
-        if self._debug:
-            print("Running in DEBUG mode")
+        if self._add_debug_info:
+            print("Adding DEBUG info to PDF")
         
         print("Timezone is: " + self._tz_local_name)
         print("Time system is: " + str(self._time_system) + " hrs")

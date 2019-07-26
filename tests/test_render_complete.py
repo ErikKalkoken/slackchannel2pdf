@@ -5,8 +5,8 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir + "/channelexport")
 from channelexport import ChannelExporter
 
-def main():
-    exporter = ChannelExporter(slack_token="TEST", debug=True)
+def main():    
+    exporter = ChannelExporter(slack_token="TEST", add_debug_info=True)
     exporter._workspace_info = {
         "team": "Test",
         "user_id": "U92345678"
