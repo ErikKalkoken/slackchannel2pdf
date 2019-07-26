@@ -6,6 +6,7 @@
 # for Channelexport
 #
 
+import os
 import argparse
 import pytz
 from channelexport import ChannelExporter
@@ -17,17 +18,18 @@ def main():
     parser = argparse.ArgumentParser(
         description = "This program exports the text of a Slack channel to a PDF file",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
-        )
-    parser.add_argument(
-        "token",         
-        help = "Slack Oauth token"
-        )
+        )    
     parser.add_argument(        
         "channel", 
         help = "One or several: name or ID of channel to export.",
         nargs="+"
         )
     
+    parser.add_argument(
+        "--token",         
+        help = "Slack Oauth token"
+        )
+
     # PDF file
     parser.add_argument(        
         "-d",
@@ -106,8 +108,18 @@ def main():
         print(ChannelExporter._VERSION)            
         start_export = False
 
+    # try to take slack token from optional argument or environment variable
+    if args.token is None:
+        if "SLACK_TOKEN" in os.environ:
+            slack_token = os.environ['SLACK_TOKEN']
+        else:
+            print("ERROR: No slack token provided")
+            start_export = False
+    else:
+        slack_token = args.token
+
     if start_export:
-        exporter = ChannelExporter(args.token, args.add_debug_info)
+        exporter = ChannelExporter(slack_token, args.add_debug_info)
         if "timezone" in args:
             exporter.tz_local_name = args.timezone
         if "timesystem" in args:
