@@ -1,26 +1,34 @@
 # channelexport
 
-Export the contents of any Slack channel and save as PDF file
+Export the text contents of any Slack channel to a PDF file
 
-## Purpose
+## About this tool
 
-**channelexport** is a command line tool for exporting the text contents of any Slack channel to a PDF file. 
+**channelexport** is a command line tool for exporting the text contents of any Slack channel to a PDF file.
 
-It is written in Python and can run an any platform that support Python 3.
+It is written in Python 3 and can run an any platform that support Python.
 
 ## Usage
 
+To use channelexport you need to have it installed on your system (see chapter Installation) and you need a Slack token for the respective Slack workspace with the required permissions (see chapter Token).
+
+>>>
+Note that you provide the Slack token both as command line argument or by setting the environment variable `SLACK-TOKEN`.
+<<<
+
 Here are some examples on how to use channelexport:
 
+To export the Slack channel "general" with the provided token:
+
 `channelexport --token MY_TOKEN general`
-To export the Slack channel #general with the provided token.
+
+To export the Slack channels "general", "random" and "test" with the provided token:
 
 `channelexport --token MY_TOKEN general random test`
-To export the Slack channels #general, #random and test with the provided token.
 
 ## Arguments
 
-```
+```text
 usage: run.py [-h] [--token TOKEN] [-d DESTINATION]
               [--page-orientation {portrait,landscape}]
               [--page-format {a3,a4,a5,letter,legal}] [--timezone TIMEZONE]
@@ -57,7 +65,7 @@ optional arguments:
 
 tbd.
 
-## Permission scopes
+## Token
 
 You run channelexport you need to have a token for your Slack workspace with the following permissions:
 
@@ -69,12 +77,15 @@ Minimum:
 - `users:read`
 - `usergroups:read`
 
-For reading private channels:
+Additional scopes for reading private channels and DMs:
 
 - `groups:history`
 - `groups:read`
+- `im:history`
+- `im:read`
 
 ## Known limitations
 
 - Text only: channelexport will export only text from a channel, but not images or icons. This is by design
-- No Emojis: the tools is currently not able to write emojis as icons will will use their text representation instead (e.g. :laughing:).
+- No Emojis: the tools is currently not able to write emojis as icons will will use their text representation instead (e.g. `:laughing:` instead of :laughing:).
+- Group DM: Currently not supported
