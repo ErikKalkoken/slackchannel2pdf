@@ -1,9 +1,5 @@
 # channelexport
 
-Export the text contents of any Slack channel to a PDF file
-
-## About this tool
-
 **channelexport** is a command line tool for exporting the text contents of any Slack channel to a PDF file.
 
 It is written in Python 3 and can run an any platform that support Python.
@@ -12,9 +8,7 @@ It is written in Python 3 and can run an any platform that support Python.
 
 To use channelexport you need to have it installed on your system (see chapter Installation) and you need a Slack token for the respective Slack workspace with the required permissions (see chapter Token).
 
->>>
-Note that you provide the Slack token both as command line argument or by setting the environment variable `SLACK-TOKEN`.
-<<<
+> Note that you can provide the Slack token both with the command line argument `--token` or by setting the environment variable `SLACK-TOKEN`.
 
 Here are some examples on how to use channelexport:
 
@@ -25,6 +19,10 @@ To export the Slack channel "general" with the provided token:
 To export the Slack channels "general", "random" and "test" with the provided token:
 
 `channelexport --token MY_TOKEN general random test`
+
+By default the name of the resulting PDF file will be automatically created from the name of your workspace and the name of the exported channel. But you can also choose a custom name, e.g. "my_export.
+
+`channelexport --token MY_TOKEN -d my_export general`
 
 ## Arguments
 

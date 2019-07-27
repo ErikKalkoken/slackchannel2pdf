@@ -126,6 +126,9 @@ def main():
             exporter.set_time_system(args.timesystem)
         exporter.run(
             args.channel, 
+            args.destination,
+            args.page_orientation,
+            args.page_format,
             args.max_messages, 
             args.write_raw_data == True
         )

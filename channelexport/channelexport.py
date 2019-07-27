@@ -11,6 +11,7 @@ import html
 import json
 import os
 import sys
+import inspect
 from time import sleep
 from datetime import datetime, timedelta
 import pytz
@@ -326,15 +327,12 @@ class ChannelExporter:
         return usergroup_names
 
 
-    def _fetch_messages_from_channel(self, channel_id, max_messages=None):
+    def _fetch_messages_from_channel(self, channel_id, max_messages):
         """retrieve messages from a channel on Slack and return as list"""
         
         # make sure slack client is set
         assert self._client is not None
-        
-        if max_messages is None:
-            max_messages = self._MAX_MESSAGES_PER_CHANNEL
-
+       
         channel_name = self._channel_names[channel_id]
         messages_per_page = min(self._MESSAGES_PER_PAGE, max_messages)
         # get first page
@@ -407,14 +405,11 @@ class ChannelExporter:
         channel_id, 
         thread_ts, 
         thread_num,
-        max_messages=None):
+        max_messages):
         """retrieve messages from a Slack thread and return as list"""
         
         # make sure slack client is set
         assert self._client is not None
-
-        if max_messages is None:
-            max_messages = self._MAX_MESSAGES_PER_THREAD
         
         messages_per_page = min(self._MESSAGES_PER_PAGE, max_messages)
         # get first page
@@ -457,11 +452,8 @@ class ChannelExporter:
         self, 
         channel_id, 
         messages, 
-        max_messages=None):
+        max_messages):
         """returns threads for all message from for a channel as dict"""
-        
-        if max_messages is None:
-            max_messages = self._MAX_MESSAGES_PER_THREAD
         
         threads = dict()
         thread_num = 0
@@ -1192,28 +1184,51 @@ class ChannelExporter:
 
     def run(
         self, 
-        channel_inputs, 
-        max_messages=None, 
-        write_raw_data=False,
+        channel_inputs,         
+        dest_path=None,                
         page_orientation="portrait",
-        page_format="a4"
+        page_format="a4",
+        max_messages=None,
+        write_raw_data=False
         ):
         """export all message from a channel and store them in a PDF
         
         Args:
-            channel_inputs: list of names and/or IDs of channels to retrieve messages from
-            max_messages: maximum number of messages to retrieve
-            write_raw_data: will safe data received from API to files if true
+            channel_inputs: list of names and/or IDs of channels to retrieve messages from            
+            dest_path: path to write output files to. Will use current path if None
             page_orientation: orientation of pages  as defined in FPDF class,
             page_format: format of pages, see as defined in FPDF class
+            max_messages: maximum number of messages to retrieve
+            write_raw_data: will safe data received from API to files if true
+
+        Returns:
+            dict with full details of the export run
         """
+        # set defaults
+        success = False
+        
+        if max_messages is None:
+            max_messages = self._MAX_MESSAGES_PER_CHANNEL
+        
         # input validation
         if type(channel_inputs) is not list:
             raise TypeError("channel_inputs must be of type list")
         
+        # set destination path as current dir if not set
+        # or check if given path exists
+        if dest_path is None:                
+            dest_path = os.path.dirname(
+                os.path.abspath(
+                    inspect.getfile(inspect.currentframe())
+                ))
+        else:
+            if not os.path.isdir(dest_path):
+                raise RuntimeError("ERROR: give destination path does not exist: " + dest_path)
+
         # set timezone
         self._tz_local = pytz.timezone(self._tz_local_name)
-        
+                
+        # set author
         if "user_id" in self._workspace_info:
             if self._workspace_info["user_id"] in self._user_names:
                 author = self._user_names[self._workspace_info["user_id"]]
@@ -1222,6 +1237,7 @@ class ChannelExporter:
         else:
             author = "unknown user"
 
+        # output welcome message and inform about current parameters
         print("Channelexport v" + self._VERSION + " by Erik Kalkoken")
         print("")
         print("Welcome " + author)
@@ -1231,9 +1247,14 @@ class ChannelExporter:
         
         print("Timezone is: " + self._tz_local_name)
         print("Time system is: " + str(self._time_system) + " hrs")
+        print("Writing output to: " + dest_path)
         
         team_name = self._workspace_info["team"]
 
+        response = {
+            "ok": success,
+            "channels": dict()
+        }
         channel_count = 0
         for channel_input in channel_inputs:
             channel_count += 1
@@ -1255,7 +1276,11 @@ class ChannelExporter:
                     channel_id = channel_names_ids[channel_input.lower()]
             
             channel_name = self._channel_names[channel_id]
-            
+            filename_base = os.path.join(
+                dest_path,
+                team_name + "_" + channel_name
+            )
+
             # fetch messages        
             # if we have a client fetch data from Slack            
             if self._client is not None:                                       
@@ -1273,14 +1298,14 @@ class ChannelExporter:
                     )
                 threads = self._fetch_threads_from_messages(
                     channel_id, 
-                    messages
+                    messages, 
+                    max_messages
                     )
                 self._bot_names = self._fetch_bot_names_for_messages(
                     messages, 
                     threads
                     )
-                
-                filename_base = team_name + "_" + channel_name
+                                
                 if write_raw_data:
                     # write raw data received from Slack API to file                
                     self._write_array_to_json_file(
@@ -1309,8 +1334,7 @@ class ChannelExporter:
                             )
             else:
                 # if we don't have a client we will try to fetch from a file
-                # this is used for testing
-                filename_base = "tests/" + str(channel_input)
+                # this is used for testing                
                 messages = self._read_array_from_json_file(filename_base 
                     + "_messages")
                 threads = self._read_array_from_json_file(filename_base 
@@ -1361,13 +1385,13 @@ class ChannelExporter:
                 end_date_str = ""
 
             # set variables for title, header, footer
-            title = "Slack channel PDF export" 
-            sub_title = workspace_name + " / " + channel_name
-            page_title = title + "from " + sub_title
+            title = workspace_name + " / " + channel_name
+            sub_title = "Slack channel export"             
+            page_title = title + " " + sub_title
                     
-            # set general properties in document        
+            # set properties for document info
             document.set_author(author)
-            document.set_creator("Channel Export")
+            document.set_creator("Channel Export v" + self._VERSION)
             document.set_title(title)
             #document.set_creation_date(creation_date)
             document.set_subject(sub_title)                        
@@ -1391,7 +1415,8 @@ class ChannelExporter:
             document.ln(self._LINE_HEIGHT_DEFAULT)
 
             # write info block after title
-            table_def = {
+            thread_count = len(threads.keys()) if len(threads) > 0 else 0
+            export_infos = {
                 "Slack workspace": workspace_name,
                 "Channel": channel_name,            
                 "Exported at": creation_datetime_str,
@@ -1400,18 +1425,39 @@ class ChannelExporter:
                 "End date": end_date_str,
                 "Timezone": self._tz_local_name,
                 "Messages": message_count,
-                "Threads": len(threads.keys()) if len(threads) > 0 else 0
+                "Threads": thread_count
             }
-            document._write_info_table(table_def)
+            document._write_info_table(export_infos)
             
             # write messages to PDF
             self._write_messages_to_pdf(document, messages, threads)
             
             # store PDF
-            filenamePdf = filename_base + ".pdf"
-            print("Writing PDF file: " + filenamePdf)
+            filename_pdf = filename_base + ".pdf"
+            print("Writing PDF file: " + filename_pdf)
             try:
-                document.output(filenamePdf)
+                document.output(filename_pdf)
+                success = True
             except Exception as e:
                 print("ERROR: Failed to write PDF file: ", e)
+            
+            # compile response dict
+            response["channels"][channel_id] = {                
+                "channel_id": channel_id,
+                "channel_name": channel_name,
+                "filename_pdf": filename_pdf,
+                "filename_base": filename_base,
+                "dest_path": dest_path,
+                "page_format": page_format,
+                "page_orientation": page_orientation,
+                "max_messages": max_messages,
+                "messages_total": max_messages,            
+                "export_infos": export_infos,
+                "message_count": message_count,
+                "thread_count": thread_count
+            }
+        
+        response["ok"] = success
+        return response
+        
     

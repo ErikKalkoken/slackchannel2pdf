@@ -1,24 +1,34 @@
 import unittest
-import os,sys,inspect
+import os
+import sys
+import inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir + "/channelexport")
 from channelexport import *
+import PyPDF2
 
 
 class TestExporterTransformText(unittest.TestCase):
 
     def setUp(self):
+        workspace_info = {
+            "team": "test",
+            "user_id": "U9234567X"
+        }
         user_names = {
             "U12345678": "Naoko",
             "U62345678": "Janet",
-            "U72345678": "Yuna"
+            "U72345678": "Yuna",
+            "U9234567X": "Erik Kalkoken",
         }
 
         channel_names = {
             "C12345678": "berlin",
             "C72345678": "tokio",
-            "C42345678": "oslo"
+            "C42345678": "oslo",
+            "G1234567X": "channel-exporter",
+            "G2234567X": "channel-exporter-2"
         }
 
         usergroup_names = {
@@ -28,11 +38,87 @@ class TestExporterTransformText(unittest.TestCase):
         }
 
         self.exporter = ChannelExporter("TEST")
+        self.exporter._workspace_info = workspace_info
         self.exporter._user_names = user_names
         self.exporter._channel_names = channel_names
         self.exporter._usergroup_names = usergroup_names
 
-    
+
+    def test_run_with_defaults(self):
+        channels = ["channel-exporter", "channel-exporter-2"]
+        response = self.exporter.run(
+            channels, 
+            currentdir
+        )        
+        self.assertTrue(response["ok"])
+        self.assertIn("G1234567X", response["channels"])
+        self.assertIn("G2234567X", response["channels"])
+        for channel_id in ["G1234567X", "G2234567X"]:            
+            res_channel = response["channels"][channel_id]
+            channel_name = self.exporter._channel_names[channel_id]
+            self.assertEqual(
+                res_channel["filename_pdf"], 
+                os.path.join(
+                    currentdir, 
+                    (
+                        self.exporter._workspace_info["team"]
+                        + "_"
+                        + channel_name
+                        + ".pdf")
+            ))
+            self.assertTrue(os.path.isfile(res_channel["filename_pdf"]))
+
+            # assert export details are correct
+            self.assertEqual(res_channel["message_count"], 1)
+            self.assertEqual(res_channel["thread_count"], 0)
+            self.assertEqual(res_channel["dest_path"], currentdir)
+            self.assertEqual(res_channel["page_format"], "a4")
+            self.assertEqual(
+                res_channel["page_orientation"], 
+                "portrait"
+            )
+            self.assertEqual(
+                res_channel["max_messages"], ChannelExporter._MAX_MESSAGES_PER_CHANNEL
+            )
+            
+            # assert infos in PDF file are correct
+            pdf_file = open(res_channel["filename_pdf"], 'rb') 
+            pdf_reader = PyPDF2.PdfFileReader(pdf_file)
+            doc_info = pdf_reader.getDocumentInfo()
+            self.assertEqual(doc_info.author, "Erik Kalkoken")
+            self.assertEqual(
+                doc_info.creator, 
+                "Channel Export v" + ChannelExporter._VERSION
+            )
+            self.assertEqual(
+                doc_info.title, 
+                (self.exporter._workspace_info["team"] 
+                    + " / " + channel_name)
+            )
+
+    def test_run_with_args(self):
+        response = self.exporter.run(
+            ["channel-exporter-2"], 
+            currentdir,
+            "landscape",
+            "a3",
+            42
+        )        
+        self.assertTrue(response["ok"])
+        self.assertIn("G2234567X", response["channels"])
+        res_channel = response["channels"]["G2234567X"]
+
+        # assert export details are correct
+        self.assertEqual(res_channel["message_count"], 1)
+        self.assertEqual(res_channel["thread_count"], 0)
+        self.assertEqual(res_channel["dest_path"], currentdir)
+        self.assertEqual(res_channel["page_format"], "a3")
+        self.assertEqual(res_channel["page_orientation"], "landscape")
+        self.assertEqual(
+            res_channel["max_messages"], 
+            42
+        )
+
     def test_transform_encoding(self):
         self.assertEqual(
             self.exporter._transform_encoding("special char ✓"), 
@@ -46,6 +132,7 @@ class TestExporterTransformText(unittest.TestCase):
             self.exporter._transform_encoding("&#60;"), 
             "<"
         )
+
 
     def test_transform_text_user(self):
         self.assertEqual(
@@ -61,6 +148,7 @@ class TestExporterTransformText(unittest.TestCase):
             '<b>@user_W999999999</b>'
         )
     
+
     def test_transform_text_channel(self):        
         self.assertEqual(
             self.exporter._transform_text("<#C72345678>", True), 
@@ -71,6 +159,7 @@ class TestExporterTransformText(unittest.TestCase):
             '<b>#channel_C55555555</b>'
         )
     
+
     def test_transform_text_usergroup(self):
         self.assertEqual(
             self.exporter._transform_text("<!subteam^S72345678>", True), 
@@ -81,6 +170,7 @@ class TestExporterTransformText(unittest.TestCase):
             self.exporter._transform_text("<!subteam^SAZ94GDB8>", True), 
             '<b>@usergroup_SAZ94GDB8</b>'
         )
+
 
     def test_transform_text_special(self):
         self.assertEqual(
@@ -107,6 +197,7 @@ class TestExporterTransformText(unittest.TestCase):
             '<b>@special_xyz</b>'
         )
         
+
     def test_transform_text_url(self):
         self.assertEqual(
             self.exporter._transform_text(
@@ -123,6 +214,7 @@ class TestExporterTransformText(unittest.TestCase):
             '<a href="https://www.google.com">https://www.google.com</a>'
         )
     
+
     def test_transform_text_formatting(self):        
         self.assertEqual(
             self.exporter._transform_text("*bold*", True), 
@@ -148,6 +240,7 @@ class TestExporterTransformText(unittest.TestCase):
             '<b><i>bold+italic</i></b>'
         )
         
+
     def test_transform_text_general(self):
         self.assertEqual(
             self.exporter._transform_text(
