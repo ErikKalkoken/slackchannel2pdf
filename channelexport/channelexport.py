@@ -1098,24 +1098,24 @@ class ChannelExporter:
                         )
                     
                     # draw divider line for next day
-                    width = document.fw - 2 * self._MARGIN_LEFT
+                    page_width = document.fw - 2 * self._MARGIN_LEFT
                     x1 = self._MARGIN_LEFT
-                    x2 = x1 + width
+                    x2 = x1 + page_width
                     y1 = document.get_y() + 3                
                     document.line(x1, y1, x2, y1)
                     
                     # stamp date on divider
                     date_text = format_date(
-                        msg_dt, format="long", 
+                        msg_dt, format="full", 
                         locale=self._my_locale
-                    )
-                    width = document.get_string_width(date_text)
-                    cell_x = (x2 - x1 - width) / 2
+                    )                    
+                    text_width = document.get_string_width(date_text)
+                    cell_x = (x2 - x1) / 2 + x1 - (text_width / 2)
                     cell_y = y1                
-                    document.cell(cell_x)
                     document.set_fill_color(255, 255, 255)
+                    document.cell(cell_x)
                     document.cell(
-                        30,
+                        text_width + 6,
                         self._LINE_HEIGHT_DEFAULT,
                         date_text, 
                         0,
