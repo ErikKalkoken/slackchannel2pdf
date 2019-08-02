@@ -76,7 +76,10 @@ def main():
     my_arg_parser.add_argument(        
         "--locale",         
         help = ("Manually set the locale to be used instead of the "
-            + "system's default locale, e.g. ' de-DE' for Germany")        
+            + "system's default locale with a IETF language tag, "
+            + "e.g. ' de-DE' for Germany. "
+            + "See this page for a list of valid tags: "
+            + "https://en.wikipedia.org/wiki/IETF_language_tag")
         )
 
     # standards

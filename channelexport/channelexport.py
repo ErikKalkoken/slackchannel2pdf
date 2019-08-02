@@ -195,6 +195,15 @@ class ChannelExporter:
             self._channel_names = self._fetch_channel_names()
             self._usergroup_names = self._fetch_usergroup_names()
 
+             # set author
+            if "user_id" in self._workspace_info:
+                if self._workspace_info["user_id"] in self._user_names:
+                    author = self._user_names[self._workspace_info["user_id"]]
+                else:
+                    author = "unknown_user_" + self._workspace_info["user_id"]
+            else:
+                author = "unknown user"
+
         else:
             # if started with TEST parameter class properties will be
             # initialized empty and need to be set manually in test setup
@@ -204,7 +213,13 @@ class ChannelExporter:
             self._channel_names = dict()
             self._usergroup_names = dict()
             self._bot_names = dict()
+            author = "test user"
+        
+        self._author = author
 
+        # output welcome message and inform about current parameters
+        print();
+        print("Welcome " + self._author)
 
     # *************************************************************************
     # Methods for fetching data from Slack API
@@ -217,7 +232,8 @@ class ChannelExporter:
         assert self._client is not None
         
         print("Fetching workspace info from Slack...")
-        response = self._client.auth_test()
+        res = self._client.auth_test()
+        response = res.data
         assert response["ok"]
         return response
     
@@ -1232,18 +1248,6 @@ class ChannelExporter:
                     "ERROR: give destination path does not exist: " + dest_path
                     )
         
-        # set author
-        if "user_id" in self._workspace_info:
-            if self._workspace_info["user_id"] in self._user_names:
-                author = self._user_names[self._workspace_info["user_id"]]
-            else:
-                author = "unknown_user_" + self._workspace_info["user_id"]
-        else:
-            author = "unknown user"
-
-        # output welcome message and inform about current parameters
-        print("Welcome " + author)
-        
         if self._add_debug_info:
             print("Adding DEBUG info to PDF")
         
@@ -1412,7 +1416,7 @@ class ChannelExporter:
             page_title = title + " " + sub_title
                     
             # set properties for document info
-            document.set_author(author)
+            document.set_author(self._author)
             document.set_creator("Channel Export v" + self._VERSION)
             document.set_title(title)
             #document.set_creation_date(creation_date)
@@ -1442,7 +1446,7 @@ class ChannelExporter:
                 "Slack workspace": workspace_name,
                 "Channel": channel_name,            
                 "Exported at": creation_datetime_str,
-                "Exported by": author,
+                "Exported by": self._author,
                 "Start date": start_date_str,
                 "End date": end_date_str,
                 "Timezone": self._my_tz,
