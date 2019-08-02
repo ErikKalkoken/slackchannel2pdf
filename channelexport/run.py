@@ -12,6 +12,7 @@ from datetime import datetime
 from dateutil import parser
 import pytz
 from tzlocal import get_localzone
+import locale
 from channelexport import ChannelExporter
 
 def main():
@@ -66,18 +67,16 @@ def main():
         )
     my_arg_parser.add_argument(
         "--timezone",         
-        help = ("Set the local timezone. "
-            + "Will use this system's timezone if not set. "
-            + "Set the timezone by its name as defined here: "
+        help = ("Manually set the timezone to be used instead of the . "
+            + "system's default timezone. e.g. 'Europe/Berlin' "
+            + "Use a timezone name as defined here: "
             + "https://en.wikipedia.org/wiki/List_of_tz_database_time_zones")
         )    
 
     my_arg_parser.add_argument(        
-        "--timesystem",         
-        help = "Set the time system used for output",
-        type=int,
-        choices = ChannelExporter._TIME_SYSTEMS,
-        default = ChannelExporter._TIME_SYSTEM_DEFAULT
+        "--locale",         
+        help = ("Manually set the locale to be used instead of the "
+            + "system's default locale, e.g. ' de-DE' for Germany")        
         )
 
     # standards
@@ -132,20 +131,30 @@ def main():
     # set local timezone
     if args.timezone is not None:
         try:
-            tz_local = pytz.timezone(args.timezone)
+            my_tz = pytz.timezone(args.timezone)
         except pytz.UnknownTimeZoneError:
             print("ERROR: Unknown timezone")
-            tz_local = None
+            my_tz = None
             start_export = False            
     else:
-        tz_local = get_localzone() 
+        my_tz = get_localzone() 
     
-    if tz_local is not None:
+    if args.locale is not None:
+        if args.locale.lower() not in locale.locale_alias.keys():
+            print("ERROR: provided locale string is not valid")
+            start_export = False
+        else:
+            my_locale = args.locale
+    else:
+        locale.setlocale(locale.LC_ALL, '')
+        my_locale = locale.getdefaultlocale()[0]
+
+    if start_export is not False:
         # parse oldest
         if args.oldest is not None:        
             try:
                 dt = parser.parse(args.oldest)
-                oldest = tz_local.localize(dt)            
+                oldest = my_tz.localize(dt)            
             except ValueError:
                 print("Invalid date input for --oldest")        
                 start_export = False
@@ -156,7 +165,7 @@ def main():
         if args.latest is not None:        
             try:
                 dt = parser.parse(args.latest)
-                latest = tz_local.localize(dt)            
+                latest = my_tz.localize(dt)            
             except ValueError:
                 print("Invalid date input for --latest")        
                 start_export = False
@@ -166,8 +175,8 @@ def main():
     if start_export:
         exporter = ChannelExporter(
             slack_token=slack_token,             
-            tz_local=tz_local,
-            timesystem=args.timesystem if "timesystem" in args else None,
+            my_tz=my_tz,
+            my_locale=my_locale,
             add_debug_info=args.add_debug_info
         )        
         exporter.run(

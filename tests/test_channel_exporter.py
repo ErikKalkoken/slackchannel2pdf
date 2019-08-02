@@ -11,6 +11,7 @@ from datetime import datetime
 from dateutil import parser
 import pytz
 from tzlocal import get_localzone
+import locale
 
 class TestExporterTransformText(unittest.TestCase):
 
@@ -39,6 +40,8 @@ class TestExporterTransformText(unittest.TestCase):
             "S72345678": "marketing",
             "S42345678": "sales"
         }
+        
+        locale.setlocale(locale.LC_ALL, '')
 
         self.exporter = ChannelExporter("TEST")
         self.exporter._workspace_info = workspace_info
@@ -56,6 +59,7 @@ class TestExporterTransformText(unittest.TestCase):
         self.assertTrue(response["ok"])
         self.assertIn("G1234567X", response["channels"])
         self.assertIn("G2234567X", response["channels"])
+
         for channel_id in ["G1234567X", "G2234567X"]:            
             res_channel = response["channels"][channel_id]
             channel_name = self.exporter._channel_names[channel_id]
@@ -81,6 +85,14 @@ class TestExporterTransformText(unittest.TestCase):
             )
             self.assertEqual(
                 res_channel["max_messages"], ChannelExporter._MAX_MESSAGES_PER_CHANNEL
+            )
+            self.assertEqual(
+                res_channel["timezone"], 
+                get_localzone()
+            )
+            self.assertEqual(
+                res_channel["locale"], 
+                locale.getdefaultlocale()[0]
             )
             
             # assert infos in PDF file are correct
@@ -286,7 +298,80 @@ class TestExporterTransformText(unittest.TestCase):
         )
 
     
+class TestExporterTimezonesNLocale(unittest.TestCase):
 
+    def setUp(self):
+        workspace_info = {
+            "team": "test",
+            "user_id": "U9234567X"
+        }
+        user_names = {
+            "U12345678": "Naoko Kobayashi",
+            "U62345678": "Janet Hakuli",
+            "U72345678": "Yuna Kobayashi",
+            "U9234567X": "Erik Kalkoken",
+        }
+
+        channel_names = {
+            "C12345678": "berlin",
+            "C72345678": "tokio",
+            "C42345678": "oslo",
+            "G1234567X": "channel-exporter",
+            "G2234567X": "channel-exporter-2"
+        }
+
+        usergroup_names = {
+            "S12345678": "admins",
+            "S72345678": "marketing",
+            "S42345678": "sales"
+        }
+        
+        locale.setlocale(locale.LC_ALL, '')
+
+        self.exporter = ChannelExporter(
+            "TEST",
+            pytz.timezone('Europe/Berlin'),
+            "en"
+        )
+        self.exporter._workspace_info = workspace_info
+        self.exporter._user_names = user_names
+        self.exporter._channel_names = channel_names
+        self.exporter._usergroup_names = usergroup_names
+
+    
+    def test_run_with_defaults(self):
+        channels = ["channel-exporter-2"]
+        response = self.exporter.run(
+            channels, 
+            currentdir
+        )        
+        self.assertTrue(response["ok"])
+        res_channel = response["channels"]["G2234567X"]
+
+        # assert export details are correct
+        self.assertTrue(res_channel["ok"])
+        self.assertEqual(
+            res_channel["timezone"], 
+            pytz.timezone('Europe/Berlin'),
+        )
+        self.assertEqual(
+            res_channel["locale"], 
+            "en"
+        )
+
+    def test_get_datetime(self):
+        ts = 1006300923
+        dt = self.exporter._get_datetime_from_ts(ts)
+        self.assertEqual(
+            dt.timestamp(),
+            ts
+        )
+
+    def test_dummy(self):
+        dt = datetime.utcnow()
+        print(self.exporter._format_datetime_str(dt))
+        print(self.exporter._get_datetime_formatted_str(dt.timestamp()))
+                
 
 class TestExporterReduceToDict(unittest.TestCase):
     
@@ -397,9 +482,9 @@ class TestExporterSlackMethods(unittest.TestCase):
 
     
 if __name__ == '__main__':
-    unittest.main()    
-    """
+    ## unittest.main()    
+    
     singletest = unittest.TestSuite()
-    singletest.addTest(TestExporterSlackMethods("test_fetch_messages"))
+    singletest.addTest(TestExporterTimezonesNLocale("test_dummy"))
     unittest.TextTestRunner().run(singletest)    
-    """
+    
