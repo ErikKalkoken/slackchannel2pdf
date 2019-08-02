@@ -8,30 +8,43 @@
 
 import os
 import argparse
+from datetime import datetime
+from dateutil import parser
 import pytz
+from tzlocal import get_localzone
 from channelexport import ChannelExporter
 
 def main():
     """Implements the arg parser and starts the channelexporter with its input"""
 
     # main arguments
-    parser = argparse.ArgumentParser(
+    my_arg_parser = argparse.ArgumentParser(
         description = "This program exports the text of a Slack channel to a PDF file",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
         )    
-    parser.add_argument(        
+    my_arg_parser.add_argument(        
         "channel", 
         help = "One or several: name or ID of channel to export.",
         nargs="+"
         )
     
-    parser.add_argument(
+    my_arg_parser.add_argument(
         "--token",         
-        help = "Slack Oauth token"
+        help = "Slack OAuth token"
+        )
+
+    my_arg_parser.add_argument(
+        "--oldest",
+        help = "don't load messages older than a date"
+        )
+
+    my_arg_parser.add_argument(
+        "--latest",
+        help = "don't load messages newer then a date"
         )
 
     # PDF file
-    parser.add_argument(        
+    my_arg_parser.add_argument(        
         "-d",
         "--destination",         
         help = "Specify a destination path to store the PDF file. (TBD)",
@@ -39,25 +52,27 @@ def main():
         )
     
     # formatting
-    parser.add_argument(        
+    my_arg_parser.add_argument(        
         "--page-orientation",         
         help = "Orientation of PDF pages",
         choices = ["portrait", "landscape"],
         default = ChannelExporter._PAGE_ORIENTATION_DEFAULT
         )
-    parser.add_argument(        
+    my_arg_parser.add_argument(        
         "--page-format",         
         help = "Format of PDF pages",
         choices = ["a3", "a4", "a5", "letter", "legal"],
         default = ChannelExporter._PAGE_FORMAT_DEFAULT
         )
-    parser.add_argument(
+    my_arg_parser.add_argument(
         "--timezone",         
-        help = "timezone name as defined here: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones",
-        default = ChannelExporter._TZ_DEFAULT
+        help = ("Set the local timezone. "
+            + "Will use this system's timezone if not set. "
+            + "Set the timezone by its name as defined here: "
+            + "https://en.wikipedia.org/wiki/List_of_tz_database_time_zones")
         )    
 
-    parser.add_argument(        
+    my_arg_parser.add_argument(        
         "--timesystem",         
         help = "Set the time system used for output",
         type=int,
@@ -66,7 +81,7 @@ def main():
         )
 
     # standards
-    parser.add_argument(        
+    my_arg_parser.add_argument(        
         "--version",         
         help="show the program version and exit", 
         action="version", 
@@ -74,14 +89,14 @@ def main():
         )    
 
     # exporter config
-    parser.add_argument(        
+    my_arg_parser.add_argument(        
         "--max-messages",         
         help = "max number of messages to export",
         type = int
         )
 
     # Developer needs
-    parser.add_argument(        
+    my_arg_parser.add_argument(        
         "--write-raw-data",
         help = "will also write all raw data returned from the API to files,"\
             + " e.g. messages.json with all messages",                
@@ -89,7 +104,7 @@ def main():
         const = True
         )    
     
-    parser.add_argument(        
+    my_arg_parser.add_argument(        
         "--add-debug-info",
         help = "wether to add debug info to PDF",
         action = "store_const",
@@ -98,11 +113,7 @@ def main():
         )
 
     start_export = True
-    args = parser.parse_args()
-
-    if args.timezone not in pytz.all_timezones:
-        print("ERROR: Unknown timezone: " + args.timezone)
-        start_export = False
+    args = my_arg_parser.parse_args()
     
     if "version" in args:
         print(ChannelExporter._VERSION)            
@@ -118,19 +129,56 @@ def main():
     else:
         slack_token = args.token
 
+    # set local timezone
+    if args.timezone is not None:
+        try:
+            tz_local = pytz.timezone(args.timezone)
+        except pytz.UnknownTimeZoneError:
+            print("ERROR: Unknown timezone")
+            tz_local = None
+            start_export = False            
+    else:
+        tz_local = get_localzone() 
+    
+    if tz_local is not None:
+        # parse oldest
+        if args.oldest is not None:        
+            try:
+                dt = parser.parse(args.oldest)
+                oldest = tz_local.localize(dt)            
+            except ValueError:
+                print("Invalid date input for --oldest")        
+                start_export = False
+        else:
+            oldest = None
+
+        # parse latest
+        if args.latest is not None:        
+            try:
+                dt = parser.parse(args.latest)
+                latest = tz_local.localize(dt)            
+            except ValueError:
+                print("Invalid date input for --latest")        
+                start_export = False
+        else:
+            latest = None
+
     if start_export:
-        exporter = ChannelExporter(slack_token, args.add_debug_info)
-        if "timezone" in args:
-            exporter.tz_local_name = args.timezone
-        if "timesystem" in args:
-            exporter.set_time_system(args.timesystem)
+        exporter = ChannelExporter(
+            slack_token=slack_token,             
+            tz_local=tz_local,
+            timesystem=args.timesystem if "timesystem" in args else None,
+            add_debug_info=args.add_debug_info
+        )        
         exporter.run(
-            args.channel, 
-            args.destination,
-            args.page_orientation,
-            args.page_format,
-            args.max_messages, 
-            args.write_raw_data == True
+            channel_inputs=args.channel, 
+            dest_path=args.destination,
+            oldest=oldest,
+            latest=latest,
+            page_orientation=args.page_orientation,
+            page_format=args.page_format,
+            max_messages=args.max_messages, 
+            write_raw_data=(args.write_raw_data == True)
         )
     
 

@@ -7,7 +7,10 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir + "/channelexport")
 from channelexport import *
 import PyPDF2
-
+from datetime import datetime
+from dateutil import parser
+import pytz
+from tzlocal import get_localzone
 
 class TestExporterTransformText(unittest.TestCase):
 
@@ -17,9 +20,9 @@ class TestExporterTransformText(unittest.TestCase):
             "user_id": "U9234567X"
         }
         user_names = {
-            "U12345678": "Naoko",
-            "U62345678": "Janet",
-            "U72345678": "Yuna",
+            "U12345678": "Naoko Kobayashi",
+            "U62345678": "Janet Hakuli",
+            "U72345678": "Yuna Kobayashi",
             "U9234567X": "Erik Kalkoken",
         }
 
@@ -69,8 +72,7 @@ class TestExporterTransformText(unittest.TestCase):
             self.assertTrue(os.path.isfile(res_channel["filename_pdf"]))
 
             # assert export details are correct
-            self.assertEqual(res_channel["message_count"], 1)
-            self.assertEqual(res_channel["thread_count"], 0)
+            self.assertTrue(res_channel["ok"])                        
             self.assertEqual(res_channel["dest_path"], currentdir)
             self.assertEqual(res_channel["page_format"], "a4")
             self.assertEqual(
@@ -96,10 +98,12 @@ class TestExporterTransformText(unittest.TestCase):
                     + " / " + channel_name)
             )
 
-    def test_run_with_args(self):
+    def test_run_with_args_1(self):
         response = self.exporter.run(
             ["channel-exporter-2"], 
             currentdir,
+            None,
+            None,
             "landscape",
             "a3",
             42
@@ -109,7 +113,8 @@ class TestExporterTransformText(unittest.TestCase):
         res_channel = response["channels"]["G2234567X"]
 
         # assert export details are correct
-        self.assertEqual(res_channel["message_count"], 1)
+        self.assertTrue(res_channel["ok"])
+        self.assertEqual(res_channel["message_count"], 4)
         self.assertEqual(res_channel["thread_count"], 0)
         self.assertEqual(res_channel["dest_path"], currentdir)
         self.assertEqual(res_channel["page_format"], "a3")
@@ -118,6 +123,16 @@ class TestExporterTransformText(unittest.TestCase):
             res_channel["max_messages"], 
             42
         )
+           
+
+    """
+    def test_run_with_error(self):
+        self.assertRaises(RuntimeError, self.exporter.run(
+            ["channel-exporter"], 
+            "invalid_path"
+        ))        
+    """
+        
 
     def test_transform_encoding(self):
         self.assertEqual(
@@ -137,7 +152,7 @@ class TestExporterTransformText(unittest.TestCase):
     def test_transform_text_user(self):
         self.assertEqual(
             self.exporter._transform_text("<@U62345678>", True), 
-            '<b>@Janet</b>'
+            '<b>@Janet Hakuli</b>'
         )
         self.assertEqual(
             self.exporter._transform_text("<@U999999999>", True), 
@@ -247,7 +262,7 @@ class TestExporterTransformText(unittest.TestCase):
                 "some *text* <@U62345678> more text", 
                 True
                 ), 
-            'some <b>text</b> <b>@Janet</b> more text'
+            'some <b>text</b> <b>@Janet Hakuli</b> more text'
         )
         self.assertEqual(
             self.exporter._transform_text("first\nsecond\nthird", True), 
@@ -259,7 +274,7 @@ class TestExporterTransformText(unittest.TestCase):
                 "some text <@U62345678> more text", 
                 True
                 ), 
-            'some text <b>@Janet</b> more text'
+            'some text <b>@Janet Hakuli</b> more text'
         )
 
         self.assertEqual(
@@ -350,6 +365,41 @@ class TestExporterReduceToDict(unittest.TestCase):
             result, 
             expected
         )
+
+"""
+class TestExporterSlackMethods(unittest.TestCase):
+    
+    @classmethod
+    def setUpClass(cls):
+        cls.exporter = ChannelExporter(os.environ['SLACK_TOKEN'])
+
+    def test_fetch_messages(self):
+        oldest = parser.parse("2019-JUL-04")
+        oldest = self.exporter._tz_local.localize(oldest)
+
+        latest = parser.parse("2019-JUL-06")
+        latest = self.exporter._tz_local.localize(latest)
+                
+        messages = self.exporter._fetch_messages_from_channel(
+            channel_id="G7LULJD46",
+            max_messages=1000
+        )
+        self.assertIsInstance(messages, list)
+
+        messages = self.exporter._fetch_messages_from_channel(
+            channel_id="G7LULJD46",
+            max_messages=1000,
+            oldest=oldest,
+            latest=latest
+        )
+        self.assertIsInstance(messages, list)
+"""    
+
     
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main()    
+    """
+    singletest = unittest.TestSuite()
+    singletest.addTest(TestExporterSlackMethods("test_fetch_messages"))
+    unittest.TextTestRunner().run(singletest)    
+    """

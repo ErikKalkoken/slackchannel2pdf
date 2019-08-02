@@ -15,6 +15,7 @@ import inspect
 from time import sleep
 from datetime import datetime, timedelta
 import pytz
+from tzlocal import get_localzone
 from time import sleep
 import slack
 from fpdf_ext import FPDF_ext
@@ -118,9 +119,6 @@ class ChannelExporter:
     """    
     # general
     _VERSION = "0.1.0"
-
-    # files
-    _FILE_EMOJIS = "fonts/emoji.json"
     
     # time systems
     _TIME_SYSTEM_12HRS = 12
@@ -152,8 +150,7 @@ class ChannelExporter:
     _FORMAT_TIME = {
         _TIME_SYSTEM_24HRS: '%H:%M',
         _TIME_SYSTEM_12HRS: '%I:%M %p'
-    }        
-    _TZ_DEFAULT = "UTC"
+    }            
     _TIME_SYSTEM_DEFAULT = _TIME_SYSTEM_24HRS
     
     # limits for fetching messages from Slack
@@ -162,28 +159,49 @@ class ChannelExporter:
     _MAX_MESSAGES_PER_THREAD = 500
 
 
-    def __init__(self, slack_token, add_debug_info=False):        
+    def __init__(
+        self, 
+        slack_token, 
+        tz_local=None, 
+        timesystem=None, 
+        add_debug_info=False):        
         """CONSTRUCTOR
         
         Args:
             slack_token: OAuth token to be used for all calls to the Slack API
                 "TEST" can be provided to start test mode
+            tz_local: timezone to be used for all datetime output 
+                as pytz.BaseTzInfo object. Will use system timezone if not provided
+            timesystem: timesystem to use. can be 12hrs or 24hrs.
+                will use 24hrs if not provided
+            add_debug_info: wether to add debug info to message output
 
         """
-        self._add_debug_info = add_debug_info
-        
+        if slack_token is None:
+            raise ValueError("slack_token can not be null")
+
         # timezone used for all outputs of datetime
         # UTC is default
-        self._tz_local_name = self._TZ_DEFAULT
-        self._tz_local = None
+        if tz_local is not None and not isinstance(tz_local, pytz.BaseTzInfo):
+            raise TypeError("tz_local must be of type pytz")                
+        self._tz_local = tz_local if tz_local is not None else get_localzone()
         
-        # format strings for datetime output
+        # validate timesystem input, set default
+        if timesystem is None:
+            timesystem = self._TIME_SYSTEM_DEFAULT
+        elif timesystem not in self._TIME_SYSTEMS:
+            raise ValueError("Invalid value for timesystem")
+        self._time_system = timesystem
+        self._format_datetime = self._FORMAT_DATETIME[timesystem]
+        self._format_time = self._FORMAT_TIME[timesystem]
         self._format_date = self._FORMAT_DATE
-        self._time_system = None
-        self._format_datetime = None
-        self._format_time = None
-        self.set_time_system(self._TIME_SYSTEM_DEFAULT)
         
+        # validate add_debug_info
+        if type(add_debug_info) != bool:
+            raise ValueError("add_debug_info must be bool")
+        self._add_debug_info = add_debug_info
+        
+        # load information for current Slack workspace
         if slack_token != "TEST":
             self._client = slack.WebClient(token=slack_token)        
             self._workspace_info = self._fetch_workspace_info()
@@ -201,56 +219,10 @@ class ChannelExporter:
             self._usergroup_names = dict()
             self._bot_names = dict()
 
-        # self._emoji_map = self._generate_emoji_map()
-
-
-    # *************************************************************************
-    # Getter and Setters
-    # *************************************************************************
-
-    @property
-    def tz_local_name(self):
-        return self._tz_local_name
-
-    @tz_local_name.setter
-    def tz_local_name(self, v):
-        self._tz_local_name = v
-
-    def set_time_system(self, system):
-        """sets the time system to 12 hrs 24 hrs """
-        if system not in self._TIME_SYSTEMS:
-            raise ValueError("Invalid time system")
-        self._time_system = system
-        self._format_datetime = self._FORMAT_DATETIME[system]
-        self._format_time = self._FORMAT_TIME[system]
-
 
     # *************************************************************************
     # Methods for fetching data from Slack API
     # *************************************************************************
-
-    """
-    def _generate_emoji_map(self):
-        returns a dict of names to UTF-8 string for all known emojis
-        map = dict()
-        try:
-            with open(self._FILE_EMOJIS, 'r', encoding="utf-8") as f:
-                emojis = json.load(f)
-            for emoji in emojis:
-                if "short_name" in emoji:
-                    k = emoji["short_name"]
-                    cps = emoji["unified"].split("-")
-                    chars = ""
-                    for cp in cps:
-                        chars += chr(int(cp, 16))
-                    map[k] = chars
-            
-        except Exception as ex:
-            print("WARN: failed to load emojis", ex)
-            map = []
-
-        return map
-    """
 
     def _fetch_workspace_info(self):    
         """returns dict with info about current workspace"""
@@ -258,6 +230,7 @@ class ChannelExporter:
         # make sure slack client is set
         assert self._client is not None
         
+        print("Fetching workspace info from Slack...")
         response = self._client.auth_test()
         assert response["ok"]
         return response
@@ -269,6 +242,7 @@ class ChannelExporter:
         # make sure slack client is set
         assert self._client is not None
 
+        print("Fetching users for workspace...")
         response = self._client.users_list()
         assert response["ok"]    
         user_names = reduce_to_dict(
@@ -289,6 +263,7 @@ class ChannelExporter:
         # make sure slack client is set
         assert self._client is not None
         
+        print("Fetching channels for workspace...")
         response = self._client.conversations_list(
             types="public_channel,private_channel,im"
             )
@@ -312,6 +287,7 @@ class ChannelExporter:
         # make sure slack client is set
         assert self._client is not None
         
+        print("Fetching usergroups for workspace...")
         response = self._client.usergroups_list()
         assert response["ok"]    
         usergroup_names = reduce_to_dict(
@@ -327,7 +303,13 @@ class ChannelExporter:
         return usergroup_names
 
 
-    def _fetch_messages_from_channel(self, channel_id, max_messages):
+    def _fetch_messages_from_channel(
+        self, 
+        channel_id, 
+        max_messages, 
+        oldest=None, 
+        latest=None
+        ):
         """retrieve messages from a channel on Slack and return as list"""
         
         # make sure slack client is set
@@ -338,9 +320,13 @@ class ChannelExporter:
         # get first page
         page = 1
         print("Fetching messages from channel - page {}".format(page))
+        oldest_ts = str(oldest.timestamp()) if oldest is not None else 0
+        latest_ts = str(latest.timestamp()) if latest is not None else 0
         response = self._client.conversations_history(
             channel=channel_id,
             limit=messages_per_page,
+            oldest=oldest_ts,
+            latest=latest_ts
         )
         assert response["ok"]
         messages_all = response['messages']
@@ -358,6 +344,8 @@ class ChannelExporter:
             response = self._client.conversations_history(
                 channel=channel_id,
                 limit=page_limit,
+                oldest=oldest_ts,
+                latest=latest_ts,
                 cursor=response['response_metadata']['next_cursor']
             )
             assert response["ok"]
@@ -374,12 +362,16 @@ class ChannelExporter:
     def _read_array_from_json_file(self, filename):
         """reads a json file and returns its contents as array"""     
         filename += '.json'
-        try:
-            with open(filename, 'r', encoding="utf-8") as f:
-                arr = json.load(f)            
-        except Exception as e:
-            print("WARN: failed to read from {}: ".format(filename), e)
+        if not os.path.isfile(filename):
+            print(f"WARN: file does not exist: {filename}")
             arr = list()
+        else:
+            try:
+                with open(filename, 'r', encoding="utf-8") as f:
+                    arr = json.load(f)            
+            except Exception as e:
+                print("WARN: failed to read from {}: ".format(filename), e)
+                arr = list()
                 
         return arr
 
@@ -400,12 +392,15 @@ class ChannelExporter:
         except Exception as e:
             print("ERROR: failed to write to {}: ".format(filename), e)        
     
+
     def _fetch_messages_from_thread(
         self, 
         channel_id, 
         thread_ts, 
         thread_num,
-        max_messages):
+        max_messages,
+        oldest=None,
+        latest=None):
         """retrieve messages from a Slack thread and return as list"""
         
         # make sure slack client is set
@@ -418,10 +413,14 @@ class ChannelExporter:
             thread_num,
             page
             ))
+        oldest_ts = str(oldest.timestamp()) if oldest is not None else 0
+        latest_ts = str(latest.timestamp()) if latest is not None else 0
         response = self._client.conversations_replies(
             channel=channel_id,
             ts=thread_ts,
-            limit=messages_per_page
+            limit=messages_per_page,
+            oldest=oldest_ts,
+            latest=latest_ts
         )
         assert response["ok"]
         messages_all = response['messages']
@@ -439,6 +438,8 @@ class ChannelExporter:
                 channel=channel_id,
                 ts=thread_ts,
                 limit=messages_per_page,
+                oldest=oldest_ts,
+                latest=latest_ts,
                 cursor=response['response_metadata']['next_cursor']
             )
             assert response["ok"]
@@ -452,7 +453,9 @@ class ChannelExporter:
         self, 
         channel_id, 
         messages, 
-        max_messages):
+        max_messages,
+        oldest=None,
+        latest=None):
         """returns threads for all message from for a channel as dict"""
         
         threads = dict()
@@ -466,7 +469,9 @@ class ChannelExporter:
                     channel_id, 
                     thread_ts,
                     thread_num,
-                    max_messages
+                    max_messages,
+                    oldest,
+                    latest
                 )            
                 threads[thread_ts] = thread_messages
                 thread_messages_total += len(thread_messages)
@@ -641,22 +646,6 @@ class ChannelExporter:
 
             return replacement
 
-        """
-        def replace_emoji_name(matchObj):
-            match = matchObj.group(1).lower()
-            
-            if match in self._emoji_map:
-                replacement = ('<s fontfamily="' 
-                    + self._FONT_FAMILY_EMOJI_DEFAULT 
-                    + '">'
-                    + self._emoji_map[match]
-                    + '</s>')
-            else:
-                replacement = matchObj.group(0)
-
-            return replacement
-        """
-
         # pass 1 - adjust encoding to latin-1 and transform HTML entities        
         s2 = self._transform_encoding(text)
         
@@ -703,15 +692,6 @@ class ChannelExporter:
                 )
 
             s2 = s2.replace("</blockquote><br>", "</blockquote>")
-
-            """
-            # emojis
-            s2 = re.sub(
-                r':(\S+):',
-                replace_emoji_name,
-                s2
-                )
-            """
 
             # EOF
             s2 = s2.replace("\n", "<br>")
@@ -1186,6 +1166,8 @@ class ChannelExporter:
         self, 
         channel_inputs,         
         dest_path=None,                
+        oldest=None,
+        latest=None,
         page_orientation="portrait",
         page_format="a4",
         max_messages=None,
@@ -1196,6 +1178,8 @@ class ChannelExporter:
         Args:
             channel_inputs: list of names and/or IDs of channels to retrieve messages from            
             dest_path: path to write output files to. Will use current path if None
+            oldest: oldest message to fetch in UNIX epoch
+            latest: latest message to fetch in UNIX epoch
             page_orientation: orientation of pages  as defined in FPDF class,
             page_format: format of pages, see as defined in FPDF class
             max_messages: maximum number of messages to retrieve
@@ -1206,14 +1190,23 @@ class ChannelExporter:
         """
         # set defaults
         success = False
-        
+                        
         if max_messages is None:
             max_messages = self._MAX_MESSAGES_PER_CHANNEL
         
         # input validation
+        if oldest is not None and not isinstance(oldest, datetime):
+            raise TypeError("oldest must be a datetime")            
+
+        if latest is not None and not isinstance(latest, datetime):
+            raise TypeError("latest must be a datetime")            
+        
+        if oldest is not None and latest is not None and oldest > latest:
+            raise RuntimeError("ERROR: oldest has to be before latest")
+
         if type(channel_inputs) is not list:
             raise TypeError("channel_inputs must be of type list")
-        
+                
         # set destination path as current dir if not set
         # or check if given path exists
         if dest_path is None:                
@@ -1223,11 +1216,10 @@ class ChannelExporter:
                 ))
         else:
             if not os.path.isdir(dest_path):
-                raise RuntimeError("ERROR: give destination path does not exist: " + dest_path)
-
-        # set timezone
-        self._tz_local = pytz.timezone(self._tz_local_name)
-                
+                raise RuntimeError(
+                    "ERROR: give destination path does not exist: " + dest_path
+                    )
+        
         # set author
         if "user_id" in self._workspace_info:
             if self._workspace_info["user_id"] in self._user_names:
@@ -1245,7 +1237,7 @@ class ChannelExporter:
         if self._add_debug_info:
             print("Adding DEBUG info to PDF")
         
-        print("Timezone is: " + self._tz_local_name)
+        print("Timezone is: " + str(self._tz_local))
         print("Time system is: " + str(self._time_system) + " hrs")
         print("Writing output to: " + dest_path)
         
@@ -1256,7 +1248,9 @@ class ChannelExporter:
             "channels": dict()
         }
         channel_count = 0
+        success = True
         for channel_input in channel_inputs:
+            success_channel = False
             channel_count += 1
             print()
             if channel_input.upper() in self._channel_names:
@@ -1278,8 +1272,9 @@ class ChannelExporter:
             channel_name = self._channel_names[channel_id]
             filename_base = os.path.join(
                 dest_path,
-                team_name + "_" + channel_name
+                team_name
             )
+            filename_base_channel = filename_base  + "_" + channel_name            
 
             # fetch messages        
             # if we have a client fetch data from Slack            
@@ -1292,14 +1287,30 @@ class ChannelExporter:
                     + channel_name 
                     + " ...")
                 
+                if oldest is not None:
+                    print(
+                        "Retrieving messages not older then: " 
+                            + self._format_datetime(oldest)
+                        )
+
+                if oldest is not None:
+                    print(
+                        "Retrieving messages not younger then: " 
+                            + self._format_datetime(latest)
+                        )
+                
                 messages = self._fetch_messages_from_channel(
                     channel_id, 
-                    max_messages
+                    max_messages,
+                    oldest,
+                    latest
                     )
                 threads = self._fetch_threads_from_messages(
                     channel_id, 
                     messages, 
-                    max_messages
+                    max_messages,
+                    oldest,
+                    latest
                     )
                 self._bot_names = self._fetch_bot_names_for_messages(
                     messages, 
@@ -1310,34 +1321,34 @@ class ChannelExporter:
                     # write raw data received from Slack API to file                
                     self._write_array_to_json_file(
                         self._user_names, 
-                        team_name + "_users"
+                        filename_base + "_users"
                         )
                     self._write_array_to_json_file(
                         self._bot_names, 
-                        team_name + "_bots"
+                        filename_base + "_bots"
                         )
                     self._write_array_to_json_file(
                         self._channel_names, 
-                        team_name + "_channels"
+                        filename_base + "_channels"
                         )
                     self._write_array_to_json_file(
                         self._usergroup_names, 
-                        team_name + "_usergroups"
+                        filename_base + "_usergroups"
                         )
                     self._write_array_to_json_file(
                         messages, 
-                        filename_base + "_messages"
+                        filename_base_channel + "_messages"
                         )
                     if len(threads) > 0:
                         self._write_array_to_json_file(
-                            threads, filename_base + "_threads"
+                            threads, filename_base_channel + "_threads"
                             )
             else:
                 # if we don't have a client we will try to fetch from a file
                 # this is used for testing                
-                messages = self._read_array_from_json_file(filename_base 
+                messages = self._read_array_from_json_file(filename_base_channel 
                     + "_messages")
-                threads = self._read_array_from_json_file(filename_base 
+                threads = self._read_array_from_json_file(filename_base_channel 
                     + "_threads")
             
             # create PDF
@@ -1381,7 +1392,9 @@ class ChannelExporter:
                 end_date = self._get_datetime_from_ts(ts_max)
                 end_date_str = end_date.strftime(self._format_datetime)
             else:
+                start_date = None
                 start_date_str = ""
+                end_date = None
                 end_date_str = ""
 
             # set variables for title, header, footer
@@ -1419,11 +1432,11 @@ class ChannelExporter:
             export_infos = {
                 "Slack workspace": workspace_name,
                 "Channel": channel_name,            
-                "Exported at": creation_datetime_str,
+                "Exported at": creation_date,
                 "Exported by": author,
-                "Start date": start_date_str,
-                "End date": end_date_str,
-                "Timezone": self._tz_local_name,
+                "Start date": start_date,
+                "End date": end_date,
+                "Timezone": self._tz_local,
                 "Messages": message_count,
                 "Threads": thread_count
             }
@@ -1433,20 +1446,21 @@ class ChannelExporter:
             self._write_messages_to_pdf(document, messages, threads)
             
             # store PDF
-            filename_pdf = filename_base + ".pdf"
+            filename_pdf = filename_base_channel + ".pdf"
             print("Writing PDF file: " + filename_pdf)
             try:
                 document.output(filename_pdf)
-                success = True
+                success_channel = True
             except Exception as e:
                 print("ERROR: Failed to write PDF file: ", e)
             
             # compile response dict
             response["channels"][channel_id] = {                
+                "ok": success_channel,
                 "channel_id": channel_id,
                 "channel_name": channel_name,
                 "filename_pdf": filename_pdf,
-                "filename_base": filename_base,
+                "filename_base_channel": filename_base_channel,
                 "dest_path": dest_path,
                 "page_format": page_format,
                 "page_orientation": page_orientation,
@@ -1456,6 +1470,7 @@ class ChannelExporter:
                 "message_count": message_count,
                 "thread_count": thread_count
             }
+            success = success and success_channel
         
         response["ok"] = success
         return response

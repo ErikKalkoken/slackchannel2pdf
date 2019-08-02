@@ -1,9 +1,31 @@
 [
     {        
         "team": "T12345678",
-        "text": "Hello user!\nhere we have some *bold* text, some _italic_ and some `code`",
-        "ts": "1562274541.000800",
+        "text": "Message 1",
+        "ts": "1562234400.000800",
         "type": "message",
-        "user": "U92345678"
+        "user": "U12345678"
+    },
+    {        
+        "team": "T12345678",
+        "text": "Message 2",
+        "ts": "1562238000.000800",
+        "type": "message",
+        "user": "U62345678"
+    },
+    {        
+        "team": "T12345678",
+        "text": "Message 3",
+        "ts": "1562239800.000800",
+        "type": "message",
+        "user": "U72345678"
+    },
+    {        
+        "team": "T12345678",
+        "text": "Message 4",
+        "ts": "1562241600.000800",
+        "type": "message",
+        "user": "U9234567X"
     }
+
 ]
