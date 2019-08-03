@@ -42,7 +42,7 @@ class TestExporterTransformText(unittest.TestCase):
             "S42345678": "sales"
         }
         
-        self.exporter = ChannelExporter("TEST")
+        self.exporter = SlackChannelExporter("TEST")
         self.exporter._workspace_info = workspace_info
         self.exporter._user_names = user_names
         self.exporter._channel_names = channel_names
@@ -85,7 +85,7 @@ class TestExporterTransformText(unittest.TestCase):
             )
             self.assertEqual(
                 res_channel["max_messages"], 
-                ChannelExporter._MAX_MESSAGES_PER_CHANNEL
+                SlackChannelExporter._MAX_MESSAGES_PER_CHANNEL
             )
             self.assertEqual(
                 res_channel["timezone"], 
@@ -103,7 +103,7 @@ class TestExporterTransformText(unittest.TestCase):
             self.assertEqual(doc_info.author, "Erik Kalkoken")
             self.assertEqual(
                 doc_info.creator, 
-                "Channel Export v" + ChannelExporter._VERSION
+                "Channel Export v" + SlackChannelExporter._VERSION
             )
             self.assertEqual(
                 doc_info.title, 
@@ -329,7 +329,7 @@ class TestExporterTimezonesNLocale(unittest.TestCase):
             "S42345678": "sales"
         }
         
-        self.exporter = ChannelExporter(
+        self.exporter = SlackChannelExporter(
             "TEST",
             pytz.timezone('Asia/Bangkok'),
             babel.Locale.parse("es-MX", sep='-')
@@ -402,7 +402,7 @@ class TestExporterReduceToDict(unittest.TestCase):
             }
 
         ]
-        self.exporter = ChannelExporter("TEST")
+        self.exporter = SlackChannelExporter("TEST")
 
     def test_1(self):        
         expected = {
@@ -458,7 +458,7 @@ class TestExporterSlackMethods(unittest.TestCase):
     
     @classmethod
     def setUpClass(cls):
-        cls.exporter = ChannelExporter(os.environ['SLACK_TOKEN'])
+        cls.exporter = SlackChannelExporter(os.environ['SLACK_TOKEN'])
 
     def test_fetch_messages(self):
         oldest = parser.parse("2019-JUL-04")

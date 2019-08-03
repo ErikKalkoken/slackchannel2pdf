@@ -2,7 +2,7 @@
 #
 # Licensed under MIT license. See attached file for details
 #
-# This package contains the main functionality of channelexport
+# This package contains the main functionality of slackchannel2pdf
 # User interfaces to this tool (e.g. commnad line) are in a separate package
 #
 
@@ -76,12 +76,12 @@ class MyFPDF(FPDF_ext):
     def header(self):
         """definition of custom header"""
         self.set_font(
-            ChannelExporter._FONT_FAMILY_DEFAULT, 
-            size=ChannelExporter._FONT_SIZE_NORMAL, 
+            SlackChannelExporter._FONT_FAMILY_DEFAULT, 
+            size=SlackChannelExporter._FONT_SIZE_NORMAL, 
             style="B"
             )
         self.cell(0, 0, self._page_title, 0, 1, "C")
-        self.ln(ChannelExporter._LINE_HEIGHT_DEFAULT)
+        self.ln(SlackChannelExporter._LINE_HEIGHT_DEFAULT)
     
     def footer(self):
         """definition of custom footer"""
@@ -99,7 +99,7 @@ class MyFPDF(FPDF_ext):
             self.ln()
 
 
-class ChannelExporter:
+class SlackChannelExporter:
     """Class for exporting slack channels to PDF files
 
     This class will fetch all messages including threads from a Slack
@@ -164,7 +164,7 @@ class ChannelExporter:
             raise ValueError("slack_token can not be null")
         
         # output welcome message
-        print("Channelexport v" + self._VERSION + " by Erik Kalkoken")
+        print("slackchannel2pdf v" + self._VERSION + " by Erik Kalkoken")
         print("")
 
         # load information for current Slack workspace

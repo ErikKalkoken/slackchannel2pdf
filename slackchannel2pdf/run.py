@@ -12,10 +12,10 @@ from datetime import datetime
 from dateutil import parser
 import pytz
 from babel import Locale, UnknownLocaleError
-from channelexport import ChannelExporter
+from slackchannel2pdf import SlackChannelExporter
 
 def main():
-    """Implements the arg parser and starts the channelexporter with its input"""
+    """Implements the arg parser and starts the slackchannel2pdf with its input"""
 
     # main arguments
     my_arg_parser = argparse.ArgumentParser(
@@ -56,13 +56,13 @@ def main():
         "--page-orientation",         
         help = "Orientation of PDF pages",
         choices = ["portrait", "landscape"],
-        default = ChannelExporter._PAGE_ORIENTATION_DEFAULT
+        default = SlackChannelExporter._PAGE_ORIENTATION_DEFAULT
         )
     my_arg_parser.add_argument(        
         "--page-format",         
         help = "Format of PDF pages",
         choices = ["a3", "a4", "a5", "letter", "legal"],
-        default = ChannelExporter._PAGE_FORMAT_DEFAULT
+        default = SlackChannelExporter._PAGE_FORMAT_DEFAULT
         )
     my_arg_parser.add_argument(
         "--timezone",         
@@ -84,7 +84,7 @@ def main():
         "--version",         
         help="show the program version and exit", 
         action="version", 
-        version=ChannelExporter._VERSION
+        version=SlackChannelExporter._VERSION
         )    
 
     # exporter config
@@ -115,7 +115,7 @@ def main():
     args = my_arg_parser.parse_args()
     
     if "version" in args:
-        print(ChannelExporter._VERSION)            
+        print(SlackChannelExporter._VERSION)            
         start_export = False
 
     # try to take slack token from optional argument or environment variable
@@ -173,7 +173,7 @@ def main():
         latest = None
 
     if start_export:
-        exporter = ChannelExporter(
+        exporter = SlackChannelExporter(
             slack_token=slack_token,             
             my_tz=my_tz,
             my_locale=my_locale,

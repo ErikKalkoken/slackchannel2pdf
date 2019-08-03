@@ -3,10 +3,10 @@ import os,sys,inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir + "/channelexport")
-from channelexport import ChannelExporter
+from channelexport import SlackChannelExporter
 
 def main():
-    exporter = ChannelExporter("TEST")
+    exporter = SlackChannelExporter("TEST")
     exporter._workspace_info = {
         "team": "test",
         "user_id": "U92345678"
