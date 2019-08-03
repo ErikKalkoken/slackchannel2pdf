@@ -234,7 +234,7 @@ class ChannelExporter:
         # check if overridden locale is valid        
         if my_locale is not None:
             if not isinstance(my_locale, Locale):
-                raise TypeError("my_locale must be a babel locale object")            
+                raise TypeError("my_locale must be a babel Locale object")            
         # if not overridden use timezone info from author on Slack if available
         # else use local time of this system        
         else:
@@ -252,7 +252,7 @@ class ChannelExporter:
                 my_locale = Locale.default()
         
         self._my_locale = my_locale
-        print(f"Locale is: {my_locale.get_display_name()}")
+        print(f"Locale is: {my_locale.get_display_name()} [{self._my_locale}]")
 
         # validate add_debug_info
         if type(add_debug_info) != bool:
@@ -421,18 +421,20 @@ class ChannelExporter:
         return messages_all
 
 
-    def _read_array_from_json_file(self, filename):
+    def _read_array_from_json_file(self, filename, quiet=False):
         """reads a json file and returns its contents as array"""     
         filename += '.json'
         if not os.path.isfile(filename):
-            print(f"WARN: file does not exist: {filename}")
+            if quiet is False: 
+                print(f"WARN: file does not exist: {filename}")
             arr = list()
         else:
             try:
                 with open(filename, 'r', encoding="utf-8") as f:
                     arr = json.load(f)            
             except Exception as e:
-                print(f"WARN: failed to read from {filename}: " , e)
+                if quiet is False:
+                    print(f"WARN: failed to read from {filename}: " , e)
                 arr = list()
                 
         return arr
@@ -1189,12 +1191,13 @@ class ChannelExporter:
                         locale=self._my_locale
                     )                    
                     text_width = document.get_string_width(date_text)
-                    cell_x = (x2 - x1) / 2 + x1 - (text_width / 2)
-                    cell_y = y1                
+                    x3 = (x2 - x1) / 2 + x1                    
+                    x4 = x3 - (text_width / 2)
+                    border_x = 3
                     document.set_fill_color(255, 255, 255)
-                    document.cell(cell_x)
+                    document.set_x(x4 - border_x)
                     document.cell(
-                        text_width + 6,
+                        text_width + 2 * border_x,
                         self._LINE_HEIGHT_DEFAULT,
                         date_text, 
                         0,
@@ -1447,7 +1450,8 @@ class ChannelExporter:
                     filename_base_channel + "_messages"
                     )
                 threads = self._read_array_from_json_file(
-                    filename_base_channel + "_threads"
+                    filename=filename_base_channel + "_threads",                    
+                    quiet=True
                     )
             
             # create PDF
@@ -1565,7 +1569,7 @@ class ChannelExporter:
                 "Start date": start_date_str,
                 "End date": end_date_str,
                 "Timezone": self._my_tz,
-                "Locale": self._my_locale.get_display_name(),
+                "Locale": f"{self._my_locale.get_display_name()}",
                 "Messages": format_number(
                     message_count, 
                     locale=self._my_locale
@@ -1573,7 +1577,8 @@ class ChannelExporter:
                 "Threads": format_number(
                     thread_count, 
                     locale=self._my_locale
-                    )
+                    ),
+                "Pages": "{nb}"
             }
             document.write_info_table(export_infos)            
             document.add_page()
