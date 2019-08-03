@@ -16,7 +16,9 @@ from time import sleep
 from datetime import datetime, timedelta
 import pytz
 from tzlocal import get_localzone
-import babel
+from babel import Locale, UnknownLocaleError
+from babel.dates import format_date, format_datetime, format_time
+from babel.numbers import format_number
 import slack
 from fpdf_ext import FPDF_ext
 
@@ -231,23 +233,23 @@ class ChannelExporter:
         # set locale                
         # check if overridden locale is valid        
         if my_locale is not None:
-            if not isinstance(my_locale, babel.Locale):
+            if not isinstance(my_locale, Locale):
                 raise TypeError("my_locale must be a babel locale object")            
         # if not overridden use timezone info from author on Slack if available
         # else use local time of this system        
         else:
             if author_info is not None:
                 try:
-                    my_locale = babel.Locale.parse(
+                    my_locale = Locale.parse(
                         author_info["locale"], 
                         sep="-"
                         )
-                except babel.UnknownLocaleError:
+                except UnknownLocaleError:
                     print("WARN: Could not use locale info from Slack")
-                    my_locale = babel.Locale.default()
+                    my_locale = Locale.default()
                     
             else:                
-                my_locale = babel.Locale.default()
+                my_locale = Locale.default()
         
         self._my_locale = my_locale
         print(f"Locale is: {my_locale.get_display_name()}")
@@ -411,7 +413,7 @@ class ChannelExporter:
             messages_all = messages_all + messages
 
         print("Fetched a total of "
-            + babel.numbers.format_number(
+            + format_number(
                 len(messages_all), 
                 locale=self._my_locale
                 )
@@ -532,7 +534,7 @@ class ChannelExporter:
         
         if thread_messages_total > 0:
             print("Fetched a total of "
-                + babel.numbers.format_number(
+                + format_number(
                     thread_messages_total, 
                     locale=self._my_locale
                     )
@@ -761,7 +763,7 @@ class ChannelExporter:
 
     def _format_datetime_str(self, dt):
         """returns formated datetime string for given dt using locale"""
-        return babel.dates.format_datetime(
+        return format_datetime(
             dt, 
             format="short",             
             locale=self._my_locale
@@ -771,7 +773,7 @@ class ChannelExporter:
     def _get_datetime_formatted_str(self, ts):
         """return given timestamp as formated datetime string using locale"""        
         dt = self._get_datetime_from_ts(ts)
-        return babel.dates.format_datetime(
+        return format_datetime(
             dt, 
             format="short", 
             locale=self._my_locale
@@ -781,7 +783,7 @@ class ChannelExporter:
     def _get_time_formatted_str(self, ts):
         """return given timestamp as formated datetime string using locale"""        
         dt = self._get_datetime_from_ts(ts)
-        return babel.dates.format_time(
+        return format_time(
             dt, 
             format="short", 
             locale=self._my_locale
@@ -1182,7 +1184,7 @@ class ChannelExporter:
                     document.line(x1, y1, x2, y1)
                     
                     # stamp date on divider
-                    date_text = babel.dates.format_date(
+                    date_text = format_date(
                         msg_dt, format="full", 
                         locale=self._my_locale
                     )                    
@@ -1564,11 +1566,11 @@ class ChannelExporter:
                 "End date": end_date_str,
                 "Timezone": self._my_tz,
                 "Locale": self._my_locale.get_display_name(),
-                "Messages": babel.numbers.format_number(
+                "Messages": format_number(
                     message_count, 
                     locale=self._my_locale
                     ),
-                "Threads": babel.numbers.format_number(
+                "Threads": format_number(
                     thread_count, 
                     locale=self._my_locale
                     )

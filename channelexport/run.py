@@ -11,7 +11,7 @@ import argparse
 from datetime import datetime
 from dateutil import parser
 import pytz
-import babel
+from babel import Locale, UnknownLocaleError
 from channelexport import ChannelExporter
 
 def main():
@@ -142,11 +142,11 @@ def main():
     # parse locale
     if args.locale is not None:        
         try:
-            my_locale = babel.Locale.parse(
+            my_locale = Locale.parse(
                 args.locale, 
                 sep="-"
                 )
-        except babel.UnknownLocaleError:
+        except UnknownLocaleError:
             print("ERROR: provided locale string is not valid")
             start_export = False        
     else:
