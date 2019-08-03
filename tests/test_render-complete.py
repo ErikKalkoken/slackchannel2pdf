@@ -2,8 +2,8 @@ import unittest
 import os,sys,inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
-sys.path.insert(0,parentdir + "/channelexport")
-from channelexport import SlackChannelExporter
+sys.path.insert(0,parentdir + "/slackchannel2pdf")
+from slackchannel2pdf import SlackChannelExporter
 
 def main():    
     exporter = SlackChannelExporter(slack_token="TEST", add_debug_info=True)
