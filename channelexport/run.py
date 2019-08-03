@@ -12,7 +12,7 @@ from datetime import datetime
 from dateutil import parser
 import pytz
 from tzlocal import get_localzone
-import locale
+import babel
 from channelexport import ChannelExporter
 
 def main():
@@ -67,16 +67,14 @@ def main():
         )
     my_arg_parser.add_argument(
         "--timezone",         
-        help = ("Manually set the timezone to be used instead of the . "
-            + "system's default timezone. e.g. 'Europe/Berlin' "
+        help = ("Manually set the timezone to be used e.g. 'Europe/Berlin' "
             + "Use a timezone name as defined here: "
             + "https://en.wikipedia.org/wiki/List_of_tz_database_time_zones")
         )    
 
     my_arg_parser.add_argument(        
         "--locale",         
-        help = ("Manually set the locale to be used instead of the "
-            + "system's default locale with a IETF language tag, "
+        help = ("Manually set the locale to be used with a IETF language tag, "
             + "e.g. ' de-DE' for Germany. "
             + "See this page for a list of valid tags: "
             + "https://en.wikipedia.org/wiki/IETF_language_tag")
@@ -131,7 +129,7 @@ def main():
     else:
         slack_token = args.token
 
-    # set local timezone
+    # parse local timezone
     if args.timezone is not None:
         try:
             my_tz = pytz.timezone(args.timezone)
@@ -140,40 +138,40 @@ def main():
             my_tz = None
             start_export = False            
     else:
-        my_tz = get_localzone() 
+        my_tz = None 
     
-    if args.locale is not None:
-        if args.locale.lower() not in locale.locale_alias.keys():
+    # parse locale
+    if args.locale is not None:        
+        try:
+            my_locale = babel.Locale.parse(
+                args.locale, 
+                sep="-"
+                )
+        except babel.UnknownLocaleError:
             print("ERROR: provided locale string is not valid")
-            start_export = False
-        else:
-            my_locale = args.locale
+            start_export = False        
     else:
-        locale.setlocale(locale.LC_ALL, '')
-        my_locale = locale.getdefaultlocale()[0]
+        my_locale = None
 
-    if start_export is not False:
-        # parse oldest
-        if args.oldest is not None:        
-            try:
-                dt = parser.parse(args.oldest)
-                oldest = my_tz.localize(dt)            
-            except ValueError:
-                print("Invalid date input for --oldest")        
-                start_export = False
-        else:
-            oldest = None
+    # parse oldest
+    if args.oldest is not None:        
+        try:
+            oldest = parser.parse(args.oldest)                
+        except ValueError:
+            print("Invalid date input for --oldest")        
+            start_export = False
+    else:
+        oldest = None
 
-        # parse latest
-        if args.latest is not None:        
-            try:
-                dt = parser.parse(args.latest)
-                latest = my_tz.localize(dt)            
-            except ValueError:
-                print("Invalid date input for --latest")        
-                start_export = False
-        else:
-            latest = None
+    # parse latest
+    if args.latest is not None:        
+        try:
+            latest = parser.parse(args.latest)                
+        except ValueError:
+            print("Invalid date input for --latest")        
+            start_export = False
+    else:
+        latest = None
 
     if start_export:
         exporter = ChannelExporter(

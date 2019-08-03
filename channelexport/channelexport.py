@@ -16,8 +16,7 @@ from time import sleep
 from datetime import datetime, timedelta
 import pytz
 from tzlocal import get_localzone
-import locale
-from babel.dates import format_date, format_datetime, format_time
+import babel
 import slack
 from fpdf_ext import FPDF_ext
 
@@ -87,7 +86,7 @@ class MyFPDF(FPDF_ext):
         self.set_y(-15)
         self.cell(0, 10, "Page " + str(self.page_no()) + " / {nb}", 0, 0, "C")
 
-    def _write_info_table(self, table_def):        
+    def write_info_table(self, table_def):        
         """write info table defined by dict"""
         cell_height = 10        
         for key, value in table_def.items():
@@ -141,6 +140,7 @@ class ChannelExporter:
     _MAX_MESSAGES_PER_CHANNEL = 10000
     _MAX_MESSAGES_PER_THREAD = 500
 
+    FALLBACK_LOCALE = "en"
 
     def __init__(
         self, 
@@ -160,28 +160,6 @@ class ChannelExporter:
         """
         if slack_token is None:
             raise ValueError("slack_token can not be null")
-
-        # timezone used for all outputs of datetime
-        # system's timezone is default
-        if my_tz is not None and not isinstance(my_tz, pytz.BaseTzInfo):
-            raise TypeError("my_tz must be of type pytz")
-        self._my_tz = my_tz if my_tz is not None else get_localzone()
-        
-        # validate my_locale input, set default for my_locale
-        if my_locale is None:
-            locale.setlocale(locale.LC_ALL, '')
-            self._my_locale = locale.getdefaultlocale()[0]
-        elif not isinstance(my_locale, str):
-            raise TypeError("my_locale must be string")
-        elif my_locale.lower() not in locale.locale_alias.keys():
-            raise ValueError("my_locale is not valid")
-        else:
-            self._my_locale = my_locale
-        
-        # validate add_debug_info
-        if type(add_debug_info) != bool:
-            raise ValueError("add_debug_info must be bool")
-        self._add_debug_info = add_debug_info
         
         # output welcome message
         print("Channelexport v" + self._VERSION + " by Erik Kalkoken")
@@ -197,13 +175,15 @@ class ChannelExporter:
 
              # set author
             if "user_id" in self._workspace_info:
-                if self._workspace_info["user_id"] in self._user_names:
-                    author = self._user_names[self._workspace_info["user_id"]]
-                else:
+                author_id = self._workspace_info["user_id"]
+                if self._workspace_info["user_id"] in self._user_names:                    
+                    author = self._user_names[author_id]                    
+                else:                    
                     author = "unknown_user_" + self._workspace_info["user_id"]
             else:
-                author = "unknown user"
-
+                author_id = None
+                author = "unknown user"                
+            
         else:
             # if started with TEST parameter class properties will be
             # initialized empty and need to be set manually in test setup
@@ -213,13 +193,74 @@ class ChannelExporter:
             self._channel_names = dict()
             self._usergroup_names = dict()
             self._bot_names = dict()
+            author_id = None
             author = "test user"
         
         self._author = author
-
+        
         # output welcome message and inform about current parameters
         print();
         print("Welcome " + self._author)
+
+        # get timezone and local for author from Slack
+        if author_id is not None:
+            author_info = self._fetch_user_info(author_id)
+        else:
+            author_info = None
+        
+        # set timezone                
+        # check if overridden timezone is valid
+        if my_tz is not None:
+            if not isinstance(my_tz, pytz.BaseTzInfo):
+                raise TypeError("my_tz must be of type pytz")                
+        # if not overridden use timezone info from author on Slack if available
+        # else use local time of this system        
+        else:
+            if author_info is not None:
+                try:
+                    my_tz = pytz.timezone(author_info["tz"])
+                except pytz.exceptions.UnknownTimeZoneError:
+                    print("WARN: Could not use timezone info from Slack")
+                    my_tz = get_localzone()
+            else:
+                my_tz = get_localzone()
+
+        self._my_tz = my_tz
+        print(f"Timezone is: {str(my_tz)}")
+
+        # set locale                
+        # check if overridden locale is valid        
+        if my_locale is not None:
+            if not isinstance(my_locale, babel.Locale):
+                raise TypeError("my_locale must be a babel locale object")            
+        # if not overridden use timezone info from author on Slack if available
+        # else use local time of this system        
+        else:
+            if author_info is not None:
+                try:
+                    my_locale = babel.Locale.parse(
+                        author_info["locale"], 
+                        sep="-"
+                        )
+                except babel.UnknownLocaleError:
+                    print("WARN: Could not use locale info from Slack")
+                    my_locale = babel.Locale.default()
+                    
+            else:                
+                my_locale = babel.Locale.default()
+        
+        self._my_locale = my_locale
+        print(f"Locale is: {my_locale.get_display_name()}")
+
+        # validate add_debug_info
+        if type(add_debug_info) != bool:
+            raise ValueError("add_debug_info must be bool")
+        self._add_debug_info = add_debug_info
+                
+        if add_debug_info:
+            print("Adding DEBUG info to PDF")
+        
+
 
     # *************************************************************************
     # Methods for fetching data from Slack API
@@ -257,6 +298,21 @@ class ChannelExporter:
             user_names[user] = self._transform_encoding(user_names[user])
         
         return user_names
+
+
+    def _fetch_user_info(self, user_id):    
+        """returns dict of user info for user ID incl. locale"""
+        
+        # make sure slack client is set
+        assert self._client is not None
+
+        print("Fetching user info for author...")
+        response = self._client.users_info(
+            user=user_id, 
+            include_locale=1
+        )
+        assert response["ok"]                    
+        return response["user"]
 
 
     def _fetch_channel_names(self):
@@ -321,7 +377,7 @@ class ChannelExporter:
         messages_per_page = min(self._MESSAGES_PER_PAGE, max_messages)
         # get first page
         page = 1
-        print("Fetching messages from channel - page {}".format(page))
+        print(f"Fetching messages from channel - page {page}")
         oldest_ts = str(oldest.timestamp()) if oldest is not None else 0
         latest_ts = str(latest.timestamp()) if latest is not None else 0
         response = self._client.conversations_history(
@@ -337,7 +393,7 @@ class ChannelExporter:
         while (len(messages_all) < max_messages and 
                 response['has_more']):
             page += 1
-            print("Fetching messages from channel - page {}".format(page))
+            print(f"Fetching messages from channel - page {page}")
             sleep(1)   # need to wait 1 sec before next call due to rate limits
             # allow smaller page sized to fetch final page
             page_limit = min(
@@ -354,10 +410,12 @@ class ChannelExporter:
             messages = response['messages']
             messages_all = messages_all + messages
 
-        print("Fetched a total of {} messages from channel".format(
-            len(messages_all)
-            ))
-        
+        print("Fetched a total of "
+            + babel.numbers.format_number(
+                len(messages_all), 
+                locale=self._my_locale
+                )
+            + " messages from channel")
         return messages_all
 
 
@@ -372,7 +430,7 @@ class ChannelExporter:
                 with open(filename, 'r', encoding="utf-8") as f:
                     arr = json.load(f)            
             except Exception as e:
-                print("WARN: failed to read from {}: ".format(filename), e)
+                print(f"WARN: failed to read from {filename}: " , e)
                 arr = list()
                 
         return arr
@@ -381,7 +439,7 @@ class ChannelExporter:
     def _write_array_to_json_file(self, arr, filename):
         """writes array to a json file"""     
         filename += '.json' 
-        print("Writing file: name {}".format(filename))
+        print(f"Writing file: name {filename}")
         try:
             with open(filename , 'w', encoding="utf-8") as f:
                 json.dump(
@@ -392,7 +450,7 @@ class ChannelExporter:
                     ensure_ascii=False
                     )
         except Exception as e:
-            print("ERROR: failed to write to {}: ".format(filename), e)        
+            print(f"ERROR: failed to write to {filename}: " , e)        
     
 
     def _fetch_messages_from_thread(
@@ -411,10 +469,7 @@ class ChannelExporter:
         messages_per_page = min(self._MESSAGES_PER_PAGE, max_messages)
         # get first page
         page = 1        
-        print("Fetching messages from thread {} - page {}".format(
-            thread_num,
-            page
-            ))
+        print(f"Fetching messages from thread {thread_num} - page {page}")
         oldest_ts = str(oldest.timestamp()) if oldest is not None else 0
         latest_ts = str(latest.timestamp()) if latest is not None else 0
         response = self._client.conversations_replies(
@@ -431,10 +486,7 @@ class ChannelExporter:
         while (len(messages_all) + messages_per_page <= max_messages and 
                 response['has_more']):
             page += 1
-            print("Fetching messages from thread {} - page {}".format(
-                thread_num,
-                page
-                ))
+            print(f"Fetching messages from thread {thread_num} - page {page}")
             sleep(1)   # need to wait 1 sec before next call due to rate limits
             response = self._client.conversations_replies(
                 channel=channel_id,
@@ -479,12 +531,14 @@ class ChannelExporter:
                 thread_messages_total += len(thread_messages)
         
         if thread_messages_total > 0:
-            print("Fetched a total of {} messages from {} threads".format(
-                thread_messages_total,
-                thread_num
-                ))
+            print("Fetched a total of "
+                + babel.numbers.format_number(
+                    thread_messages_total, 
+                    locale=self._my_locale
+                    )
+                + f" messages from {thread_num} threads")            
         else:
-            print("This channel has no threads.")
+            print("This channel has no threads")
         
         return threads
 
@@ -516,7 +570,9 @@ class ChannelExporter:
                 if "bot_id" in msg: 
                     bot_id = msg["bot_id"]
                     if "username" in msg:
-                        bot_names[bot_id] = self._transform_encoding(msg["username"])
+                        bot_names[bot_id] = self._transform_encoding(
+                            msg["username"]
+                            )
                     else:
                         bot_ids.append(bot_id)
 
@@ -525,11 +581,13 @@ class ChannelExporter:
         
         # collect bot names from API if needed        
         if len(bot_ids) > 0:
-            print("Fetching names for {} bots".format(len(bot_ids)))
+            print(f"Fetching names for {len(bot_ids)} bots")
             for bot_id in bot_ids:
                 response = self._client.bots_info(bot=bot_id)
                 if response["ok"]:
-                    bot_names[bot_id] = self._transform_encoding(response["bot"]["name"])
+                    bot_names[bot_id] = self._transform_encoding(
+                        response["bot"]["name"]
+                        )
                     sleep(1)   # need to wait 1 sec before next call due to rate limits
         
         return bot_names
@@ -580,14 +638,14 @@ class ChannelExporter:
                 if id in self._user_names:
                     replacement = "@" + self._user_names[id]
                 else:
-                    replacement = "@user_{}".format(id)
+                    replacement = f"@user_{id}"
             
             elif id_chars == "#C":
                 # match is a channel ID
                 if id in self._channel_names:
                     replacement = "#" + self._channel_names[id]
                 else:
-                    replacement = "#channel_{}".format(id)
+                    replacement = f"#channel_{id}"
             
             elif match[0:9] == "!subteam^":
                 # match is a user group ID
@@ -597,7 +655,7 @@ class ChannelExporter:
                     if id in self._usergroup_names:
                         usergroup_name = self._usergroup_names[id]
                     else:
-                        usergroup_name = "usergroup_{}".format(id)
+                        usergroup_name = f"usergroup_{id}"
                 else:
                     usergroup_name = "usergroup_unknown"
                 replacement = "@" + usergroup_name
@@ -624,7 +682,7 @@ class ChannelExporter:
                         replacement = "(failed to parse date)"
 
                 else:
-                    replacement = "@special_{}". format(id)
+                    replacement = f"@special_{id}"
             
             else:
                 # match is an URL
@@ -703,7 +761,7 @@ class ChannelExporter:
 
     def _format_datetime_str(self, dt):
         """returns formated datetime string for given dt using locale"""
-        return format_datetime(
+        return babel.dates.format_datetime(
             dt, 
             format="short",             
             locale=self._my_locale
@@ -713,7 +771,7 @@ class ChannelExporter:
     def _get_datetime_formatted_str(self, ts):
         """return given timestamp as formated datetime string using locale"""        
         dt = self._get_datetime_from_ts(ts)
-        return format_datetime(
+        return babel.dates.format_datetime(
             dt, 
             format="short", 
             locale=self._my_locale
@@ -723,7 +781,7 @@ class ChannelExporter:
     def _get_time_formatted_str(self, ts):
         """return given timestamp as formated datetime string using locale"""        
         dt = self._get_datetime_from_ts(ts)
-        return format_time(
+        return babel.dates.format_time(
             dt, 
             format="short", 
             locale=self._my_locale
@@ -750,7 +808,7 @@ class ChannelExporter:
             if user_id in self._user_names:
                 user_name = self._user_names[user_id]
             else:
-                user_name = "unknown_user_{}".format(user_id)
+                user_name = f"unknown_user_{user_id}"
         
         elif "bot_id" in msg:
             user_id = msg["bot_id"]
@@ -760,7 +818,7 @@ class ChannelExporter:
             elif user_id in self._bot_names:
                 user_name = self._bot_names[user_id]
             else:
-                user_name = "unknown_bot_{}".format(user_id)
+                user_name = f"unknown_bot_{user_id}"
         
         elif "subtype" in msg and msg["subtype"] == "file_comment":
             if "user" in msg["comment"]:
@@ -769,7 +827,7 @@ class ChannelExporter:
                 if user_id in self._user_names:
                     user_name = self._user_names[user_id]
                 else:
-                    user_name = "unknown_user_{}".format(user_id)
+                    user_name = f"unknown_user_{user_id}"
             else:
                 user_name = None
 
@@ -999,9 +1057,9 @@ class ChannelExporter:
                     
                     if "footer" in attach:                
                         if "ts" in attach:
-                            text = "{} | {}".format(
-                                self._transform_text(attach["footer"]), 
-                                self._get_datetime_formatted_str(attach["ts"])
+                            text = (self._transform_text(attach["footer"])
+                                + "|"
+                                + self._get_datetime_formatted_str(attach["ts"])
                             )
                         else:
                             text = self._transform_text(attach["footer"])
@@ -1078,8 +1136,11 @@ class ChannelExporter:
                 
         else:
             user_id = None
-            print("WARN: Can not process message with ts {}".format(msg["ts"]))
-            document.write(self._LINE_HEIGHT_DEFAULT, "[Can not process this message]")
+            print(f"WARN: Can not process message with ts {msg['ts']}")
+            document.write(
+                self._LINE_HEIGHT_DEFAULT, 
+                "[Can not process this message]"
+            )
             document.ln()
 
         return user_id   
@@ -1121,7 +1182,7 @@ class ChannelExporter:
                     document.line(x1, y1, x2, y1)
                     
                     # stamp date on divider
-                    date_text = format_date(
+                    date_text = babel.dates.format_date(
                         msg_dt, format="full", 
                         locale=self._my_locale
                     )                    
@@ -1218,19 +1279,39 @@ class ChannelExporter:
         """
         # set defaults
         success = False
-                        
-        if max_messages is None:
+                
+        # input validation
+        if max_messages is not None:
+            if not isinstance(max_messages, int):
+                raise TypeError("max_messages must be of type int")
+        else:
             max_messages = self._MAX_MESSAGES_PER_CHANNEL
         
-        # input validation
-        if oldest is not None and not isinstance(oldest, datetime):
-            raise TypeError("oldest must be a datetime")            
+        if oldest is not None: 
+            if not isinstance(oldest, datetime):
+                raise TypeError("oldest must be a datetime")
+            else:
+                oldest = self._my_tz.localize(oldest)
 
-        if latest is not None and not isinstance(latest, datetime):
-            raise TypeError("latest must be a datetime")            
+        if latest is not None:
+            if not isinstance(latest, datetime):
+                raise TypeError("latest must be a datetime")
+            else:
+                latest = self._my_tz.localize(latest)
         
         if oldest is not None and latest is not None and oldest > latest:
             raise RuntimeError("ERROR: oldest has to be before latest")
+
+        if oldest is not None or latest is not None:
+            text = "Fetching messages"
+            if oldest is not None:
+                text += f" after {self._format_datetime_str(oldest)}"
+                if latest is not None:
+                    text += " and"
+                            
+            if latest is not None:
+                text += f" before {self._format_datetime_str(latest)}" 
+            print(text)
 
         if type(channel_inputs) is not list:
             raise TypeError("channel_inputs must be of type list")
@@ -1243,26 +1324,39 @@ class ChannelExporter:
                     inspect.getfile(inspect.currentframe())
                 ))
         else:
-            if not os.path.isdir(dest_path):
+            if not isinstance(dest_path, str):
+                raise TypeError("dest_path must be of type str")
+            elif not os.path.isdir(dest_path):
                 raise RuntimeError(
-                    "ERROR: give destination path does not exist: " + dest_path
+                    "ERROR: give destination path does not exist: " 
+                        + dest_path
                     )
         
-        if self._add_debug_info:
-            print("Adding DEBUG info to PDF")
-        
-        print(f"Timezone is: {str(self._my_tz)}")
-        print(f"Locale is: {self._my_locale}")
         print(f"Writing output to: {dest_path}")
-        
-        team_name = self._workspace_info["team"]
 
+        if not isinstance(page_orientation, str):
+            raise TypeError("page_orientation must be of type str")
+        else:
+            print(f"Page orientation: {page_orientation.title()}")
+
+        if not isinstance(page_format, str):
+            raise TypeError("page_format must be of type str")
+        else:
+            print(f"Page format: {page_format.title()}")
+
+        if write_raw_data is not None and not isinstance(write_raw_data, bool):
+            raise TypeError("write_raw_data must be of type bool")
+        
+        # prepare to process channels
+        team_name = self._workspace_info["team"]
         response = {
             "ok": success,
             "channels": dict()
         }
         channel_count = 0
         success = True
+        
+        # process each channel
         for channel_input in channel_inputs:
             success_channel = False
             channel_count += 1
@@ -1273,12 +1367,10 @@ class ChannelExporter:
                 # flip channel_names since channel names are unique
                 channel_names_ids = {v:k for k,v in self._channel_names.items()}
                 if channel_input.lower() not in channel_names_ids:
-                    print("({}/{}) ERROR: Unknown channel '".format(
-                            channel_count, 
-                            len(channel_inputs)) 
-                        + channel_input 
-                        + "' on " 
-                        + team_name)
+                    print(f"({channel_count}/{len(channel_inputs)}) "
+                        + "ERROR: Unknown channel '"
+                        + f"{channel_input}' on {team_name}"
+                        )
                     continue
                 else:
                     channel_id = channel_names_ids[channel_input.lower()]
@@ -1293,26 +1385,15 @@ class ChannelExporter:
             # fetch messages        
             # if we have a client fetch data from Slack            
             if self._client is not None:                                       
-                print("({}/{}) Retrieving messages from ".format(
-                        channel_count, 
-                        len(channel_inputs))
-                    + team_name 
-                    + " / " 
-                    + channel_name 
-                    + " ...")
-                
-                if oldest is not None:
-                    print(
-                        "Retrieving messages not older then: " 
-                            + self._format_datetime_str(oldest)
-                        )
-
-                if oldest is not None:
-                    print(
-                        "Retrieving messages not younger then: " 
-                            + self._format_datetime_str(latest)
-                        )
-                
+                if len(channel_inputs) > 1:
+                    text = f"({channel_count}/{len(channel_inputs)}) "
+                else:
+                    text = ""
+                text += ( "Retrieving messages from "
+                    + f"{team_name} / {channel_name}"
+                    )                    
+                                            
+                print(text + " ...")
                 messages = self._fetch_messages_from_channel(
                     channel_id, 
                     max_messages,
@@ -1360,10 +1441,12 @@ class ChannelExporter:
             else:
                 # if we don't have a client we will try to fetch from a file
                 # this is used for testing                
-                messages = self._read_array_from_json_file(filename_base_channel 
-                    + "_messages")
-                threads = self._read_array_from_json_file(filename_base_channel 
-                    + "_threads")
+                messages = self._read_array_from_json_file(
+                    filename_base_channel + "_messages"
+                    )
+                threads = self._read_array_from_json_file(
+                    filename_base_channel + "_threads"
+                    )
             
             # create PDF
             document = MyFPDF(
@@ -1373,12 +1456,42 @@ class ChannelExporter:
             )
             
             # add all fonts to support unicode
-            document.add_font(self._FONT_FAMILY_DEFAULT, style="", fname="NotoSans-Regular.ttf", uni=True)
-            document.add_font(self._FONT_FAMILY_DEFAULT, style="B", fname="NotoSans-Bold.ttf", uni=True)
-            document.add_font(self._FONT_FAMILY_DEFAULT, style="I", fname="NotoSans-Italic.ttf", uni=True)
-            document.add_font(self._FONT_FAMILY_DEFAULT, style="BI", fname="NotoSans-BoldItalic.ttf", uni=True)
-            document.add_font(self._FONT_FAMILY_MONO_DEFAULT, style="", fname="NotoSansMono-Regular.ttf", uni=True)
-            document.add_font(self._FONT_FAMILY_MONO_DEFAULT, style="B", fname="NotoSansMono-Bold.ttf", uni=True)            
+            document.add_font(
+                self._FONT_FAMILY_DEFAULT, 
+                style="", 
+                fname="NotoSans-Regular.ttf", 
+                uni=True
+                )
+            document.add_font(
+                self._FONT_FAMILY_DEFAULT, 
+                style="B", 
+                fname="NotoSans-Bold.ttf", 
+                uni=True
+                )
+            document.add_font(
+                self._FONT_FAMILY_DEFAULT, 
+                style="I", 
+                fname="NotoSans-Italic.ttf", 
+                uni=True
+                )
+            document.add_font(
+                self._FONT_FAMILY_DEFAULT, 
+                style="BI", 
+                fname="NotoSans-BoldItalic.ttf", 
+                uni=True
+                )
+            document.add_font(
+                self._FONT_FAMILY_MONO_DEFAULT, 
+                style="", 
+                fname="NotoSansMono-Regular.ttf", 
+                uni=True
+                )
+            document.add_font(
+                self._FONT_FAMILY_MONO_DEFAULT, 
+                style="B", 
+                fname="NotoSansMono-Bold.ttf", 
+                uni=True
+                )            
             document.alias_nb_pages()
             document.add_page()
 
@@ -1450,11 +1563,18 @@ class ChannelExporter:
                 "Start date": start_date_str,
                 "End date": end_date_str,
                 "Timezone": self._my_tz,
-                "Locale": self._my_locale,
-                "Messages": message_count,
-                "Threads": thread_count
+                "Locale": self._my_locale.get_display_name(),
+                "Messages": babel.numbers.format_number(
+                    message_count, 
+                    locale=self._my_locale
+                    ),
+                "Threads": babel.numbers.format_number(
+                    thread_count, 
+                    locale=self._my_locale
+                    )
             }
-            document._write_info_table(export_infos)
+            document.write_info_table(export_infos)            
+            document.add_page()
             
             # write messages to PDF
             self._write_messages_to_pdf(document, messages, threads)

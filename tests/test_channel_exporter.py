@@ -11,7 +11,7 @@ from datetime import datetime
 from dateutil import parser
 import pytz
 from tzlocal import get_localzone
-import locale
+import babel
 
 class TestExporterTransformText(unittest.TestCase):
 
@@ -25,6 +25,7 @@ class TestExporterTransformText(unittest.TestCase):
             "U62345678": "Janet Hakuli",
             "U72345678": "Yuna Kobayashi",
             "U9234567X": "Erik Kalkoken",
+            "U92345678": "Rosie Dunbar"
         }
 
         channel_names = {
@@ -41,13 +42,12 @@ class TestExporterTransformText(unittest.TestCase):
             "S42345678": "sales"
         }
         
-        locale.setlocale(locale.LC_ALL, '')
-
         self.exporter = ChannelExporter("TEST")
         self.exporter._workspace_info = workspace_info
         self.exporter._user_names = user_names
         self.exporter._channel_names = channel_names
         self.exporter._usergroup_names = usergroup_names
+        self.exporter._author = "Erik Kalkoken"
 
 
     def test_run_with_defaults(self):
@@ -84,7 +84,8 @@ class TestExporterTransformText(unittest.TestCase):
                 "portrait"
             )
             self.assertEqual(
-                res_channel["max_messages"], ChannelExporter._MAX_MESSAGES_PER_CHANNEL
+                res_channel["max_messages"], 
+                ChannelExporter._MAX_MESSAGES_PER_CHANNEL
             )
             self.assertEqual(
                 res_channel["timezone"], 
@@ -92,7 +93,7 @@ class TestExporterTransformText(unittest.TestCase):
             )
             self.assertEqual(
                 res_channel["locale"], 
-                locale.getdefaultlocale()[0]
+                babel.Locale.default()
             )
             
             # assert infos in PDF file are correct
@@ -326,12 +327,10 @@ class TestExporterTimezonesNLocale(unittest.TestCase):
             "S42345678": "sales"
         }
         
-        locale.setlocale(locale.LC_ALL, '')
-
         self.exporter = ChannelExporter(
             "TEST",
-            pytz.timezone('Europe/Berlin'),
-            "en"
+            pytz.timezone('Asia/Bangkok'),
+            babel.Locale.parse("es-MX", sep='-')
         )
         self.exporter._workspace_info = workspace_info
         self.exporter._user_names = user_names
@@ -352,11 +351,11 @@ class TestExporterTimezonesNLocale(unittest.TestCase):
         self.assertTrue(res_channel["ok"])
         self.assertEqual(
             res_channel["timezone"], 
-            pytz.timezone('Europe/Berlin'),
+            pytz.timezone('Asia/Bangkok'),
         )
         self.assertEqual(
             res_channel["locale"], 
-            "en"
+            babel.Locale.parse("es-MX", sep='-')
         )
 
     def test_get_datetime(self):
@@ -482,9 +481,11 @@ class TestExporterSlackMethods(unittest.TestCase):
 
     
 if __name__ == '__main__':
-    ## unittest.main()    
+    unittest.main()    
     
+    """
     singletest = unittest.TestSuite()
     singletest.addTest(TestExporterTimezonesNLocale("test_dummy"))
     unittest.TextTestRunner().run(singletest)    
+    """
     
