@@ -9,5 +9,7 @@ __pycache__/
 channelexport/build/
 channelexport/dist/
 playground/
+dist/
+devonly/
 
 

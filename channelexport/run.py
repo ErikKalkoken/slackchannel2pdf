@@ -11,7 +11,6 @@ import argparse
 from datetime import datetime
 from dateutil import parser
 import pytz
-from tzlocal import get_localzone
 import babel
 from channelexport import ChannelExporter
 

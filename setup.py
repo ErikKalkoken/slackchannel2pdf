@@ -2,8 +2,10 @@ from distutils.core import setup
 
 setup(
     name='channelexport',
-    version='0.4',
+    version='0.4.0',
+    author='Erik Kalkoken',
     packages=['channelexport',],
-    license='Creative Commons Attribution-Noncommercial-Share Alike license',
-    long_description=open('README.txt').read(),
+    license='LICENSE',
+    description='channelexport is a command line tool for exporting the text contents of any Slack channel to a PDF file',
+    long_description=open('README.md').read()
 )

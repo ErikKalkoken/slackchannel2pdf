@@ -4,7 +4,7 @@ import sys
 import inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
-sys.path.insert(0,parentdir)
+sys.path.insert(0,parentdir + "/channelexport")
 from channelexport import *
 import PyPDF2
 from datetime import datetime
@@ -51,7 +51,7 @@ class TestExporterTransformText(unittest.TestCase):
 
 
     def test_run_with_defaults(self):
-        channels = ["channel-exporter", "channel-exporter-2"]
+        channels = ["G1234567X", "G2234567X"]        
         response = self.exporter.run(
             channels, 
             currentdir
@@ -110,10 +110,12 @@ class TestExporterTransformText(unittest.TestCase):
                 (self.exporter._workspace_info["team"] 
                     + " / " + channel_name)
             )
+            
 
     def test_run_with_args_1(self):
+        # self.exporter._channel_names["G2234567X"] = "channel-exporter-run_with_args_1"
         response = self.exporter.run(
-            ["channel-exporter-2"], 
+            ["G2234567X"], 
             currentdir,
             None,
             None,
@@ -147,7 +149,7 @@ class TestExporterTransformText(unittest.TestCase):
     """
         
 
-    def test_transform_encoding(self):
+    def test_transform_encoding(self):        
         self.assertEqual(
             self.exporter._transform_encoding("special char ✓"), 
             "special char ✓"
@@ -338,8 +340,9 @@ class TestExporterTimezonesNLocale(unittest.TestCase):
         self.exporter._usergroup_names = usergroup_names
 
     
-    def test_run_with_defaults(self):
-        channels = ["channel-exporter-2"]
+    def test_timezone_locale(self):
+        #self.exporter._channel_names["G2234567X"] = "channel-exporter-timezone-locale"
+        channels = ["G2234567X"]
         response = self.exporter.run(
             channels, 
             currentdir

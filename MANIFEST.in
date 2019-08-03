@@ -1,0 +1,3 @@
+include README.md
+recursive-include channelexport/fonts *.*
+recursive-include channelexport/fpdf_mod *.py
