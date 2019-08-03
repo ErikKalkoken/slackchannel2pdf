@@ -2,36 +2,13 @@
 
 **slackchannel2pdf** is a command line tool for exporting the text contents of any Slack channel to a PDF file.
 
-This tool is aimed at end users that want to make backups of Slack conversations or be able to share them outside Slack. It will work both in public and private channels and create a PDF file for every exported channel.
+This tool is aimed at end users that want to make backups of Slack conversations or be able to share them outside Slack. It will create a PDF file for every exported channel and will work both for public and private channels.
 
-slackchannel2pdf is an open source project and offered free of charge. Please check attached licence file for details.
-
-## Usage
-
-In order to use slackchannel2pdf you need:
-
-1. have it installed on your system (see chapter Installation)
-2. have a Slack token for the respective Slack workspace with the required permissions (see chapter Token).
-
-Here are some examples on how to use slackchannel2pdf:
-
-To export the Slack channel "general":
-
-`slackchannel2pdf --token MY_TOKEN general`
-
-To export the Slack channels "general", "random" and "test":
-
-`slackchannel2pdf --token MY_TOKEN general random test`
-
-By default the name of the resulting PDF file will be automatically created from the name of your workspace and the name of the exported channel. But you can also choose a custom name, e.g. "my_export.
-
-`slackchannel2pdf --token MY_TOKEN -d my_export general`
-
-> Tip: You can provide the Slack token either as command line argument `--token` or by setting the environment variable `SLACK-TOKEN`.
+**slackchannel2pdf** is an open source project and offered free of charge. Please check attached licence file for details.
 
 ## Features
 
-Here is a short summary of the key features of slackchannel2pdf:
+Here is a short summary of the key features of **slackchannel2pdf**:
 
 - Export of any public and private Slack channel to a PDF file (text only)
 
@@ -43,11 +20,34 @@ Here is a short summary of the key features of slackchannel2pdf:
 
 - Ability to configure page layout of PDF file (e.g. Portrait vs. Landscape)
 
+## Usage
+
+In order to use **slackchannel2pdf** you need:
+
+1. have it installed on your system (see chapter Installation)
+2. have a Slack token for the respective Slack workspace with the required permissions (see chapter Token).
+
+Here are some examples on how to use **slackchannel2pdf**:
+
+To export the Slack channel "general":
+
+`slackchannel2pdf --token MY_TOKEN general`
+
+To export the Slack channels "general", "random" and "test":
+
+`slackchannel2pdf --token MY_TOKEN general random test`
+
+To export all message from channel "general" starting from July 5th, 2019 at 11:00.
+
+`slackchannel2pdf --token MY_TOKEN --oldest "2019-JUL-05 11:00" general
+
+> Tip: You can provide the Slack token either as command line argument `--token` or by setting the environment variable `SLACK-TOKEN`.
+
 ## Arguments
 
 ```text
-usage: run.py [-h] [--token TOKEN] [--oldest OLDEST] [--latest LATEST]     
-              [-d DESTINATION] [--page-orientation {portrait,landscape}]   
+usage: run.py [-h] [--token TOKEN] [--oldest OLDEST] [--latest LATEST]
+              [-d DESTINATION] [--page-orientation {portrait,landscape}]
               [--page-format {a3,a4,a5,letter,legal}] [--timezone TIMEZONE]
               [--locale LOCALE] [--version] [--max-messages MAX_MESSAGES]  
               [--write-raw-data] [--add-debug-info]
@@ -94,7 +94,7 @@ tbd.
 
 ## Token
 
-To run slackchannel2pdf your need to have a token for your Slack workspace with the following permissions:
+To run **slackchannel2pdf** your need to have a token for your Slack workspace with the following permissions:
 
 - `channels:history`
 - `channels:read`
@@ -104,8 +104,9 @@ To run slackchannel2pdf your need to have a token for your Slack workspace with 
 - `users:read`
 - `usergroups:read`
 
-## Current limitations
+## Limitations
 
-- Text only: slackchannel2pdf will export only text from a channel, but not images or icons. This is by design.
+- Text only: **slackchannel2pdf** will export only text from a channel, but not images or icons. This is by design.
 - No Emojis: the tools is currently not able to write emojis as icons will will use their text representation instead (e.g. `:laughing:` instead of :laughing:).
 - DMs, Group DM: Currently not supported
+- Limited blocks support:Some non-text features of layout blocks not yet supported
