@@ -6,8 +6,8 @@ __pycache__/
 .vscode/
 *.pdf
 /*.json
-channelexport/build/
-channelexport/dist/
+slackchannel2pdf/build/
+slackchannel2pdf/dist/
 playground/
 dist/
 build/

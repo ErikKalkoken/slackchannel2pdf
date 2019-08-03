@@ -140,8 +140,7 @@ class SlackChannelExporter:
     # limits for fetching messages from Slack
     _MESSAGES_PER_PAGE = 200 # max message retrieved per request during paging
     _MAX_MESSAGES_PER_CHANNEL = 10000
-    _MAX_MESSAGES_PER_THREAD = 500
-
+    
     FALLBACK_LOCALE = "en"
 
     def __init__(
@@ -325,14 +324,13 @@ class SlackChannelExporter:
         
         print("Fetching channels for workspace...")
         response = self._client.conversations_list(
-            types="public_channel,private_channel,im"
+            types="public_channel,private_channel"
             )
         assert response["ok"]    
         channel_names = reduce_to_dict(
             response["channels"], 
             "id", 
-            "name",
-            "user"
+            "name"
             )        
         for channel in channel_names:
             channel_names[channel] = self._transform_encoding(

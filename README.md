@@ -1,45 +1,68 @@
-# channelexport
+# slackchannel2pdf
 
-**channelexport** is a command line tool for exporting the text contents of any Slack channel to a PDF file.
+**slackchannel2pdf** is a command line tool for exporting the text contents of any Slack channel to a PDF file.
 
-It is written in Python 3 and can run an any platform that support Python.
+This tool is aimed at end users that want to make backups of Slack conversations or be able to share them outside Slack. It will work both in public and private channels and create a PDF file for every exported channel.
+
+slackchannel2pdf is an open source project and offered free of charge. Please check attached licence file for details.
 
 ## Usage
 
-To use channelexport you need to have it installed on your system (see chapter Installation) and you need a Slack token for the respective Slack workspace with the required permissions (see chapter Token).
+In order to use slackchannel2pdf you need:
 
-> Note that you can provide the Slack token both with the command line argument `--token` or by setting the environment variable `SLACK-TOKEN`.
+1. have it installed on your system (see chapter Installation)
+2. have a Slack token for the respective Slack workspace with the required permissions (see chapter Token).
 
-Here are some examples on how to use channelexport:
+Here are some examples on how to use slackchannel2pdf:
 
-To export the Slack channel "general" with the provided token:
+To export the Slack channel "general":
 
-`channelexport --token MY_TOKEN general`
+`slackchannel2pdf --token MY_TOKEN general`
 
-To export the Slack channels "general", "random" and "test" with the provided token:
+To export the Slack channels "general", "random" and "test":
 
-`channelexport --token MY_TOKEN general random test`
+`slackchannel2pdf --token MY_TOKEN general random test`
 
 By default the name of the resulting PDF file will be automatically created from the name of your workspace and the name of the exported channel. But you can also choose a custom name, e.g. "my_export.
 
-`channelexport --token MY_TOKEN -d my_export general`
+`slackchannel2pdf --token MY_TOKEN -d my_export general`
+
+> Tip: You can provide the Slack token either as command line argument `--token` or by setting the environment variable `SLACK-TOKEN`.
+
+## Features
+
+Here is a short summary of the key features of slackchannel2pdf:
+
+- Export of any public and private Slack channel to a PDF file (text only)
+
+- Automatic detection of timezone and locale based from Slack. Can also be set manually if needed.
+
+- Exporting support for all Slack features incl. threads and layout blocks
+
+- Ability to export only the portion of a channel for a specific time period
+
+- Ability to configure page layout of PDF file (e.g. Portrait vs. Landscape)
 
 ## Arguments
 
 ```text
-usage: run.py [-h] [--token TOKEN] [-d DESTINATION]
-              [--page-orientation {portrait,landscape}]
+usage: run.py [-h] [--token TOKEN] [--oldest OLDEST] [--latest LATEST]     
+              [-d DESTINATION] [--page-orientation {portrait,landscape}]   
               [--page-format {a3,a4,a5,letter,legal}] [--timezone TIMEZONE]
-              [--timesystem {12,24}] [--version] [--max-messages MAX_MESSAGES]
+              [--locale LOCALE] [--version] [--max-messages MAX_MESSAGES]  
               [--write-raw-data] [--add-debug-info]
               channel [channel ...]
+
+This program exports the text of a Slack channel to a PDF file
 
 positional arguments:
   channel               One or several: name or ID of channel to export.
 
 optional arguments:
   -h, --help            show this help message and exit
-  --token TOKEN         Slack Oauth token (default: None)
+  --token TOKEN         Slack OAuth token (default: None)
+  --oldest OLDEST       don't load messages older than a date (default: None)
+  --latest LATEST       don't load messages newer then a date (default: None)
   -d DESTINATION, --destination DESTINATION
                         Specify a destination path to store the PDF file.
                         (TBD) (default: .)
@@ -47,12 +70,18 @@ optional arguments:
                         Orientation of PDF pages (default: portrait)
   --page-format {a3,a4,a5,letter,legal}
                         Format of PDF pages (default: a4)
-  --timezone TIMEZONE   timezone name as defined here: https://en.wikipedia.or
-                        g/wiki/List_of_tz_database_time_zones (default: UTC)
-  --timesystem {12,24}  Set the time system used for output (default: 24)
+  --timezone TIMEZONE   Manually set the timezone to be used e.g.
+                        'Europe/Berlin' Use a timezone name as defined here: h
+                        ttps://en.wikipedia.org/wiki/List_of_tz_database_time_
+                        zones (default: None)
+  --locale LOCALE       Manually set the locale to be used with a IETF
+                        language tag, e.g. ' de-DE' for Germany. See this page
+                        for a list of valid tags:
+                        https://en.wikipedia.org/wiki/IETF_language_tag
+                        (default: None)
   --version             show the program version and exit
   --max-messages MAX_MESSAGES
-                        max number of messages to export (default: None)
+                        max number of messages to export (default: 10000)
   --write-raw-data      will also write all raw data returned from the API to
                         files, e.g. messages.json with all messages (default:
                         None)
@@ -65,25 +94,18 @@ tbd.
 
 ## Token
 
-You run channelexport you need to have a token for your Slack workspace with the following permissions:
-
-Minimum:
+To run slackchannel2pdf your need to have a token for your Slack workspace with the following permissions:
 
 - `channels:history`
 - `channels:read`
+- `groups:history`
+- `groups:read`
 - `users:read`
 - `users:read`
 - `usergroups:read`
 
-Additional scopes for reading private channels and DMs:
+## Current limitations
 
-- `groups:history`
-- `groups:read`
-- `im:history`
-- `im:read`
-
-## Known limitations
-
-- Text only: channelexport will export only text from a channel, but not images or icons. This is by design
+- Text only: slackchannel2pdf will export only text from a channel, but not images or icons. This is by design.
 - No Emojis: the tools is currently not able to write emojis as icons will will use their text representation instead (e.g. `:laughing:` instead of :laughing:).
-- Group DM: Currently not supported
+- DMs, Group DM: Currently not supported

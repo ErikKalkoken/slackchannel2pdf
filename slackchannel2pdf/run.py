@@ -90,8 +90,9 @@ def main():
     # exporter config
     my_arg_parser.add_argument(        
         "--max-messages",         
-        help = "max number of messages to export",
-        type = int
+        help="max number of messages to export",
+        type=int,
+        default=SlackChannelExporter._MAX_MESSAGES_PER_CHANNEL
         )
 
     # Developer needs
