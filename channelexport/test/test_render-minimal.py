@@ -2,7 +2,7 @@ import unittest
 import os,sys,inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
-sys.path.insert(0,parentdir + "/channelexport")
+sys.path.insert(0,parentdir)
 from channelexport import ChannelExporter
 
 def main():
@@ -15,6 +15,7 @@ def main():
     exporter._channel_names = {
         "G12345678": "render-minimal"
     }
+    currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
     exporter.run(["render-minimal"], currentdir)
 
 if __name__ == '__main__':

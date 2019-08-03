@@ -2,7 +2,7 @@ import unittest
 import os,sys,inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
-sys.path.insert(0,parentdir + "/channelexport")
+sys.path.insert(0,parentdir)
 from fpdf_ext import FPDF_ext
 
 def main():
@@ -21,7 +21,7 @@ def main():
     document.write_html(5, html)
 
 
-    document.output("test_fpdf_ext.pdf")
+    document.output(os.path.join(currentdir, "test_fpdf_ext.pdf"))
 
 if __name__ == '__main__':
     main()
