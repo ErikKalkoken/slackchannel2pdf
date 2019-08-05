@@ -120,7 +120,7 @@ class SlackChannelExporter:
 
     """    
     # general
-    _VERSION = "0.4.0"
+    _VERSION = "1.0.0"
     
     # style and layout settings for PDF    
     _PAGE_ORIENTATION_DEFAULT = "portrait"
