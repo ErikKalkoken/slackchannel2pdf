@@ -109,3 +109,4 @@ To run **slackchannel2pdf** your need to have a token for your Slack workspace w
 - No Emojis: the tools is currently not able to write emojis as icons will will use their text representation instead (e.g. `:laughing:` instead of :laughing:).
 - DMs, Group DM: Currently not supported
 - Limited blocks support:Some non-text features of layout blocks not yet supported
+- Limited script support: This tool is rendering all text with the [Google Noto Sans](https://www.google.com/get/noto/#sans-lgc) font and will therefore support all 500+ languages that are support by that font. It does however not support many Asian languages / scripts like Chinese, Japanese, Korean, Thai and others

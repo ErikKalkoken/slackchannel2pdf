@@ -23,7 +23,7 @@
     },    
     {        
         "team": "T12345678",
-        "text": "*Unicode text*:\nGreek: Γειά σου κόσμος\nPolish: Witaj świecie\nPortuguese: Olá mundo\nRussian: Здравствуй, Мир\nVietnamese: Xin chào thế giới\nArabic: مرحبا العالم\nHebrew: שלום עולם\n testing `courier` testing",
+        "text": "*Unicode text*:\nGreek: Γειά σου κόσμος\nPolish: Witaj świecie\nPortuguese: Olá mundo\nRussian: Здравствуй, Мир\nVietnamese: Xin chào thế giới\nArabic: مرحبا العالم\nHebrew: שלום עולם",
         "ts": "1515045944.000800",
         "type": "message",
         "user": "U92345678"

@@ -1530,7 +1530,7 @@ class SlackChannelExporter:
             # set variables for title, header, footer
             title = workspace_name + " / " + channel_name
             sub_title = "Slack channel export"             
-            page_title = title + " " + sub_title
+            page_title = title
                     
             # set properties for document info
             document.set_author(self._author)
