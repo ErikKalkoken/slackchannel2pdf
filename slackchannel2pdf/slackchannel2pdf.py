@@ -127,8 +127,7 @@ class SlackChannelExporter:
     _PAGE_FORMAT_DEFAULT = "a4"
     _PAGE_UNITS_DEFAULT = "mm"
     _FONT_FAMILY_DEFAULT = "NotoSans"
-    _FONT_FAMILY_MONO_DEFAULT = "NotoSansMono"
-    _FONT_FAMILY_EMOJI_DEFAULT = "NotoEmoji"
+    _FONT_FAMILY_MONO_DEFAULT = "NotoSansMono"    
     _FONT_SIZE_NORMAL = 12
     _FONT_SIZE_LARGE = 14
     _FONT_SIZE_SMALL = 10
