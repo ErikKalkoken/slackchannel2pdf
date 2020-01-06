@@ -1,0 +1,18 @@
+[run]
+branch = True
+source = slackchannel2pdf
+
+[report]
+exclude_lines =
+    if self.debug:
+    pragma: no cover
+    raise NotImplementedError
+    if __name__ == .__main__.:
+ignore_errors = True
+omit =
+    setup.py
+    slackchannel2pdf/tests.py
+    slackchannel2pdf/tests/*
+    slackchannel2pdf/migrations/*
+    slackchannel2pdf/fpdf_mod/*
+    doc/*
