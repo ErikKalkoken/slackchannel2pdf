@@ -2,7 +2,7 @@
 
 **slackchannel2pdf** is a command line tool for exporting the text contents of any Slack channel to a PDF file.
 
-![GitHub](https://img.shields.io/github/license/ErikKalkoken/slackchannel2pdf) ![Pyhton](https://img.shields.io/badge/python-3.7-blue)
+![GitHub](https://img.shields.io/github/license/ErikKalkoken/slackchannel2pdf) ![Pyhton](https://img.shields.io/badge/python-3.7-blue) ![pipeline](https://api.travis-ci.org/ErikKalkoken/slackchannel2pdf.svg?branch=master)
 
 This tool is aimed at end users that want to make backups of Slack conversations or be able to share them outside Slack. It will create a PDF file for every exported channel and will work both for public and private channels.
 
