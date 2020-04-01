@@ -34,8 +34,7 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python',                
         'Programming Language :: Python :: 3.7',        
-    ],
-    python_requires='~=3.6',
+    ],    
     install_requires=[ 
         'Babel==2.7.0',
         'pytz==2019.1',

@@ -1,2 +1,3 @@
 include README.md
 recursive-include slackchannel2pdf/fonts *.*
+recursive-exclude tests *.*
