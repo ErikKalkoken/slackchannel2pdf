@@ -6,7 +6,7 @@
 # with rudimentary HTML support
 #
 
-import slackchannel2pdf.fpdf_mod as fpdf_mod
+import fpdf_mod
 import re
 import os
 

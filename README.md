@@ -2,7 +2,19 @@
 
 **slackchannel2pdf** is a command line tool for exporting the text contents of any Slack channel to a PDF file.
 
-![GitHub](https://img.shields.io/github/license/ErikKalkoken/slackchannel2pdf) ![Pyhton](https://img.shields.io/badge/python-3.7-blue) ![pipeline](https://api.travis-ci.org/ErikKalkoken/slackchannel2pdf.svg?branch=master)
+![GitHub](https://img.shields.io/github/license/ErikKalkoken/slackchannel2pdf) ![Python](https://img.shields.io/badge/python-3.7-blue) ![pipeline](https://api.travis-ci.org/ErikKalkoken/slackchannel2pdf.svg?branch=master)
+
+## Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Installation](#installation)
+- [Token](#token)
+- [Usage](#usage)
+- [Arguments](#arguments)
+- [Limitations](#limitations)
+
+## Overview
 
 This tool is aimed at end users that want to make backups of Slack conversations or be able to share them outside Slack. It will create a PDF file for every exported channel and will work both for public and private channels.
 
@@ -13,35 +25,64 @@ This tool is aimed at end users that want to make backups of Slack conversations
 Here is a short summary of the key features of **slackchannel2pdf**:
 
 - Export of any public and private Slack channel to a PDF file (text only)
-
 - Automatic detection of timezone and locale based from Slack. Can also be set manually if needed.
-
 - Exporting support for all Slack features incl. threads and layout blocks
-
 - Ability to export only the portion of a channel for a specific time period
-
 - Ability to configure page layout of PDF file (e.g. Portrait vs. Landscape)
+
+## Installation
+
+### Python
+
+You can install the tool directly from the repo. This wil require you to have Python 3 reinstalled in your machine and will work with any OS supported by  Python. We recommend installing it into a virtual environment.
+
+```bash
+pip install git+https://github.com/ErikKalkoken/slackchannel2pdf
+```
+
+You can then run the tool with the command `slackchannel2pdf` as explained in detail under [Usage](#usage).
+
+### Windows
+
+For windows users we also provide a Windows EXE that does not require you to install Python. You find the EXE file under [releases](https://github.com/ErikKalkoken/slackchannel2pdf/releases).
+
+## Token
+
+To run **slackchannel2pdf** your need to have a token for your Slack workspace with the following permissions:
+
+- `channels:history`
+- `channels:read`
+- `groups:history`
+- `groups:read`
+- `users:read`
+- `usergroups:read`
 
 ## Usage
 
 In order to use **slackchannel2pdf** you need:
 
-1. have it installed on your system (see chapter Installation)
-2. have a Slack token for the respective Slack workspace with the required permissions (see chapter Token).
+1. have it installed on your system (see [Installation](#installation))
+2. have a Slack token for the respective Slack workspace with the required permissions (see [Token](#token)).
 
 Here are some examples on how to use **slackchannel2pdf**:
 
 To export the Slack channel "general":
 
-`slackchannel2pdf --token MY_TOKEN general`
+```bash
+slackchannel2pdf --token MY_TOKEN general
+```
 
 To export the Slack channels "general", "random" and "test":
 
-`slackchannel2pdf --token MY_TOKEN general random test`
+```bash
+slackchannel2pdf --token MY_TOKEN general random test
+```
 
 To export all message from channel "general" starting from July 5th, 2019 at 11:00.
 
-`slackchannel2pdf --token MY_TOKEN --oldest "2019-JUL-05 11:00" general
+```bash
+slackchannel2pdf --token MY_TOKEN --oldest "2019-JUL-05 11:00" general
+```
 
 > Tip: You can provide the Slack token either as command line argument `--token` or by setting the environment variable `SLACK-TOKEN`.
 
@@ -89,21 +130,6 @@ optional arguments:
                         None)
   --add-debug-info      wether to add debug info to PDF (default: False)
 ```
-
-## Installation
-
-tbd.
-
-## Token
-
-To run **slackchannel2pdf** your need to have a token for your Slack workspace with the following permissions:
-
-- `channels:history`
-- `channels:read`
-- `groups:history`
-- `groups:read`
-- `users:read`
-- `usergroups:read`
 
 ## Limitations
 

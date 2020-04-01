@@ -1,3 +1,2 @@
 include README.md
 recursive-include slackchannel2pdf/fonts *.*
-recursive-include slackchannel2pdf/fpdf_mod *.py
