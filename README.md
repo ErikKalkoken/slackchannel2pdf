@@ -2,7 +2,7 @@
 
 **slackchannel2pdf** is a command line tool for exporting the text contents of any Slack channel to a PDF file.
 
-![GitHub](https://img.shields.io/github/license/ErikKalkoken/slackchannel2pdf) ![Python](https://img.shields.io/badge/python-3.7-blue) ![pipeline](https://api.travis-ci.org/ErikKalkoken/slackchannel2pdf.svg?branch=master)
+![release](https://img.shields.io/pypi/v/slackchannel2pdf?label=release) ![python](https://img.shields.io/pypi/pyversions/slackchannel2pdf) ![GitHub](https://img.shields.io/github/license/ErikKalkoken/slackchannel2pdf) ![pipeline](https://api.travis-ci.org/ErikKalkoken/slackchannel2pdf.svg?branch=master)
 
 ## Contents
 
@@ -34,10 +34,10 @@ Here is a short summary of the key features of **slackchannel2pdf**:
 
 ### Python
 
-You can install the tool directly from the repo. This wil require you to have Python 3 reinstalled in your machine and will work with any OS supported by  Python. We recommend installing it into a virtual environment.
+You can install the tool from PyPI with `pip install`. This wil require you to have Python reinstalled in your machine and it will work with any OS supported by Python. We recommend installing it into a virtual environment like venv.
 
 ```bash
-pip install git+https://github.com/ErikKalkoken/slackchannel2pdf
+pip install slackchannel2pdf
 ```
 
 You can then run the tool with the command `slackchannel2pdf` as explained in detail under [Usage](#usage).

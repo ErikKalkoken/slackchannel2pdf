@@ -18,7 +18,10 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     license='MIT',
-    description='slackchannel2pdf is a command line tool for exporting the text contents of any Slack channel to a PDF file',
+    description=(
+        'slackchannel2pdf is a command line tool for exporting the text '
+        'contents of any Slack channel to a PDF file'
+    ),
     long_description=long_description,
     long_description_content_type='text/markdown',    
     author='Erik Kalkoken',
@@ -29,11 +32,10 @@ setup(
         'Intended Audience :: End Users/Desktop',
         'License :: OSI Approved :: MIT License', 
         'Operating System :: OS Independent',
-        'Programming Language :: Python',        
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',        
+        'Programming Language :: Python',                
+        'Programming Language :: Python :: 3.7',        
     ],
+    python_requires='~=3.6',
     install_requires=[ 
         'Babel==2.7.0',
         'pytz==2019.1',
@@ -48,8 +50,8 @@ setup(
         ]
     },    
     entry_points={
-    'console_scripts': [
-        'slackchannel2pdf=slackchannel2pdf.run:main',
-    ],
-},
+        'console_scripts': [
+            'slackchannel2pdf=slackchannel2pdf.run:main',
+        ],
+    },
 )
