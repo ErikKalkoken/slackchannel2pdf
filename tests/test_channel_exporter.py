@@ -8,7 +8,9 @@ from tzlocal import get_localzone
 import babel
 import PyPDF2
 
+from slackchannel2pdf import __version__
 from slackchannel2pdf.slackchannel2pdf import SlackChannelExporter, reduce_to_dict
+
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 
@@ -102,8 +104,7 @@ class TestExporterTransformText(unittest.TestCase):
             doc_info = pdf_reader.getDocumentInfo()
             self.assertEqual(doc_info.author, "Erik Kalkoken")
             self.assertEqual(
-                doc_info.creator, 
-                "Channel Export v" + SlackChannelExporter._VERSION
+                doc_info.creator, f"Channel Export v{__version__}" 
             )
             self.assertEqual(
                 doc_info.title, 

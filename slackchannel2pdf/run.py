@@ -13,6 +13,7 @@ from dateutil import parser
 import pytz
 from babel import Locale, UnknownLocaleError
 
+from . import __version__
 from .slackchannel2pdf import SlackChannelExporter
 
 
@@ -89,7 +90,7 @@ def main():
         "--version",         
         help="show the program version and exit", 
         action="version", 
-        version=SlackChannelExporter._VERSION
+        version=__version__
     )
 
     # exporter config
@@ -123,7 +124,7 @@ def main():
     args = my_arg_parser.parse_args()
     
     if "version" in args:
-        print(SlackChannelExporter._VERSION)            
+        print(__version__)
         start_export = False
 
     # try to take slack token from optional argument or environment variable

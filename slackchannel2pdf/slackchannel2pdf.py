@@ -18,10 +18,10 @@ from babel.dates import format_date, format_datetime, format_time
 from babel.numbers import format_number
 from datetime import datetime, timedelta
 import pytz
+import slack
 from tzlocal import get_localzone
 
-import slack
-
+from . import __version__
 from .fpdf_ext import FPDF_ext
 
 
@@ -120,10 +120,8 @@ class SlackChannelExporter:
 
     Attachments and blocks (sections only for now) are supported.
 
-    """    
-    # general
-    _VERSION = "1.0.0"
-    
+    """
+
     # style and layout settings for PDF    
     _PAGE_ORIENTATION_DEFAULT = "portrait"
     _PAGE_FORMAT_DEFAULT = "a4"
@@ -161,7 +159,7 @@ class SlackChannelExporter:
             raise ValueError("slack_token can not be null")
         
         # output welcome message
-        print("slackchannel2pdf v" + self._VERSION + " by Erik Kalkoken")
+        print(f"slackchannel2pdf v{__version__} by Erik Kalkoken")
         print("")
 
         # load information for current Slack workspace
@@ -1472,7 +1470,7 @@ class SlackChannelExporter:
                     
             # set properties for document info
             document.set_author(self._author)
-            document.set_creator("Channel Export v" + self._VERSION)
+            document.set_creator(f"Channel Export v{__version__}")
             document.set_title(title)
             # document.set_creation_date(creation_date)
             document.set_subject(sub_title)                        
