@@ -20,7 +20,7 @@ from babel import Locale, UnknownLocaleError
 from babel.dates import format_date, format_datetime, format_time
 from babel.numbers import format_number
 import slack
-from fpdf_ext import FPDF_ext
+from .fpdf_ext import FPDF_ext
 
 
 def reduce_to_dict(    

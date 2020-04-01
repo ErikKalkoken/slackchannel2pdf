@@ -6,13 +6,16 @@
 # for Channelexport
 #
 
-import os
 import argparse
 from datetime import datetime
+import os
+
 from dateutil import parser
 import pytz
 from babel import Locale, UnknownLocaleError
-from slackchannel2pdf import SlackChannelExporter
+
+from .slackchannel2pdf import SlackChannelExporter
+
 
 def main():
     """Implements the arg parser and starts the slackchannel2pdf with its input"""

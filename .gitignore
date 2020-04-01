@@ -16,6 +16,6 @@ venv/
 .tox/
 .coverage
 MANIFEST
-
-
+*.egg-info/
+*.pyc
 
