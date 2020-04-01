@@ -6,28 +6,28 @@
 # User interfaces to this tool (e.g. commnad line) are in a separate package
 #
 
-import re
 import html
+import inspect
 import json
 import os
-import sys
-import inspect
+import re
 from time import sleep
-from datetime import datetime, timedelta
-import pytz
-from tzlocal import get_localzone
+
 from babel import Locale, UnknownLocaleError
 from babel.dates import format_date, format_datetime, format_time
 from babel.numbers import format_number
+from datetime import datetime, timedelta
+import pytz
+from tzlocal import get_localzone
+
 import slack
+
 from .fpdf_ext import FPDF_ext
 
 
 def reduce_to_dict(    
-    arr, 
-    key_name, 
-    col_name_primary, 
-    col_name_secondary=None):
+    arr, key_name, col_name_primary, col_name_secondary=None
+):
     """returns dict with selected columns as key and value from list of dict
     
     Args:
@@ -47,8 +47,10 @@ def reduce_to_dict(
             key = item[key_name]
             if col_name_primary in item:
                 arr2[key] = item[col_name_primary]
-            elif (col_name_secondary is not None and 
-                    col_name_secondary in item):
+            elif (
+                col_name_secondary is not None 
+                and col_name_secondary in item
+            ):
                 arr2[key] = item[col_name_secondary]            
     return arr2
 
@@ -79,7 +81,7 @@ class MyFPDF(FPDF_ext):
             SlackChannelExporter._FONT_FAMILY_DEFAULT, 
             size=SlackChannelExporter._FONT_SIZE_NORMAL, 
             style="B"
-            )
+        )
         self.cell(0, 0, self._page_title, 0, 1, "C")
         self.ln(SlackChannelExporter._LINE_HEIGHT_DEFAULT)
     
@@ -137,17 +139,14 @@ class SlackChannelExporter:
     _TAB_WIDTH = 4
        
     # limits for fetching messages from Slack
-    _MESSAGES_PER_PAGE = 200 # max message retrieved per request during paging
+    _MESSAGES_PER_PAGE = 200    # max message retrieved per request during paging
     _MAX_MESSAGES_PER_CHANNEL = 10000
     
     FALLBACK_LOCALE = "en"
 
     def __init__(
-        self, 
-        slack_token, 
-        my_tz=None, 
-        my_locale=None, 
-        add_debug_info=False):        
+        self, slack_token, my_tz=None, my_locale=None, add_debug_info=False
+    ):        
         """CONSTRUCTOR
         
         Args:
@@ -173,7 +172,7 @@ class SlackChannelExporter:
             self._channel_names = self._fetch_channel_names()
             self._usergroup_names = self._fetch_usergroup_names()
 
-             # set author
+            # set author
             if "user_id" in self._workspace_info:
                 author_id = self._workspace_info["user_id"]
                 if self._workspace_info["user_id"] in self._user_names:                    
@@ -199,7 +198,7 @@ class SlackChannelExporter:
         self._author = author
         
         # output welcome message and inform about current parameters
-        print();
+        print()
         print("Welcome " + self._author)
 
         # get timezone and local for author from Slack
@@ -241,7 +240,7 @@ class SlackChannelExporter:
                     my_locale = Locale.parse(
                         author_info["locale"], 
                         sep="-"
-                        )
+                    )
                 except UnknownLocaleError:
                     print("WARN: Could not use locale info from Slack")
                     my_locale = Locale.default()
@@ -260,8 +259,6 @@ class SlackChannelExporter:
         if add_debug_info:
             print("Adding DEBUG info to PDF")
         
-
-
     # *************************************************************************
     # Methods for fetching data from Slack API
     # *************************************************************************
@@ -278,7 +275,6 @@ class SlackChannelExporter:
         assert response["ok"]
         return response
     
-
     def _fetch_user_names(self):    
         """returns dict of user names with user ID as key"""
         
@@ -289,16 +285,12 @@ class SlackChannelExporter:
         response = self._client.users_list()
         assert response["ok"]    
         user_names = reduce_to_dict(
-            response["members"], 
-            "id", 
-            "real_name", 
-            "name"
-            )        
+            response["members"], "id", "real_name", "name"
+        )
         for user in user_names:
             user_names[user] = self._transform_encoding(user_names[user])
         
         return user_names
-
 
     def _fetch_user_info(self, user_id):    
         """returns dict of user info for user ID incl. locale"""
@@ -314,7 +306,6 @@ class SlackChannelExporter:
         assert response["ok"]                    
         return response["user"]
 
-
     def _fetch_channel_names(self):
         """returns dict of channel names with channel ID as key"""
         
@@ -324,17 +315,15 @@ class SlackChannelExporter:
         print("Fetching channels for workspace...")
         response = self._client.conversations_list(
             types="public_channel,private_channel"
-            )
+        )
         assert response["ok"]    
         channel_names = reduce_to_dict(
-            response["channels"], 
-            "id", 
-            "name"
-            )        
+            response["channels"], "id", "name"
+        )
         for channel in channel_names:
             channel_names[channel] = self._transform_encoding(
                 channel_names[channel]
-                )
+            )
         
         return channel_names
 
@@ -348,31 +337,23 @@ class SlackChannelExporter:
         response = self._client.usergroups_list()
         assert response["ok"]    
         usergroup_names = reduce_to_dict(
-            response["usergroups"], 
-            "id",             
-            "handle"
-            )        
+            response["usergroups"], "id", "handle"
+        )        
         for usergroup in usergroup_names:
             usergroup_names[usergroup] = self._transform_encoding(
                 usergroup_names[usergroup]
-                )
+            )
         
         return usergroup_names
 
-
     def _fetch_messages_from_channel(
-        self, 
-        channel_id, 
-        max_messages, 
-        oldest=None, 
-        latest=None
-        ):
+        self, channel_id, max_messages, oldest=None, latest=None
+    ):
         """retrieve messages from a channel on Slack and return as list"""
         
         # make sure slack client is set
         assert self._client is not None
-       
-        channel_name = self._channel_names[channel_id]
+               
         messages_per_page = min(self._MESSAGES_PER_PAGE, max_messages)
         # get first page
         page = 1
@@ -389,8 +370,9 @@ class SlackChannelExporter:
         messages_all = response['messages']
 
         # get additional pages if below max message and if they are any
-        while (len(messages_all) < max_messages and 
-                response['has_more']):
+        while (
+            len(messages_all) < max_messages and response['has_more']
+        ):
             page += 1
             print(f"Fetching messages from channel - page {page}")
             sleep(1)   # need to wait 1 sec before next call due to rate limits
@@ -409,14 +391,12 @@ class SlackChannelExporter:
             messages = response['messages']
             messages_all = messages_all + messages
 
-        print("Fetched a total of "
-            + format_number(
-                len(messages_all), 
-                locale=self._my_locale
-                )
-            + " messages from channel")
+        print(
+            f"Fetched a total of "
+            f"{format_number(len(messages_all), locale=self._my_locale)}"
+            f" messages from channel {self._channel_names[channel_id]}"
+        )
         return messages_all
-
 
     def _read_array_from_json_file(self, filename, quiet=False):
         """reads a json file and returns its contents as array"""     
@@ -431,29 +411,23 @@ class SlackChannelExporter:
                     arr = json.load(f)            
             except Exception as e:
                 if quiet is False:
-                    print(f"WARN: failed to read from {filename}: " , e)
+                    print(f"WARN: failed to read from {filename}: ", e)
                 arr = list()
                 
         return arr
-
 
     def _write_array_to_json_file(self, arr, filename):
         """writes array to a json file"""     
         filename += '.json' 
         print(f"Writing file: name {filename}")
         try:
-            with open(filename , 'w', encoding="utf-8") as f:
+            with open(filename, 'w', encoding="utf-8") as f:
                 json.dump(
-                    arr, 
-                    f, 
-                    sort_keys=True, 
-                    indent=4, 
-                    ensure_ascii=False
-                    )
+                    arr, f, sort_keys=True, indent=4, ensure_ascii=False
+                )
         except Exception as e:
-            print(f"ERROR: failed to write to {filename}: " , e)        
+            print(f"ERROR: failed to write to {filename}: ", e)        
     
-
     def _fetch_messages_from_thread(
         self, 
         channel_id, 
@@ -461,7 +435,8 @@ class SlackChannelExporter:
         thread_num,
         max_messages,
         oldest=None,
-        latest=None):
+        latest=None
+    ):
         """retrieve messages from a Slack thread and return as list"""
         
         # make sure slack client is set
@@ -484,8 +459,10 @@ class SlackChannelExporter:
         messages_all = response['messages']
 
         # get additional pages if below max message and if they are any
-        while (len(messages_all) + messages_per_page <= max_messages and 
-                response['has_more']):
+        while (
+            len(messages_all) + messages_per_page <= max_messages 
+            and response['has_more']
+        ):
             page += 1
             print(f"Fetching messages from thread {thread_num} - page {page}")
             sleep(1)   # need to wait 1 sec before next call due to rate limits
@@ -503,14 +480,14 @@ class SlackChannelExporter:
 
         return messages_all
 
-
     def _fetch_threads_from_messages(
         self, 
         channel_id, 
         messages, 
         max_messages,
         oldest=None,
-        latest=None):
+        latest=None
+    ):
         """returns threads for all message from for a channel as dict"""
         
         threads = dict()
@@ -532,17 +509,15 @@ class SlackChannelExporter:
                 thread_messages_total += len(thread_messages)
         
         if thread_messages_total > 0:
-            print("Fetched a total of "
-                + format_number(
-                    thread_messages_total, 
-                    locale=self._my_locale
-                    )
-                + f" messages from {thread_num} threads")            
+            print(
+                f"Fetched a total of "
+                f"{format_number(thread_messages_total, locale=self._my_locale)}"
+                f" messages from {thread_num} threads"
+            )            
         else:
             print("This channel has no threads")
         
         return threads
-
 
     def _fetch_bot_names_for_messages(self, messages, threads):
         """Fetches bot names from API for provided messages 
@@ -573,7 +548,7 @@ class SlackChannelExporter:
                     if "username" in msg:
                         bot_names[bot_id] = self._transform_encoding(
                             msg["username"]
-                            )
+                        )
                     else:
                         bot_ids.append(bot_id)
 
@@ -588,12 +563,10 @@ class SlackChannelExporter:
                 if response["ok"]:
                     bot_names[bot_id] = self._transform_encoding(
                         response["bot"]["name"]
-                        )
+                    )
                     sleep(1)   # need to wait 1 sec before next call due to rate limits
         
         return bot_names
-                        
-
 
     # *************************************************************************
     # Methods for parsing and transforming Slack messages
@@ -678,7 +651,7 @@ class SlackChannelExporter:
                     if len(date_parts) > 1:
                         replacement = self._get_datetime_formatted_str(
                             date_parts[1]
-                            )
+                        )
                     else:
                         replacement = "(failed to parse date)"
 
@@ -696,14 +669,10 @@ class SlackChannelExporter:
                     text = match  
 
                 make_bold = False
-                replacement = ('<a href="' 
-                        + url 
-                        + '">' 
-                        + text
-                        + '</a>')
+                replacement = f'<a href="{url}">{text}</a>'
 
             if make_bold:
-                replacement =  '<b>' + replacement + '</b>'
+                replacement = f'<b>{replacement}</b>'
 
             return replacement
 
@@ -714,34 +683,22 @@ class SlackChannelExporter:
         if use_mrkdwn:
 
             # pass 2 - transform mrkdwns with brackets
-            s2 = re.sub(
-                r'<(.*?)>',
-                replace_mrkdwn_in_text,
-                s2
-                )
+            s2 = re.sub(r'<(.*?)>', replace_mrkdwn_in_text, s2)
 
             # pass 3 - transform formatting mrkdwns
 
             # bold
-            s2 = re.sub(
-                r'\*(.+)\*',
-                r'<b>\1</b>',
-                s2
-                )
+            s2 = re.sub(r'\*(.+)\*', r'<b>\1</b>', s2)
 
             # italic
-            s2 = re.sub(
-                r'\b_(.+)_\b',
-                r'<i>\1</i>',
-                s2
-                )
+            s2 = re.sub(r'\b_(.+)_\b', r'<i>\1</i>', s2)
 
             # code
             s2 = re.sub(
                 r'`(.*)`',
                 r'<s fontfamily="' + self._FONT_FAMILY_MONO_DEFAULT + r'">\1</s>',
                 s2
-                )
+            )
 
             # indents
             s2 = re.sub(
@@ -750,7 +707,7 @@ class SlackChannelExporter:
                 s2,
                 0,
                 re.MULTILINE
-                )
+            )
 
             s2 = s2.replace("</blockquote><br>", "</blockquote>")
 
@@ -759,48 +716,34 @@ class SlackChannelExporter:
 
         return s2
 
-
     def _format_datetime_str(self, dt):
         """returns formated datetime string for given dt using locale"""
         return format_datetime(
-            dt, 
-            format="short",             
-            locale=self._my_locale
+            dt, format="short", locale=self._my_locale
         )
-
 
     def _get_datetime_formatted_str(self, ts):
         """return given timestamp as formated datetime string using locale"""        
         dt = self._get_datetime_from_ts(ts)
         return format_datetime(
-            dt, 
-            format="short", 
-            locale=self._my_locale
+            dt, format="short", locale=self._my_locale
         )
-
 
     def _get_time_formatted_str(self, ts):
         """return given timestamp as formated datetime string using locale"""        
         dt = self._get_datetime_from_ts(ts)
         return format_time(
-            dt, 
-            format="short", 
-            locale=self._my_locale
+            dt, format="short", locale=self._my_locale
         )
-
 
     def _get_datetime_from_ts(self, ts):
         """returns datetime object of a unix timestamp with local timezone"""
         dt = datetime.fromtimestamp(float(ts), pytz.UTC)
         return dt.astimezone(self._my_tz)
 
-
     def _parse_message_and_write_to_pdf(
-            self, 
-            document, 
-            msg, 
-            margin_left, 
-            last_user_id):
+            self, document, msg, margin_left, last_user_id
+    ):
         """parse a message and write it to the PDF"""
         
         if "user" in msg:
@@ -862,29 +805,26 @@ class SlackChannelExporter:
             if "text" in msg and len(msg["text"]) > 0:
                 text = msg["text"]
                 if self._add_debug_info:
-                    debug_text = (' ['
-                        + '<s fontfamily="' 
-                        + self._FONT_FAMILY_MONO_DEFAULT                         
-                        + '" size="8">' 
-                        + msg["ts"] 
-                        + ']</s>')
+                    debug_text = (
+                        f' [<s fontfamily="'
+                        f'{self._FONT_FAMILY_MONO_DEFAULT}" size="8">'
+                        f'{msg["ts"]}]</s>'
+                    )
                 else:
                     debug_text = ""
                 document.set_font(
                     self._FONT_FAMILY_DEFAULT, 
                     size=self._FONT_SIZE_NORMAL)                            
                 text_html = self._transform_text(
-                        text, 
-                        msg["mrkdwn"] if "mrkdwn" in msg else True
-                    )
+                    text, msg["mrkdwn"] if "mrkdwn" in msg else True
+                )
                 document.write_html(
-                    self._LINE_HEIGHT_DEFAULT, 
-                    text_html + debug_text
-                    )
+                    self._LINE_HEIGHT_DEFAULT, text_html + debug_text
+                )
                 document.ln()
 
             if "reactions" in msg:
-                 # draw reactions                
+                # draw reactions                
                 for reaction in msg["reactions"]:        
                     document.set_left_margin(margin_left + self._TAB_WIDTH)
                     document.set_x(margin_left + self._TAB_WIDTH)
@@ -910,11 +850,12 @@ class SlackChannelExporter:
 
                         users_with_names.append('<b>' + user_name + '</b>')
 
-                    document.set_left_margin(margin_left + self._TAB_WIDTH + self._TAB_WIDTH)
+                    document.set_left_margin(
+                        margin_left + self._TAB_WIDTH + self._TAB_WIDTH
+                    )
                     document.set_x(margin_left + self._TAB_WIDTH + self._TAB_WIDTH)                    
                     document.write_html(
-                        self._LINE_HEIGHT_DEFAULT, 
-                        ", ".join(users_with_names)
+                        self._LINE_HEIGHT_DEFAULT, ", ".join(users_with_names)
                     )
                     document.ln()
                 
@@ -926,12 +867,14 @@ class SlackChannelExporter:
                 document.set_x(margin_left + self._TAB_WIDTH)
 
                 for file in msg["files"]:
-                    text = ('[' 
+                    text = (
+                        '[' 
                         + file["pretty_type"]
                         + ' file: <b>'
                         + file["name"] 
                         + '</b>'
-                        + ']')
+                        + ']'
+                    )
                     document.set_font(
                         self._FONT_FAMILY_DEFAULT, 
                         size=self._FONT_SIZE_NORMAL)
@@ -948,13 +891,12 @@ class SlackChannelExporter:
                         text = re.sub(r'<p>(.+)<\/p>', r'\1<br>', text)
                         # replace \r\n with <br>
                         text = re.sub(r'\n|\r\n', r'<br>', text)
-                        #output
+                        # output
                         document.set_font(
                             self._FONT_FAMILY_DEFAULT, 
                             size=self._FONT_SIZE_NORMAL)                            
                         document.write_html(self._LINE_HEIGHT_DEFAULT, text)
                         document.ln()
-
 
             if "attachments" in msg:
                 # draw attachments                                
@@ -998,18 +940,19 @@ class SlackChannelExporter:
                             self._transform_text(attach["author_name"]))
                         document.ln()
 
-
                     if "title" in attach:
                         title_text = self._transform_text(
                             attach["title"], 
                             "title" in mrkdwn_in
-                            )
+                        )
 
                         # add link to title if defined
                         if "title_link" in attach:
-                            title_text = ('<a href="' + attach["title_link"] 
+                            title_text = (
+                                '<a href="' + attach["title_link"] 
                                 + '">' + title_text 
-                                + '</a>')
+                                + '</a>'
+                            )
                         
                         # add bold formatting to title
                         title_text = '<b>' + title_text + '</b>'
@@ -1054,11 +997,11 @@ class SlackChannelExporter:
                                     "fields" in mrkdwn_in
                                 ))
                             document.ln()
-
                     
                     if "footer" in attach:                
                         if "ts" in attach:
-                            text = (self._transform_text(attach["footer"])
+                            text = (
+                                self._transform_text(attach["footer"])
                                 + "|"
                                 + self._get_datetime_formatted_str(attach["ts"])
                             )
@@ -1072,9 +1015,11 @@ class SlackChannelExporter:
                         document.ln()
 
                     if "image_url" in attach:                        
-                        image_url_html = ('<a href="' 
+                        image_url_html = (
+                            '<a href="' 
                             + attach["image_url"] 
-                            + '">[Image]</a>')
+                            + '">[Image]</a>'
+                        )
                         document.set_font(
                             self._FONT_FAMILY_DEFAULT, 
                             size=self._FONT_SIZE_NORMAL)
@@ -1146,7 +1091,6 @@ class SlackChannelExporter:
 
         return user_id   
 
-
     def _write_messages_to_pdf(self, document, messages, threads):
         """writes messages with their threads to the PDF document"""
         last_user_id = None
@@ -1173,7 +1117,7 @@ class SlackChannelExporter:
                     document.set_font(
                         self._FONT_FAMILY_DEFAULT, 
                         size=self._FONT_SIZE_NORMAL
-                        )
+                    )
                     
                     # draw divider line for next day
                     page_width = document.fw - 2 * self._MARGIN_LEFT
@@ -1205,7 +1149,6 @@ class SlackChannelExporter:
                     
                     document.ln()                    
                     last_user_id = None     # repeat user name for new day
-                
 
                 # repeat user name for new page
                 if last_page != document.page_no():
@@ -1227,7 +1170,7 @@ class SlackChannelExporter:
                         thread_messages = sorted(
                             thread_messages, 
                             key=lambda k: k['ts']
-                            )
+                        )
                         for thread_msg in thread_messages:                            
                             if thread_msg['ts'] != thread_msg['thread_ts']:
                                 last_user_id = self._parse_message_and_write_to_pdf(
@@ -1242,16 +1185,12 @@ class SlackChannelExporter:
                 last_dt = msg_dt
         else:
             document.set_font(
-                self._FONT_FAMILY_DEFAULT, 
-                size=self._FONT_SIZE_NORMAL
-                )
+                self._FONT_FAMILY_DEFAULT, size=self._FONT_SIZE_NORMAL
+            )
             document.ln()                        
             document.write(
-                self._LINE_HEIGHT_DEFAULT, 
-                "This channel is empty", 
-                "I"
+                self._LINE_HEIGHT_DEFAULT, "This channel is empty", "I"
             )
-
 
     def run(
         self, 
@@ -1263,17 +1202,24 @@ class SlackChannelExporter:
         page_format="a4",
         max_messages=None,
         write_raw_data=False
-        ):
+    ):
         """export all message from a channel and store them in a PDF
         
         Args:
-            channel_inputs: list of names and/or IDs of channels to retrieve messages from            
+            channel_inputs: list of names and/or IDs of channels 
+            to retrieve messages from            
+            
             dest_path: path to write output files to. Will use current path if None
+            
             oldest: oldest message to fetch in UNIX epoch
             latest: latest message to fetch in UNIX epoch
+            
             page_orientation: orientation of pages  as defined in FPDF class,
+            
             page_format: format of pages, see as defined in FPDF class
+            
             max_messages: maximum number of messages to retrieve
+            
             write_raw_data: will safe data received from API to files if true
 
         Returns:
@@ -1330,9 +1276,8 @@ class SlackChannelExporter:
                 raise TypeError("dest_path must be of type str")
             elif not os.path.isdir(dest_path):
                 raise RuntimeError(
-                    "ERROR: give destination path does not exist: " 
-                        + dest_path
-                    )
+                    f"ERROR: give destination path does not exist: {dest_path}"
+                )
         
         print(f"Writing output to: {dest_path}")
 
@@ -1367,12 +1312,13 @@ class SlackChannelExporter:
                 channel_id = channel_input.upper()
             else:
                 # flip channel_names since channel names are unique
-                channel_names_ids = {v:k for k,v in self._channel_names.items()}
+                channel_names_ids = {v: k for k, v in self._channel_names.items()}
                 if channel_input.lower() not in channel_names_ids:
-                    print(f"({channel_count}/{len(channel_inputs)}) "
-                        + "ERROR: Unknown channel '"
-                        + f"{channel_input}' on {team_name}"
-                        )
+                    print(
+                        f"({channel_count}/{len(channel_inputs)}) "
+                        "ERROR: Unknown channel '"
+                        f"{channel_input}' on {team_name}"
+                    )
                     continue
                 else:
                     channel_id = channel_names_ids[channel_input.lower()]
@@ -1382,7 +1328,7 @@ class SlackChannelExporter:
                 dest_path,
                 team_name
             )
-            filename_base_channel = filename_base  + "_" + channel_name            
+            filename_base_channel = filename_base + "_" + channel_name            
 
             # fetch messages        
             # if we have a client fetch data from Slack            
@@ -1391,9 +1337,10 @@ class SlackChannelExporter:
                     text = f"({channel_count}/{len(channel_inputs)}) "
                 else:
                     text = ""
-                text += ( "Retrieving messages from "
+                text += ( 
+                    "Retrieving messages from "
                     + f"{team_name} / {channel_name}"
-                    )                    
+                )                    
                                             
                 print(text + " ...")
                 messages = self._fetch_messages_from_channel(
@@ -1401,61 +1348,53 @@ class SlackChannelExporter:
                     max_messages,
                     oldest,
                     latest
-                    )
+                )
                 threads = self._fetch_threads_from_messages(
                     channel_id, 
                     messages, 
                     max_messages,
                     oldest,
                     latest
-                    )
+                )
                 self._bot_names = self._fetch_bot_names_for_messages(
                     messages, 
                     threads
-                    )
+                )
                                 
                 if write_raw_data:
                     # write raw data received from Slack API to file                
                     self._write_array_to_json_file(
-                        self._user_names, 
-                        filename_base + "_users"
-                        )
+                        self._user_names, filename_base + "_users"
+                    )
                     self._write_array_to_json_file(
-                        self._bot_names, 
-                        filename_base + "_bots"
-                        )
+                        self._bot_names, filename_base + "_bots"
+                    )
                     self._write_array_to_json_file(
-                        self._channel_names, 
-                        filename_base + "_channels"
-                        )
+                        self._channel_names, filename_base + "_channels"
+                    )
                     self._write_array_to_json_file(
-                        self._usergroup_names, 
-                        filename_base + "_usergroups"
-                        )
+                        self._usergroup_names, filename_base + "_usergroups"
+                    )
                     self._write_array_to_json_file(
-                        messages, 
-                        filename_base_channel + "_messages"
-                        )
+                        messages, filename_base_channel + "_messages"
+                    )
                     if len(threads) > 0:
                         self._write_array_to_json_file(
                             threads, filename_base_channel + "_threads"
-                            )
+                        )
             else:
                 # if we don't have a client we will try to fetch from a file
                 # this is used for testing                
                 messages = self._read_array_from_json_file(
                     filename_base_channel + "_messages"
-                    )
+                )
                 threads = self._read_array_from_json_file(
-                    filename=filename_base_channel + "_threads",                    
-                    quiet=True
-                    )
+                    filename=filename_base_channel + "_threads", quiet=True
+                )
             
             # create PDF
             document = MyFPDF(
-                page_orientation, 
-                self._PAGE_UNITS_DEFAULT, 
-                page_format
+                page_orientation, self._PAGE_UNITS_DEFAULT, page_format
             )
             
             # add all fonts to support unicode
@@ -1464,37 +1403,37 @@ class SlackChannelExporter:
                 style="", 
                 fname="NotoSans-Regular.ttf", 
                 uni=True
-                )
+            )
             document.add_font(
                 self._FONT_FAMILY_DEFAULT, 
                 style="B", 
                 fname="NotoSans-Bold.ttf", 
                 uni=True
-                )
+            )
             document.add_font(
                 self._FONT_FAMILY_DEFAULT, 
                 style="I", 
                 fname="NotoSans-Italic.ttf", 
                 uni=True
-                )
+            )
             document.add_font(
                 self._FONT_FAMILY_DEFAULT, 
                 style="BI", 
                 fname="NotoSans-BoldItalic.ttf", 
                 uni=True
-                )
+            )
             document.add_font(
                 self._FONT_FAMILY_MONO_DEFAULT, 
                 style="", 
                 fname="NotoSansMono-Regular.ttf", 
                 uni=True
-                )
+            )
             document.add_font(
                 self._FONT_FAMILY_MONO_DEFAULT, 
                 style="B", 
                 fname="NotoSansMono-Bold.ttf", 
                 uni=True
-                )            
+            )
             document.alias_nb_pages()
             document.add_page()
 
@@ -1508,7 +1447,7 @@ class SlackChannelExporter:
             message_count = len(messages)
             if len(threads) > 0:
                 for thread_ts, thread_messages in threads.items():
-                    message_count += len(thread_messages) -1
+                    message_count += len(thread_messages) - 1
 
             if message_count > 0:
                 # find start and end date based on messages
@@ -1535,7 +1474,7 @@ class SlackChannelExporter:
             document.set_author(self._author)
             document.set_creator("Channel Export v" + self._VERSION)
             document.set_title(title)
-            #document.set_creation_date(creation_date)
+            # document.set_creation_date(creation_date)
             document.set_subject(sub_title)                        
             document.page_title = page_title
             
@@ -1544,7 +1483,7 @@ class SlackChannelExporter:
                 self._FONT_FAMILY_DEFAULT, 
                 size=self._FONT_SIZE_LARGE, 
                 style="B"
-                )
+            )
             document.cell(0, 0, title, 0, 1, "C")
             document.ln(self._LINE_HEIGHT_DEFAULT)
             
@@ -1552,7 +1491,7 @@ class SlackChannelExporter:
                 self._FONT_FAMILY_DEFAULT, 
                 size=self._FONT_SIZE_NORMAL, 
                 style="B"
-                )
+            )
             document.cell(0, 0, sub_title, 0, 1, "C")
             document.ln(self._LINE_HEIGHT_DEFAULT)
 
@@ -1568,13 +1507,11 @@ class SlackChannelExporter:
                 "Timezone": self._my_tz,
                 "Locale": f"{self._my_locale.get_display_name()}",
                 "Messages": format_number(
-                    message_count, 
-                    locale=self._my_locale
-                    ),
+                    message_count, locale=self._my_locale
+                ),
                 "Threads": format_number(
-                    thread_count, 
-                    locale=self._my_locale
-                    ),
+                    thread_count, locale=self._my_locale
+                ),
                 "Pages": "{nb}"
             }
             document.write_info_table(export_infos)            
@@ -1617,5 +1554,3 @@ class SlackChannelExporter:
         
         response["ok"] = success
         return response
-        
-    

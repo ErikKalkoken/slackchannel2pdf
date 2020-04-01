@@ -11,7 +11,10 @@ import re
 import os
 
 fpdf_mod.set_global("FPDF_CACHE_MODE", 1)
-fpdf_mod.set_global("SYSTEM_TTFONTS", os.path.join(os.path.dirname(__file__),'fonts'))
+fpdf_mod.set_global(
+    "SYSTEM_TTFONTS", os.path.join(os.path.dirname(__file__), 'fonts')
+)
+
 
 class FPDF_ext(fpdf_mod.FPDF):
     """This class extends FDPF to enable formatting with rudimentary HTML
@@ -91,11 +94,9 @@ class FPDF_ext(fpdf_mod.FPDF):
                         if matchObj is not None and len(matchObj.groups()) == 2:
                             attributes[matchObj.group(1).upper()] = \
                                 matchObj.group(2)
-                            
                     
                     self._open_tag(tag, attributes)
             
-
     def _open_tag(self, tag, attributes):
         """set style for opening tags and singular tags"""
         
@@ -124,12 +125,12 @@ class FPDF_ext(fpdf_mod.FPDF):
             if "FONTFAMILY" in attributes:
                 font_family = attributes["FONTFAMILY"]
             else:
-                font_family =  self.font_family
+                font_family = self.font_family
 
             if "SIZE" in attributes:
                 size = int(attributes["SIZE"])
             else:
-                size =  self.font_size_pt
+                size = self.font_size_pt
 
             if "STYLE" in attributes:
                 style = attributes["STYLE"]
@@ -138,7 +139,6 @@ class FPDF_ext(fpdf_mod.FPDF):
 
             self.set_font(font_family, size=size, style=style)
 
-    
     def _close_tag(self, tag):
         """set style for closing tags"""
         

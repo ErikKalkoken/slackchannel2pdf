@@ -1,9 +1,14 @@
-import unittest
-import os,sys,inspect
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(currentdir)
-sys.path.insert(0,parentdir + "/slackchannel2pdf")
-from slackchannel2pdf import SlackChannelExporter
+
+import inspect
+import os
+
+from slackchannel2pdf.slackchannel2pdf import SlackChannelExporter
+
+
+currentdir = os.path.dirname(
+    os.path.abspath(inspect.getfile(inspect.currentframe()))
+)
+
 
 def main():    
     exporter = SlackChannelExporter(slack_token="TEST", add_debug_info=True)
@@ -20,6 +25,7 @@ def main():
     }
     
     exporter.run(["render-complete"], currentdir)
+
 
 if __name__ == '__main__':
     main()

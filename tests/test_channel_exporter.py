@@ -1,10 +1,8 @@
 import inspect
 import os
-import sys
 import unittest
 
 from datetime import datetime
-from dateutil import parser
 import pytz
 from tzlocal import get_localzone
 import babel
@@ -51,7 +49,6 @@ class TestExporterTransformText(unittest.TestCase):
         self.exporter._usergroup_names = usergroup_names
         self.exporter._author = "Erik Kalkoken"
 
-
     def test_run_with_defaults(self):
         channels = ["G1234567X", "G2234567X"]        
         response = self.exporter.run(
@@ -74,7 +71,8 @@ class TestExporterTransformText(unittest.TestCase):
                         + "_"
                         + channel_name
                         + ".pdf")
-            ))
+                )
+            )
             self.assertTrue(os.path.isfile(res_channel["filename_pdf"]))
 
             # assert export details are correct
@@ -113,7 +111,6 @@ class TestExporterTransformText(unittest.TestCase):
                     + " / " + channel_name)
             )
             
-
     def test_run_with_args_1(self):
         # self.exporter._channel_names["G2234567X"] = "channel-exporter-run_with_args_1"
         response = self.exporter.run(
@@ -140,7 +137,6 @@ class TestExporterTransformText(unittest.TestCase):
             res_channel["max_messages"], 
             42
         )
-           
 
     """
     def test_run_with_error(self):
@@ -149,8 +145,6 @@ class TestExporterTransformText(unittest.TestCase):
             "invalid_path"
         ))        
     """
-        
-
     def test_transform_encoding(self):        
         self.assertEqual(
             self.exporter._transform_encoding("special char ✓"), 
@@ -164,7 +158,6 @@ class TestExporterTransformText(unittest.TestCase):
             self.exporter._transform_encoding("&#60;"), 
             "<"
         )
-
 
     def test_transform_text_user(self):
         self.assertEqual(
@@ -180,7 +173,6 @@ class TestExporterTransformText(unittest.TestCase):
             '<b>@user_W999999999</b>'
         )
     
-
     def test_transform_text_channel(self):        
         self.assertEqual(
             self.exporter._transform_text("<#C72345678>", True), 
@@ -191,7 +183,6 @@ class TestExporterTransformText(unittest.TestCase):
             '<b>#channel_C55555555</b>'
         )
     
-
     def test_transform_text_usergroup(self):
         self.assertEqual(
             self.exporter._transform_text("<!subteam^S72345678>", True), 
@@ -202,7 +193,6 @@ class TestExporterTransformText(unittest.TestCase):
             self.exporter._transform_text("<!subteam^SAZ94GDB8>", True), 
             '<b>@usergroup_SAZ94GDB8</b>'
         )
-
 
     def test_transform_text_special(self):
         self.assertEqual(
@@ -219,7 +209,8 @@ class TestExporterTransformText(unittest.TestCase):
         )
         self.assertEqual(
             self.exporter._transform_text(
-                "<!date^1392734382^Posted {date_num} {time_secs}|Posted 2014-02-18 6:39:42 AM PST>", 
+                "<!date^1392734382^Posted {date_num} {time_secs}"
+                "|Posted 2014-02-18 6:39:42 AM PST>", 
                 True
             ), 
             self.exporter._get_datetime_formatted_str(1392734382)
@@ -228,24 +219,20 @@ class TestExporterTransformText(unittest.TestCase):
             self.exporter._transform_text("<!xyz>", True), 
             '<b>@special_xyz</b>'
         )
-        
 
     def test_transform_text_url(self):
         self.assertEqual(
             self.exporter._transform_text(
-                "<https://www.google.com|Google>", 
-                True
-                ), 
+                "<https://www.google.com|Google>", True
+            ), 
             '<a href="https://www.google.com">Google</a>'            
         )
         self.assertEqual(
             self.exporter._transform_text(
-                "<https://www.google.com>", 
-                True
-                ), 
+                "<https://www.google.com>", True
+            ), 
             '<a href="https://www.google.com">https://www.google.com</a>'
         )
-    
 
     def test_transform_text_formatting(self):        
         self.assertEqual(
@@ -258,9 +245,8 @@ class TestExporterTransformText(unittest.TestCase):
         )
         self.assertEqual(
             self.exporter._transform_text(
-                "text *bold* text _italic_ text", 
-                True
-                ), 
+                "text *bold* text _italic_ text", True
+            ), 
             'text <b>bold</b> text <i>italic</i> text'
         )
         self.assertEqual(
@@ -271,14 +257,12 @@ class TestExporterTransformText(unittest.TestCase):
             self.exporter._transform_text("*_bold+italic_*", True), 
             '<b><i>bold+italic</i></b>'
         )
-        
 
     def test_transform_text_general(self):
         self.assertEqual(
             self.exporter._transform_text(
-                "some *text* <@U62345678> more text", 
-                True
-                ), 
+                "some *text* <@U62345678> more text", True
+            ), 
             'some <b>text</b> <b>@Janet Hakuli</b> more text'
         )
         self.assertEqual(
@@ -288,17 +272,15 @@ class TestExporterTransformText(unittest.TestCase):
         
         self.assertEqual(
             self.exporter._transform_text(
-                "some text <@U62345678> more text", 
-                True
-                ), 
+                "some text <@U62345678> more text", True
+            ), 
             'some text <b>@Janet Hakuli</b> more text'
         )
 
         self.assertEqual(
             self.exporter._transform_text(
-                "before ident\n>indented text\nafter ident", 
-                    True
-                ), 
+                "before ident\n>indented text\nafter ident", True
+            ), 
             'before ident<br><blockquote>indented text</blockquote><br>after ident'
         )
 
@@ -340,10 +322,9 @@ class TestExporterTimezonesNLocale(unittest.TestCase):
         self.exporter._user_names = user_names
         self.exporter._channel_names = channel_names
         self.exporter._usergroup_names = usergroup_names
-
     
     def test_timezone_locale(self):
-        #self.exporter._channel_names["G2234567X"] = "channel-exporter-timezone-locale"
+        # self.exporter._channel_names["G2234567X"] = "channel-exporter-timezone-locale"
         channels = ["G2234567X"]
         response = self.exporter.run(
             channels, 
@@ -412,10 +393,8 @@ class TestExporterReduceToDict(unittest.TestCase):
             "2": "Janet Hakuli"
         }
         result = reduce_to_dict(
-                self.a,
-                "id",
-                "name_1"
-            )
+            self.a, "id", "name_1"
+        )
         self.assertEqual(
             result, 
             expected
@@ -428,11 +407,8 @@ class TestExporterReduceToDict(unittest.TestCase):
             "3": "rosie.dunbar"
         }
         result = reduce_to_dict(
-                self.a,
-                "id",
-                "name_1",
-                "name_2"
-            )
+            self.a, "id", "name_1", "name_2"
+        )
         self.assertEqual(
             result, 
             expected
@@ -445,15 +421,13 @@ class TestExporterReduceToDict(unittest.TestCase):
             "3": "rosie.dunbar"
         }
         result = reduce_to_dict(
-                self.a,
-                "id",
-                "invalid_col",
-                "name_2"
-            )
+            self.a, "id", "invalid_col", "name_2"
+        )
         self.assertEqual(
             result, 
             expected
         )
+
 
 """
 class TestExporterSlackMethods(unittest.TestCase):
@@ -493,4 +467,3 @@ if __name__ == '__main__':
     singletest.addTest(TestExporterTimezonesNLocale("test_dummy"))
     unittest.TextTestRunner().run(singletest)    
     """
-    
