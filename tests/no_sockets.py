@@ -8,11 +8,11 @@ class SocketAccessError(Exception):
 
 class NoSocketsTestCase(TestCase):
     """Enhancement of TestCase class that prevents any use of sockets
-    
+
     Will throw the exception SocketAccessError when any code tries to
     access network sockets
     """
-    
+
     @classmethod
     def setUpClass(cls):
         cls.socket_original = socket.socket
@@ -26,4 +26,4 @@ class NoSocketsTestCase(TestCase):
 
     @staticmethod
     def guard(*args, **kwargs):
-        raise SocketAccessError('Attempted to access network')
+        raise SocketAccessError("Attempted to access network")

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.1.3] - 2020-11-26
+
+### Changed
+
+- Now using Black for code styling
+
 ## [1.1.2] - 2020-04-01
 
 ### Fixed
