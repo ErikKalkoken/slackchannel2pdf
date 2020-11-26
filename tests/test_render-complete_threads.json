@@ -1,6 +1,6 @@
 {
     "1561764011.015500": [
-        {            
+        {
             "last_read": "1562171321.000100",
             "latest_reply": "1562171321.000100",
             "replies": [
@@ -22,7 +22,7 @@
             "type": "message",
             "user": "U82345678"
         },
-        {            
+        {
             "parent_user_id": "U82345678",
             "team": "T12345678",
             "text": "This is a reply within a thread",

@@ -115,9 +115,9 @@ class TestExporterTransformText(unittest.TestCase):
     """
     def test_run_with_error(self):
         self.assertRaises(RuntimeError, self.exporter.run(
-            ["channel-exporter"], 
+            ["channel-exporter"],
             "invalid_path"
-        ))        
+        ))
     """
 
     def test_transform_encoding(self):
@@ -318,7 +318,7 @@ class TestExporterReduceToDict(unittest.TestCase):
 
 """
 class TestExporterSlackMethods(unittest.TestCase):
-    
+
     @classmethod
     def setUpClass(cls):
         cls.exporter = SlackChannelExporter(os.environ['SLACK_TOKEN'])
@@ -329,7 +329,7 @@ class TestExporterSlackMethods(unittest.TestCase):
 
         latest = parser.parse("2019-JUL-06")
         latest = self.exporter._tz_local.localize(latest)
-                
+
         messages = self.exporter._fetch_messages_from_channel(
             channel_id="G7LULJD46",
             max_messages=1000
@@ -352,5 +352,5 @@ if __name__ == "__main__":
     """
     singletest = unittest.TestSuite()
     singletest.addTest(TestExporterTimezonesNLocale("test_dummy"))
-    unittest.TextTestRunner().run(singletest)    
+    unittest.TextTestRunner().run(singletest)
     """

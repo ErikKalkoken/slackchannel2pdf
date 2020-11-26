@@ -1,12 +1,12 @@
 [
-    {     
+    {
         "team": "T12345678",
         "text": "*Simple messages*",
         "ts": "1515045940.000800",
         "type": "message",
         "user": "U92345678"
     },
-    {        
+    {
         "team": "T12345678",
         "text": "Hello user!\nhere we have some *bold* text, some _italic_ and some `code`\n2nd line\n3rd line\n>indented text\nNormal text",
         "ts": "1515045941.000800",
@@ -16,19 +16,19 @@
     {
         "bot_id": "B12345678",
         "subtype": "bot_message",
-        "text": "<!here>\nHere we have a bot message\n",        
+        "text": "<!here>\nHere we have a bot message\n",
         "ts": "1515045942.000110",
         "type": "message",
         "username": "magic-webhook"
-    },    
-    {        
+    },
+    {
         "team": "T12345678",
         "text": "*Unicode text*:\nGreek: Γειά σου κόσμος\nPolish: Witaj świecie\nPortuguese: Olá mundo\nRussian: Здравствуй, Мир\nVietnamese: Xin chào thế giới\nArabic: مرحبا العالم\nHebrew: שלום עולם",
         "ts": "1515045944.000800",
         "type": "message",
         "user": "U92345678"
-    },   
-    {     
+    },
+    {
         "team": "T12345678",
         "text": "*File uploads*",
         "ts": "1525302151.900800",
@@ -36,7 +36,7 @@
         "user": "U92345678"
     },
     {
-        "comment": 
+        "comment":
         {
             "comment": "Added by <@U92345678>",
             "created": 1515045945,
@@ -45,7 +45,7 @@
             "timestamp": 1515045945,
             "user": "U92345678"
         },
-        "file": 
+        "file":
         {
             "created": 1525302151,
             "display_as_bot": false,
@@ -158,8 +158,8 @@
         "type": "message",
         "upload": true,
         "user": "U92345678"
-    },    
-    {     
+    },
+    {
         "team": "T12345678",
         "text": "*Attachments*",
         "ts": "1537212919.000800",
@@ -225,7 +225,7 @@
         "text": "How are you doing",
         "ts": "1537212980.000300",
         "type": "message",
-        "username": "magic-webhook"       
+        "username": "magic-webhook"
     },
     {
         "bot_id": "B12345678",
@@ -320,15 +320,15 @@
         "ts": "1537212982.000100",
         "type": "message",
         "username": "Simple Poll"
-    },    
-    {        
+    },
+    {
         "team": "T12345678",
         "text": "*Threads*",
         "ts": "1561764001.000800",
         "type": "message",
         "user": "U92345678"
     },
-    {        
+    {
         "last_read": "1562171321.000100",
         "latest_reply": "1562171321.000100",
         "replies": [
@@ -350,31 +350,31 @@
         "type": "message",
         "user": "U82345678"
     },
-    {        
+    {
         "team": "T12345678",
         "text": "This message does *not* start a thread",
         "ts": "1561764015.000800",
         "type": "message",
         "user": "U92345678"
     },
-    {     
+    {
         "team": "T12345678",
         "text": "*Blocks*",
         "ts": "1562274542.000800",
         "type": "message",
         "user": "U92345678"
       },
-      {        
+      {
           "team": "T12345678",
           "text": "Normal user\nhere we have some *bold* text",
           "ts": "1562274543.000800",
           "type": "message",
           "user": "U92345678",
-          "blocks": 
+          "blocks":
           [
             {
               "type": "section",
-              "text": 
+              "text":
               {
                 "type": "mrkdwn",
                 "text": "A message *with some bold text* and _some italicized text_."
@@ -382,13 +382,13 @@
             },
             {
               "type": "section",
-              "text": 
+              "text":
               {
                 "type": "mrkdwn",
                 "text": "A message *with some bold text* and _some italicized text_."
               },
-              "fields": 
-              [           
+              "fields":
+              [
                 {
                   "type": "mrkdwn",
                   "text": "*Priority*"

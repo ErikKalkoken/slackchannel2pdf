@@ -92,7 +92,7 @@ slackchannel2pdf --token MY_TOKEN --oldest "2019-JUL-05 11:00" general
 usage: run.py [-h] [--token TOKEN] [--oldest OLDEST] [--latest LATEST]
               [-d DESTINATION] [--page-orientation {portrait,landscape}]
               [--page-format {a3,a4,a5,letter,legal}] [--timezone TIMEZONE]
-              [--locale LOCALE] [--version] [--max-messages MAX_MESSAGES]  
+              [--locale LOCALE] [--version] [--max-messages MAX_MESSAGES]
               [--write-raw-data] [--add-debug-info]
               channel [channel ...]
 

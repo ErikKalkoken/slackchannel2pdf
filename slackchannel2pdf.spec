@@ -3,7 +3,7 @@
 block_cipher = None
 
 
-a = Analysis(['slackchannel2pdf/run.py'],             
+a = Analysis(['slackchannel2pdf/run.py'],
              binaries=[],
              datas=[
                  ('slackchannel2pdf/fonts/*.ttf', 'fonts')
