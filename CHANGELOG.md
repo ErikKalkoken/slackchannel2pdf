@@ -7,11 +7,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
-## [1.1.3] - 2020-11-26
+## [1.1.3] - 2020-11-27
 
 ### Changed
 
 - Now using Black for code styling
+
+### Fixed
+
+- Can not create PDF file on windows if team name contains characters not valid for file names, i.e. `<>:"/\|?*`
 
 ## [1.1.2] - 2020-04-01
 

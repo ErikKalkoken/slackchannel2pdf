@@ -348,13 +348,22 @@ class TestExporterSlackMethods(unittest.TestCase):
 """
 
 
+@patch("slackchannel2pdf.slackchannel2pdf.slack")
 class TestSlackExporterFull(unittest.TestCase):
-    @patch("slackchannel2pdf.slackchannel2pdf.slack")
     def test_basic(self, mock_slack):
-        mock_slack.WebClient.return_value = SlackClientStub("test_1")
+        mock_slack.WebClient.return_value = SlackClientStub(team="T12345678")
 
         exporter = SlackChannelExporter("TOKEN_DUMMY")
         channels = ["G1234567X"]
+        response = exporter.run(channels, currentdir)
+
+        self.assertTrue(response["ok"])
+
+    def test_channel_name_invalid_characters(self, mock_slack):
+        mock_slack.WebClient.return_value = SlackClientStub(team="T92345678")
+
+        exporter = SlackChannelExporter("TOKEN_DUMMY")
+        channels = ["C12345678"]
         response = exporter.run(channels, currentdir)
 
         self.assertTrue(response["ok"])

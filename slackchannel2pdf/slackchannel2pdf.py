@@ -1237,7 +1237,9 @@ class SlackChannelExporter:
                     channel_id = channel_names_ids[channel_input.lower()]
 
             channel_name = self._channel_names[channel_id]
-            filename_base = os.path.join(dest_path, team_name)
+            filename_base = os.path.join(
+                dest_path, re.sub(r"[^\w\-_\.]", "_", team_name)
+            )
             filename_base_channel = filename_base + "_" + channel_name
 
             # fetch messages

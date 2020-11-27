@@ -1,5 +1,5 @@
 {
-    "test_1": {
+    "T12345678": {
         "auth_test": {
             "team": "test",
             "user_id": "U9234567X"
@@ -8,7 +8,6 @@
             "G1234567X": {
                 "messages": [
                     {
-                        "team": "T12345678",
                         "text": "Hello user!\nhere we have some *bold* text, some _italic_ and some `code`",
                         "ts": "1562274541.000800",
                         "type": "message",
@@ -92,6 +91,47 @@
                     "name": "sales"
                 }
             ]
+        }
+    },
+    "T92345678": {
+        "auth_test": {
+            "team": "alpha<>:\"/\\|?*beta",
+            "user_id": "U12345678"
+        },
+        "conversations_history": {
+            "C12345678": {
+                "messages": [
+                    {
+                        "text": "Hello user!\nhere we have some *bold* text, some _italic_ and some `code`",
+                        "ts": "1562274541.000800",
+                        "type": "message",
+                        "user": "U12345678"
+                    }
+                ],
+                "has_more": false
+            }
+        },
+        "conversations_replies": {},
+        "conversations_list": {
+            "channels": [
+                {
+                    "id": "C12345678",
+                    "name": "berlin"
+                }
+            ]
+        },
+        "users_list": {
+            "members": [
+                {
+                    "id": "U12345678",
+                    "name": "Naoko Kobayashi",
+                    "tz": "UTC",
+                    "locale": "en-US"
+                }
+            ]
+        },
+        "usergroups_list": {
+            "usergroups": []
         }
     }
 }
