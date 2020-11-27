@@ -18,3 +18,4 @@ venv/
 MANIFEST
 *.egg-info/
 *.pyc
+htmlcov/
