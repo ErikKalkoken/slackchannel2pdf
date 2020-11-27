@@ -1,0 +1,97 @@
+{
+    "test_1": {
+        "auth_test": {
+            "team": "test",
+            "user_id": "U9234567X"
+        },
+        "conversations_history": {
+            "G1234567X": {
+                "messages": [
+                    {
+                        "team": "T12345678",
+                        "text": "Hello user!\nhere we have some *bold* text, some _italic_ and some `code`",
+                        "ts": "1562274541.000800",
+                        "type": "message",
+                        "user": "U92345678"
+                    }
+                ],
+                "has_more": false
+            }
+        },
+        "conversations_replies": {},
+        "conversations_list": {
+            "channels": [
+                {
+                    "id": "C12345678",
+                    "name": "berlin"
+                },
+                {
+                    "id": "C72345678",
+                    "name": "berlin"
+                },
+                {
+                    "id": "C42345678",
+                    "name": "oslo"
+                },
+                {
+                    "id": "G1234567X",
+                    "name": "channel-exporter"
+                },
+                {
+                    "id": "G2234567X",
+                    "name": "channel-exporter-2"
+                }
+            ]
+        },
+        "users_list": {
+            "members": [
+                {
+                    "id": "U12345678",
+                    "name": "Naoko Kobayashi",
+                    "tz": "UTC",
+                    "locale": "en-US"
+                },
+                {
+                    "id": "U62345678",
+                    "name": "Janet Hakuli",
+                    "tz": "UTC",
+                    "locale": "en-US"
+                },
+                {
+                    "id": "U72345678",
+                    "name": "Yuna Kobayashi",
+                    "tz": "UTC",
+                    "locale": "en-US"
+                },
+                {
+                    "id": "U9234567X",
+                    "name": "Erik Kalkoken",
+                    "tz": "UTC",
+                    "locale": "en-US"
+                },
+                {
+                    "id": "U92345678",
+                    "name": "Rosie Dunbar",
+                    "tz": "UTC",
+                    "locale": "en-US"
+                }
+            ]
+        },
+        "usergroups_list": {
+            "usergroups": [
+                {
+                    "id": "S12345678",
+                    "name": "admins"
+                },
+                {
+                    "id": "S72345678",
+                    "name": "marketing"
+                },
+                {
+                    "id": "S42345678",
+                    "name": "sales"
+                }
+            ]
+        }
+    }
+}

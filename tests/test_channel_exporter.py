@@ -1,6 +1,7 @@
 import inspect
 import os
 import unittest
+from unittest.mock import patch
 
 from datetime import datetime
 import pytz
@@ -11,6 +12,7 @@ import PyPDF2
 from slackchannel2pdf import __version__
 from slackchannel2pdf.slackchannel2pdf import SlackChannelExporter, reduce_to_dict
 
+from . import SlackClientStub
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 
@@ -344,6 +346,18 @@ class TestExporterSlackMethods(unittest.TestCase):
         )
         self.assertIsInstance(messages, list)
 """
+
+
+class TestSlackExporterFull(unittest.TestCase):
+    @patch("slackchannel2pdf.slackchannel2pdf.slack")
+    def test_basic(self, mock_slack):
+        mock_slack.WebClient.return_value = SlackClientStub("test_1")
+
+        exporter = SlackChannelExporter("TOKEN_DUMMY")
+        channels = ["G1234567X"]
+        response = exporter.run(channels, currentdir)
+
+        self.assertTrue(response["ok"])
 
 
 if __name__ == "__main__":
