@@ -173,6 +173,46 @@
                     "user": "U92345678"
                 },
                 {
+                    "display_as_bot": false,
+                    "files": [
+                        {
+                            "created": 1525312153,
+                            "display_as_bot": false,
+                            "editable": true,
+                            "editor": "U92345678",
+                            "external_type": "",
+                            "filetype": "space",
+                            "has_rich_preview": false,
+                            "id": "F8T2693JP",
+                            "is_external": false,
+                            "is_public": true,
+                            "is_starred": false,
+                            "last_editor": "U92345678",
+                            "mimetype": "text/plain",
+                            "mode": "space",
+                            "name": "-",
+                            "permalink": "https://test.slack.com/files/U92345678/F8T2693JP/-",
+                            "permalink_public": "https://slack-files.com/T12345678-F8T2693JP-64641a2f94",
+                            "preview": "<document><p>Test file without pretty_type. Hyperlink: <a href=\"https://www.google.de/\">https://www.google.de/</a></p></document>",
+                            "public_url_shared": false,
+                            "size": 58,
+                            "state": "locked",
+                            "timestamp": 1525302153,
+                            "title": "Untitled",
+                            "updated": 1525302153,
+                            "url_private": "https://files.slack.com/files-pri/T12345678-F8T2693JP/-",
+                            "url_private_download": "https://files.slack.com/files-pri/T12345678-F8T2693JP/download/-",
+                            "user": "U92345678",
+                            "username": ""
+                        }
+                    ],
+                    "text": "",
+                    "ts": "1525302153.000033",
+                    "type": "message",
+                    "upload": true,
+                    "user": "U92345678"
+                },
+                {
                     "team": "T12345678",
                     "text": "*Attachments*",
                     "ts": "1537212919.000800",

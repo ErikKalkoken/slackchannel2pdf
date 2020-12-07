@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.1.4] - 2020-12-07
+
+### Changed
+
+- Improved test coverage
+
+### Fixed
+
+- Error 'pretty type' - cant' export slack channel to pdf [#3](https://github.com/ErikKalkoken/slackchannel2pdf/issues/3)
+
 ## [1.1.3] - 2020-11-27
 
 ### Changed

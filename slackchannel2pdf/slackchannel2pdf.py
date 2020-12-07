@@ -702,17 +702,20 @@ class SlackChannelExporter:
                 user_name = f"unknown_bot_{user_id}"
 
         elif "subtype" in msg and msg["subtype"] == "file_comment":
+            is_bot = False
             if "user" in msg["comment"]:
                 user_id = msg["comment"]["user"]
-                is_bot = False
                 if user_id in self._user_names:
                     user_name = self._user_names[user_id]
                 else:
                     user_name = f"unknown_user_{user_id}"
             else:
+                user_id = None
                 user_name = None
 
         else:
+            is_bot = False
+            user_id = None
             user_name = None
 
         if user_name is not None:
@@ -802,14 +805,9 @@ class SlackChannelExporter:
                 document.set_x(margin_left + self._TAB_WIDTH)
 
                 for file in msg["files"]:
-                    text = (
-                        "["
-                        + file["pretty_type"]
-                        + " file: <b>"
-                        + file["name"]
-                        + "</b>"
-                        + "]"
-                    )
+                    file_type = file.get("pretty_type", "")
+                    file_name = file.get("name", "")
+                    text = "[" + file_type + " file: <b>" + file_name + "</b>" + "]"
                     document.set_font(
                         self._FONT_FAMILY_DEFAULT, size=self._FONT_SIZE_NORMAL
                     )
