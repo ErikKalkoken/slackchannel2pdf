@@ -8,9 +8,12 @@ before_install:
   - python --version
   - pip install -U pip
 install:
- - pip install pre-commit tox
+  - pip install pre-commit codecov
+  - pip install -e ".[testing]"
 script:
   - pre-commit run --all-files
-  - tox
+  - coverage run -m unittest
 notifications:
   email: false
+after_success:
+  - codecov
