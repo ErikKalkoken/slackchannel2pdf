@@ -6,11 +6,10 @@ _currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfra
 
 
 def slack_response(data, ok=True, error=None) -> str:
-    res = {**{"ok": bool(ok)}, **data}
-    if error:
-        return {**res, **{"error": error}}
+    if not ok:
+        return {"ok": False, **{"error": error}}
     else:
-        return res
+        return {"ok": True, **data}
 
 
 class SlackResponseStub:
@@ -33,15 +32,27 @@ class SlackClientStub:
     def conversations_replies(
         self, channel, ts, limit, oldest, latest, cursor=None
     ) -> str:
-        return slack_response(None, ok=False, error="Thread not found")
+        if (
+            channel in self._slack_data[self._team]["conversations_replies"]
+            and ts in self._slack_data[self._team]["conversations_replies"][channel]
+        ):
+            messages = self._slack_data[self._team]["conversations_replies"][channel][
+                ts
+            ]
+            return slack_response(self._messages_to_response(messages))
+        else:
+            return slack_response(None, ok=False, error="Thread not found")
 
     def conversations_history(self, channel, limit, oldest, latest, cursor=None) -> str:
         if channel in self._slack_data[self._team]["conversations_history"]:
-            return slack_response(
-                self._slack_data[self._team]["conversations_history"][channel]
-            )
+            messages = self._slack_data[self._team]["conversations_history"][channel]
+            return slack_response(self._messages_to_response(messages))
         else:
             return slack_response(None, ok=False, error="Channel not found")
+
+    @staticmethod
+    def _messages_to_response(messages: list) -> dict:
+        return {"messages": messages, "has_more": False}
 
     def conversations_list(self, types) -> str:
         return slack_response(self._slack_data[self._team]["conversations_list"])

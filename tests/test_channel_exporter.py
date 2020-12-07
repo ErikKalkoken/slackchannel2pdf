@@ -350,7 +350,18 @@ class TestExporterSlackMethods(unittest.TestCase):
 
 @patch("slackchannel2pdf.slackchannel2pdf.slack")
 class TestSlackExporterFull(unittest.TestCase):
+    """New test approach with API mocking, that allows full testing of the exporter"""
+
     def test_basic(self, mock_slack):
+        mock_slack.WebClient.return_value = SlackClientStub(team="T12345678")
+
+        exporter = SlackChannelExporter("TOKEN_DUMMY")
+        channels = ["C12345678"]
+        response = exporter.run(channels, currentdir)
+
+        self.assertTrue(response["ok"])
+
+    def test_all_message_variants(self, mock_slack):
         mock_slack.WebClient.return_value = SlackClientStub(team="T12345678")
 
         exporter = SlackChannelExporter("TOKEN_DUMMY")
@@ -359,7 +370,7 @@ class TestSlackExporterFull(unittest.TestCase):
 
         self.assertTrue(response["ok"])
 
-    def test_channel_name_invalid_characters(self, mock_slack):
+    def test_team_name_invalid_characters(self, mock_slack):
         mock_slack.WebClient.return_value = SlackClientStub(team="T92345678")
 
         exporter = SlackChannelExporter("TOKEN_DUMMY")
@@ -371,9 +382,3 @@ class TestSlackExporterFull(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
-    """
-    singletest = unittest.TestSuite()
-    singletest.addTest(TestExporterTimezonesNLocale("test_dummy"))
-    unittest.TextTestRunner().run(singletest)
-    """
