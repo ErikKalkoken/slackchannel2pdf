@@ -6,48 +6,22 @@
 # User interfaces to this tool (e.g. commnad line) are in a separate package
 #
 
-import html
 import inspect
 import json
 import os
 import re
-from time import sleep
 
 from babel import Locale, UnknownLocaleError
 from babel.dates import format_date, format_datetime, format_time
 from babel.numbers import format_number
 from datetime import datetime, timedelta
 import pytz
-import slack
 from tzlocal import get_localzone
 
 from . import __version__
+from .helpers import transform_encoding
+from .slack_service import SlackService
 from .fpdf_ext import FPDF_ext
-
-
-def reduce_to_dict(arr, key_name, col_name_primary, col_name_secondary=None):
-    """returns dict with selected columns as key and value from list of dict
-
-    Args:
-        arr: list of dicts to reduce
-        key_name: name of column to become key
-        col_name_primary: colum will become value if it exists
-        col_name_secondary: colum will become value if col_name_primary
-            does not exist and this argument is provided
-
-    dict items with no matching key_name, col_name_primary and
-    col_name_secondary will not be included in the resulting new dict
-
-    """
-    arr2 = dict()
-    for item in arr:
-        if key_name in item:
-            key = item[key_name]
-            if col_name_primary in item:
-                arr2[key] = item[col_name_primary]
-            elif col_name_secondary is not None and col_name_secondary in item:
-                arr2[key] = item[col_name_secondary]
-    return arr2
 
 
 class MyFPDF(FPDF_ext):
@@ -131,8 +105,6 @@ class SlackChannelExporter:
     _MARGIN_LEFT = 10
     _TAB_WIDTH = 4
 
-    # limits for fetching messages from Slack
-    _MESSAGES_PER_PAGE = 200  # max message retrieved per request during paging
     _MAX_MESSAGES_PER_CHANNEL = 10000
 
     FALLBACK_LOCALE = "en"
@@ -155,48 +127,14 @@ class SlackChannelExporter:
         print(f"slackchannel2pdf v{__version__} by Erik Kalkoken")
         print("")
 
-        # load information for current Slack workspace
-        if slack_token != "TEST":
-            self._client = slack.WebClient(token=slack_token)
-            self._workspace_info = self._fetch_workspace_info()
-            self._user_names = self._fetch_user_names()
-            self._channel_names = self._fetch_channel_names()
-            self._usergroup_names = self._fetch_usergroup_names()
-
-            # set author
-            if "user_id" in self._workspace_info:
-                author_id = self._workspace_info["user_id"]
-                if self._workspace_info["user_id"] in self._user_names:
-                    author = self._user_names[author_id]
-                else:
-                    author = "unknown_user_" + self._workspace_info["user_id"]
-            else:
-                author_id = None
-                author = "unknown user"
-
-        else:
-            # if started with TEST parameter class properties will be
-            # initialized empty and need to be set manually in test setup
-            self._client = None
-            self._workspace_info = dict()
-            self._user_names = dict()
-            self._channel_names = dict()
-            self._usergroup_names = dict()
-            self._bot_names = dict()
-            author_id = None
-            author = "test user"
-
-        self._author = author
+        self.slack_service = SlackService(slack_token)
 
         # output welcome message and inform about current parameters
         print()
-        print("Welcome " + self._author)
+        print("Welcome " + self.slack_service.author)
 
         # get timezone and local for author from Slack
-        if author_id is not None:
-            author_info = self._fetch_user_info(author_id)
-        else:
-            author_info = None
+        author_info = self.slack_service.author_info()
 
         # set timezone
         # check if overridden timezone is valid
@@ -206,7 +144,7 @@ class SlackChannelExporter:
         # if not overridden use timezone info from author on Slack if available
         # else use local time of this system
         else:
-            if author_info is not None:
+            if author_info:
                 try:
                     my_tz = pytz.timezone(author_info["tz"])
                 except pytz.exceptions.UnknownTimeZoneError:
@@ -226,7 +164,7 @@ class SlackChannelExporter:
         # if not overridden use timezone info from author on Slack if available
         # else use local time of this system
         else:
-            if author_info is not None:
+            if author_info:
                 try:
                     my_locale = Locale.parse(author_info["locale"], sep="-")
                 except UnknownLocaleError:
@@ -248,289 +186,8 @@ class SlackChannelExporter:
             print("Adding DEBUG info to PDF")
 
     # *************************************************************************
-    # Methods for fetching data from Slack API
-    # *************************************************************************
-
-    def _fetch_workspace_info(self):
-        """returns dict with info about current workspace"""
-
-        # make sure slack client is set
-        assert self._client is not None
-
-        print("Fetching workspace info from Slack...")
-        res = self._client.auth_test()
-        response = res.data
-        assert response["ok"]
-        return response
-
-    def _fetch_user_names(self):
-        """returns dict of user names with user ID as key"""
-
-        # make sure slack client is set
-        assert self._client is not None
-
-        print("Fetching users for workspace...")
-        response = self._client.users_list()
-        assert response["ok"]
-        user_names = reduce_to_dict(response["members"], "id", "real_name", "name")
-        for user in user_names:
-            user_names[user] = self._transform_encoding(user_names[user])
-
-        return user_names
-
-    def _fetch_user_info(self, user_id):
-        """returns dict of user info for user ID incl. locale"""
-
-        # make sure slack client is set
-        assert self._client is not None
-
-        print("Fetching user info for author...")
-        response = self._client.users_info(user=user_id, include_locale=1)
-        assert response["ok"]
-        return response["user"]
-
-    def _fetch_channel_names(self):
-        """returns dict of channel names with channel ID as key"""
-
-        # make sure slack client is set
-        assert self._client is not None
-
-        print("Fetching channels for workspace...")
-        response = self._client.conversations_list(
-            types="public_channel,private_channel"
-        )
-        assert response["ok"]
-        channel_names = reduce_to_dict(response["channels"], "id", "name")
-        for channel in channel_names:
-            channel_names[channel] = self._transform_encoding(channel_names[channel])
-
-        return channel_names
-
-    def _fetch_usergroup_names(self):
-        """returns dict of usergroup names with usergroup ID as key"""
-
-        # make sure slack client is set
-        assert self._client is not None
-
-        print("Fetching usergroups for workspace...")
-        response = self._client.usergroups_list()
-        assert response["ok"]
-        usergroup_names = reduce_to_dict(response["usergroups"], "id", "handle")
-        for usergroup in usergroup_names:
-            usergroup_names[usergroup] = self._transform_encoding(
-                usergroup_names[usergroup]
-            )
-
-        return usergroup_names
-
-    def _fetch_messages_from_channel(
-        self, channel_id, max_messages, oldest=None, latest=None
-    ):
-        """retrieve messages from a channel on Slack and return as list"""
-
-        # make sure slack client is set
-        assert self._client is not None
-
-        messages_per_page = min(self._MESSAGES_PER_PAGE, max_messages)
-        # get first page
-        page = 1
-        print(f"Fetching messages from channel - page {page}")
-        oldest_ts = str(oldest.timestamp()) if oldest is not None else 0
-        latest_ts = str(latest.timestamp()) if latest is not None else 0
-        response = self._client.conversations_history(
-            channel=channel_id,
-            limit=messages_per_page,
-            oldest=oldest_ts,
-            latest=latest_ts,
-        )
-        assert response["ok"]
-        messages_all = response["messages"]
-
-        # get additional pages if below max message and if they are any
-        while len(messages_all) < max_messages and response["has_more"]:
-            page += 1
-            print(f"Fetching messages from channel - page {page}")
-            sleep(1)  # need to wait 1 sec before next call due to rate limits
-            # allow smaller page sized to fetch final page
-            page_limit = min(messages_per_page, max_messages - len(messages_all))
-            response = self._client.conversations_history(
-                channel=channel_id,
-                limit=page_limit,
-                oldest=oldest_ts,
-                latest=latest_ts,
-                cursor=response["response_metadata"]["next_cursor"],
-            )
-            assert response["ok"]
-            messages = response["messages"]
-            messages_all = messages_all + messages
-
-        print(
-            f"Fetched a total of "
-            f"{format_number(len(messages_all), locale=self._my_locale)}"
-            f" messages from channel {self._channel_names[channel_id]}"
-        )
-        return messages_all
-
-    def _read_array_from_json_file(self, filename, quiet=False):
-        """reads a json file and returns its contents as array"""
-        filename += ".json"
-        if not os.path.isfile(filename):
-            if quiet is False:
-                print(f"WARN: file does not exist: {filename}")
-            arr = list()
-        else:
-            try:
-                with open(filename, "r", encoding="utf-8") as f:
-                    arr = json.load(f)
-            except Exception as e:
-                if quiet is False:
-                    print(f"WARN: failed to read from {filename}: ", e)
-                arr = list()
-
-        return arr
-
-    def _write_array_to_json_file(self, arr, filename):
-        """writes array to a json file"""
-        filename += ".json"
-        print(f"Writing file: name {filename}")
-        try:
-            with open(filename, "w", encoding="utf-8") as f:
-                json.dump(arr, f, sort_keys=True, indent=4, ensure_ascii=False)
-        except Exception as e:
-            print(f"ERROR: failed to write to {filename}: ", e)
-
-    def _fetch_messages_from_thread(
-        self, channel_id, thread_ts, thread_num, max_messages, oldest=None, latest=None
-    ):
-        """retrieve messages from a Slack thread and return as list"""
-
-        # make sure slack client is set
-        assert self._client is not None
-
-        messages_per_page = min(self._MESSAGES_PER_PAGE, max_messages)
-        # get first page
-        page = 1
-        print(f"Fetching messages from thread {thread_num} - page {page}")
-        oldest_ts = str(oldest.timestamp()) if oldest is not None else 0
-        latest_ts = str(latest.timestamp()) if latest is not None else 0
-        response = self._client.conversations_replies(
-            channel=channel_id,
-            ts=thread_ts,
-            limit=messages_per_page,
-            oldest=oldest_ts,
-            latest=latest_ts,
-        )
-        assert response["ok"]
-        messages_all = response["messages"]
-
-        # get additional pages if below max message and if they are any
-        while (
-            len(messages_all) + messages_per_page <= max_messages
-            and response["has_more"]
-        ):
-            page += 1
-            print(f"Fetching messages from thread {thread_num} - page {page}")
-            sleep(1)  # need to wait 1 sec before next call due to rate limits
-            response = self._client.conversations_replies(
-                channel=channel_id,
-                ts=thread_ts,
-                limit=messages_per_page,
-                oldest=oldest_ts,
-                latest=latest_ts,
-                cursor=response["response_metadata"]["next_cursor"],
-            )
-            assert response["ok"]
-            messages = response["messages"]
-            messages_all = messages_all + messages
-
-        return messages_all
-
-    def _fetch_threads_from_messages(
-        self, channel_id, messages, max_messages, oldest=None, latest=None
-    ):
-        """returns threads for all message from for a channel as dict"""
-
-        threads = dict()
-        thread_num = 0
-        thread_messages_total = 0
-        for msg in messages:
-            if "thread_ts" in msg and msg["thread_ts"] == msg["ts"]:
-                thread_ts = msg["thread_ts"]
-                thread_num += 1
-                thread_messages = self._fetch_messages_from_thread(
-                    channel_id, thread_ts, thread_num, max_messages, oldest, latest
-                )
-                threads[thread_ts] = thread_messages
-                thread_messages_total += len(thread_messages)
-
-        if thread_messages_total > 0:
-            print(
-                f"Fetched a total of "
-                f"{format_number(thread_messages_total, locale=self._my_locale)}"
-                f" messages from {thread_num} threads"
-            )
-        else:
-            print("This channel has no threads")
-
-        return threads
-
-    def _fetch_bot_names_for_messages(self, messages, threads):
-        """Fetches bot names from API for provided messages
-
-        Will only fetch names for bots that never appeared with a username
-        in any message (lazy approach since calls to bots_info are very slow)
-        """
-
-        # make sure slack client is set
-        assert self._client is not None
-
-        # collect bot_ids without user name from messages
-        bot_ids = list()
-        bot_names = dict()
-        for msg in messages:
-            if "bot_id" in msg:
-                bot_id = msg["bot_id"]
-                if "username" in msg:
-                    bot_names[bot_id] = self._transform_encoding(msg["username"])
-                else:
-                    bot_ids.append(bot_id)
-
-        # collect bot_ids without user name from thread messages
-        for thread_messages in threads:
-            for msg in thread_messages:
-                if "bot_id" in msg:
-                    bot_id = msg["bot_id"]
-                    if "username" in msg:
-                        bot_names[bot_id] = self._transform_encoding(msg["username"])
-                    else:
-                        bot_ids.append(bot_id)
-
-        # Find bot IDs that are not in bot_names
-        bot_ids = set(bot_ids).difference(bot_names.keys())
-
-        # collect bot names from API if needed
-        if len(bot_ids) > 0:
-            print(f"Fetching names for {len(bot_ids)} bots")
-            for bot_id in bot_ids:
-                response = self._client.bots_info(bot=bot_id)
-                if response["ok"]:
-                    bot_names[bot_id] = self._transform_encoding(
-                        response["bot"]["name"]
-                    )
-                    sleep(1)  # need to wait 1 sec before next call due to rate limits
-
-        return bot_names
-
-    # *************************************************************************
     # Methods for parsing and transforming Slack messages
     # *************************************************************************
-
-    def _transform_encoding(self, text):
-        """adjust encoding to latin-1 and transform HTML entities"""
-        text2 = html.unescape(text)
-        text2 = text2.encode("utf-8", "replace").decode("utf-8")
-        text2 = text2.replace("\t", "    ")
-        return text2
 
     def _transform_text(self, text, use_mrkdwn=False):
         """transforms mrkdwn text into HTML text for PDF output
@@ -562,15 +219,15 @@ class SlackChannelExporter:
             make_bold = True
             if id_chars == "@U" or id_chars == "@W":
                 # match is a user ID
-                if id in self._user_names:
-                    replacement = "@" + self._user_names[id]
+                if id in self.slack_service.user_names():
+                    replacement = "@" + self.slack_service.user_names()[id]
                 else:
                     replacement = f"@user_{id}"
 
             elif id_chars == "#C":
                 # match is a channel ID
-                if id in self._channel_names:
-                    replacement = "#" + self._channel_names[id]
+                if id in self.slack_service.channel_names():
+                    replacement = "#" + self.slack_service.channel_names()[id]
                 else:
                     replacement = f"#channel_{id}"
 
@@ -579,8 +236,8 @@ class SlackChannelExporter:
                 match2 = re.match(r"!subteam\^(S[A-Z0-9]+)", match)
                 if match2 is not None and len(match2.groups()) == 1:
                     id = match2.group(1)
-                    if id in self._usergroup_names:
-                        usergroup_name = self._usergroup_names[id]
+                    if id in self.slack_service.usergroup_names():
+                        usergroup_name = self.slack_service.usergroup_names()[id]
                     else:
                         usergroup_name = f"usergroup_{id}"
                 else:
@@ -628,7 +285,7 @@ class SlackChannelExporter:
             return replacement
 
         # pass 1 - adjust encoding to latin-1 and transform HTML entities
-        s2 = self._transform_encoding(text)
+        s2 = transform_encoding(text)
 
         # if requested try to transform mrkdwn in text
         if use_mrkdwn:
@@ -661,6 +318,36 @@ class SlackChannelExporter:
 
         return s2
 
+    @staticmethod
+    def _read_array_from_json_file(filename, quiet=False):
+        """reads a json file and returns its contents as array"""
+        filename += ".json"
+        if not os.path.isfile(filename):
+            if quiet is False:
+                print(f"WARN: file does not exist: {filename}")
+            arr = list()
+        else:
+            try:
+                with open(filename, "r", encoding="utf-8") as f:
+                    arr = json.load(f)
+            except Exception as e:
+                if quiet is False:
+                    print(f"WARN: failed to read from {filename}: ", e)
+                arr = list()
+
+        return arr
+
+    @staticmethod
+    def _write_array_to_json_file(arr, filename):
+        """writes array to a json file"""
+        filename += ".json"
+        print(f"Writing file: name {filename}")
+        try:
+            with open(filename, "w", encoding="utf-8") as f:
+                json.dump(arr, f, sort_keys=True, indent=4, ensure_ascii=False)
+        except Exception as e:
+            print(f"ERROR: failed to write to {filename}: ", e)
+
     def _format_datetime_str(self, dt):
         """returns formated datetime string for given dt using locale"""
         return format_datetime(dt, format="short", locale=self._my_locale)
@@ -686,8 +373,8 @@ class SlackChannelExporter:
         if "user" in msg:
             user_id = msg["user"]
             is_bot = False
-            if user_id in self._user_names:
-                user_name = self._user_names[user_id]
+            if user_id in self.slack_service.user_names():
+                user_name = self.slack_service.user_names()[user_id]
             else:
                 user_name = f"unknown_user_{user_id}"
 
@@ -695,7 +382,7 @@ class SlackChannelExporter:
             user_id = msg["bot_id"]
             is_bot = True
             if "username" in msg:
-                user_name = self._transform_encoding(msg["username"])
+                user_name = transform_encoding(msg["username"])
             elif user_id in self._bot_names:
                 user_name = self._bot_names[user_id]
             else:
@@ -705,8 +392,8 @@ class SlackChannelExporter:
             is_bot = False
             if "user" in msg["comment"]:
                 user_id = msg["comment"]["user"]
-                if user_id in self._user_names:
-                    user_name = self._user_names[user_id]
+                if user_id in self.slack_service.user_names():
+                    user_name = self.slack_service.user_names()[user_id]
                 else:
                     user_name = f"unknown_user_{user_id}"
             else:
@@ -781,8 +468,8 @@ class SlackChannelExporter:
                     # convert user IDs to names
                     users_with_names = list()
                     for user in reaction["users"]:
-                        if user in self._user_names:
-                            user_name = self._user_names[user]
+                        if user in self.slack_service.user_names():
+                            user_name = self.slack_service.user_names()[user]
                         else:
                             user_name = "unknown_user_" + user
 
@@ -1209,7 +896,7 @@ class SlackChannelExporter:
             raise TypeError("write_raw_data must be of type bool")
 
         # prepare to process channels
-        team_name = self._workspace_info["team"]
+        team_name = self.slack_service.team
         response = {"ok": success, "channels": dict()}
         channel_count = 0
         success = True
@@ -1219,11 +906,13 @@ class SlackChannelExporter:
             success_channel = False
             channel_count += 1
             print()
-            if channel_input.upper() in self._channel_names:
+            if channel_input.upper() in self.slack_service.channel_names():
                 channel_id = channel_input.upper()
             else:
                 # flip channel_names since channel names are unique
-                channel_names_ids = {v: k for k, v in self._channel_names.items()}
+                channel_names_ids = {
+                    v: k for k, v in self.slack_service.channel_names().items()
+                }
                 if channel_input.lower() not in channel_names_ids:
                     print(
                         f"({channel_count}/{len(channel_inputs)}) "
@@ -1234,7 +923,7 @@ class SlackChannelExporter:
                 else:
                     channel_id = channel_names_ids[channel_input.lower()]
 
-            channel_name = self._channel_names[channel_id]
+            channel_name = self.slack_service.channel_names()[channel_id]
             filename_base = os.path.join(
                 dest_path, re.sub(r"[^\w\-_\.]", "_", team_name)
             )
@@ -1242,7 +931,7 @@ class SlackChannelExporter:
 
             # fetch messages
             # if we have a client fetch data from Slack
-            if self._client is not None:
+            if self.slack_service._client is not None:
                 if len(channel_inputs) > 1:
                     text = f"({channel_count}/{len(channel_inputs)}) "
                 else:
@@ -1250,24 +939,26 @@ class SlackChannelExporter:
                 text += "Retrieving messages from " + f"{team_name} / {channel_name}"
 
                 print(text + " ...")
-                messages = self._fetch_messages_from_channel(
-                    channel_id, max_messages, oldest, latest
+                messages = self.slack_service.fetch_messages_from_channel(
+                    channel_id, max_messages, self._my_locale, oldest, latest
                 )
-                threads = self._fetch_threads_from_messages(
-                    channel_id, messages, max_messages, oldest, latest
+                threads = self.slack_service.fetch_threads_from_messages(
+                    channel_id, messages, max_messages, self._my_locale, oldest, latest
                 )
-                self._bot_names = self._fetch_bot_names_for_messages(messages, threads)
+                self._bot_names = self.slack_service.fetch_bot_names_for_messages(
+                    messages, threads
+                )
 
                 if write_raw_data:
                     # write raw data received from Slack API to file
                     self._write_array_to_json_file(
-                        self._user_names, filename_base + "_users"
+                        self.slack_service.user_names(), filename_base + "_users"
                     )
                     self._write_array_to_json_file(
                         self._bot_names, filename_base + "_bots"
                     )
                     self._write_array_to_json_file(
-                        self._channel_names, filename_base + "_channels"
+                        self.slack_service.channel_names(), filename_base + "_channels"
                     )
                     self._write_array_to_json_file(
                         self._usergroup_names, filename_base + "_usergroups"
@@ -1333,8 +1024,6 @@ class SlackChannelExporter:
             document.add_page()
 
             # compile all values
-            workspace_name = self._workspace_info["team"]
-            channel_name = self._channel_names[channel_id]
             creation_date = datetime.now(tz=self._my_tz)
             creation_datetime_str = self._format_datetime_str(creation_date)
 
@@ -1361,12 +1050,12 @@ class SlackChannelExporter:
                 end_date_str = ""
 
             # set variables for title, header, footer
-            title = workspace_name + " / " + channel_name
+            title = team_name + " / " + channel_name
             sub_title = "Slack channel export"
             page_title = title
 
             # set properties for document info
-            document.set_author(self._author)
+            document.set_author(self.slack_service.author)
             document.set_creator(f"Channel Export v{__version__}")
             document.set_title(title)
             # document.set_creation_date(creation_date)
@@ -1389,10 +1078,10 @@ class SlackChannelExporter:
             # write info block after title
             thread_count = len(threads.keys()) if len(threads) > 0 else 0
             export_infos = {
-                "Slack workspace": workspace_name,
+                "Slack workspace": team_name,
                 "Channel": channel_name,
                 "Exported at": creation_datetime_str,
-                "Exported by": self._author,
+                "Exported by": self.slack_service.author,
                 "Start date": start_date_str,
                 "End date": end_date_str,
                 "Timezone": self._my_tz,

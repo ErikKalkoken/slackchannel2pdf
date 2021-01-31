@@ -10,7 +10,7 @@ import babel
 import PyPDF2
 
 from slackchannel2pdf import __version__
-from slackchannel2pdf.slackchannel2pdf import SlackChannelExporter, reduce_to_dict
+from slackchannel2pdf.slackchannel2pdf import SlackChannelExporter
 
 from . import SlackClientStub
 
@@ -43,11 +43,11 @@ class TestExporterTransformText(unittest.TestCase):
         }
 
         self.exporter = SlackChannelExporter("TEST")
-        self.exporter._workspace_info = workspace_info
-        self.exporter._user_names = user_names
-        self.exporter._channel_names = channel_names
-        self.exporter._usergroup_names = usergroup_names
-        self.exporter._author = "Erik Kalkoken"
+        self.exporter.slack_service._workspace_info = workspace_info
+        self.exporter.slack_service._user_names = user_names
+        self.exporter.slack_service._channel_names = channel_names
+        self.exporter.slack_service._usergroup_names = usergroup_names
+        self.exporter.slack_service._author = "Erik Kalkoken"
 
     def test_run_with_defaults(self):
         channels = ["G1234567X", "G2234567X"]
@@ -58,17 +58,12 @@ class TestExporterTransformText(unittest.TestCase):
 
         for channel_id in ["G1234567X", "G2234567X"]:
             res_channel = response["channels"][channel_id]
-            channel_name = self.exporter._channel_names[channel_id]
+            channel_name = self.exporter.slack_service.channel_names()[channel_id]
             self.assertEqual(
                 res_channel["filename_pdf"],
                 os.path.join(
                     currentdir,
-                    (
-                        self.exporter._workspace_info["team"]
-                        + "_"
-                        + channel_name
-                        + ".pdf"
-                    ),
+                    (self.exporter.slack_service.team + "_" + channel_name + ".pdf"),
                 ),
             )
             self.assertTrue(os.path.isfile(res_channel["filename_pdf"]))
@@ -93,7 +88,7 @@ class TestExporterTransformText(unittest.TestCase):
             self.assertEqual(doc_info.creator, f"Channel Export v{__version__}")
             self.assertEqual(
                 doc_info.title,
-                (self.exporter._workspace_info["team"] + " / " + channel_name),
+                (self.exporter.slack_service.team + " / " + channel_name),
             )
 
     def test_run_with_args_1(self):
@@ -121,13 +116,6 @@ class TestExporterTransformText(unittest.TestCase):
             "invalid_path"
         ))
     """
-
-    def test_transform_encoding(self):
-        self.assertEqual(
-            self.exporter._transform_encoding("special char ✓"), "special char ✓"
-        )
-        self.assertEqual(self.exporter._transform_encoding("&lt;"), "<")
-        self.assertEqual(self.exporter._transform_encoding("&#60;"), "<")
 
     def test_transform_text_user(self):
         self.assertEqual(
@@ -260,10 +248,10 @@ class TestExporterTimezonesNLocale(unittest.TestCase):
         self.exporter = SlackChannelExporter(
             "TEST", pytz.timezone("Asia/Bangkok"), babel.Locale.parse("es-MX", sep="-")
         )
-        self.exporter._workspace_info = workspace_info
-        self.exporter._user_names = user_names
-        self.exporter._channel_names = channel_names
-        self.exporter._usergroup_names = usergroup_names
+        self.exporter.slack_service._workspace_info = workspace_info
+        self.exporter.slack_service._user_names = user_names
+        self.exporter.slack_service._channel_names = channel_names
+        self.exporter.slack_service._usergroup_names = usergroup_names
 
     def test_timezone_locale(self):
         # self.exporter._channel_names["G2234567X"] = "channel-exporter-timezone-locale"
@@ -289,33 +277,6 @@ class TestExporterTimezonesNLocale(unittest.TestCase):
         dt = datetime.utcnow()
         print(self.exporter._format_datetime_str(dt))
         print(self.exporter._get_datetime_formatted_str(dt.timestamp()))
-
-
-class TestExporterReduceToDict(unittest.TestCase):
-    def setUp(self):
-        self.a = [
-            {"id": "1", "name_1": "Naoko Kobayashi", "name_2": "naoko.kobayashi"},
-            {"id": "2", "name_1": "Janet Hakuli", "name_2": "janet.hakuli"},
-            {"id": "3", "name_2": "rosie.dunbar"},
-            {"id": "4"},
-            {"name_1": "John Doe", "name_2": "john.doe"},
-        ]
-        self.exporter = SlackChannelExporter("TEST")
-
-    def test_1(self):
-        expected = {"1": "Naoko Kobayashi", "2": "Janet Hakuli"}
-        result = reduce_to_dict(self.a, "id", "name_1")
-        self.assertEqual(result, expected)
-
-    def test_2(self):
-        expected = {"1": "Naoko Kobayashi", "2": "Janet Hakuli", "3": "rosie.dunbar"}
-        result = reduce_to_dict(self.a, "id", "name_1", "name_2")
-        self.assertEqual(result, expected)
-
-    def test_3(self):
-        expected = {"1": "naoko.kobayashi", "2": "janet.hakuli", "3": "rosie.dunbar"}
-        result = reduce_to_dict(self.a, "id", "invalid_col", "name_2")
-        self.assertEqual(result, expected)
 
 
 """
@@ -348,7 +309,7 @@ class TestExporterSlackMethods(unittest.TestCase):
 """
 
 
-@patch("slackchannel2pdf.slackchannel2pdf.slack")
+@patch("slackchannel2pdf.slack_service.slack")
 class TestSlackExporterFull(unittest.TestCase):
     """New test approach with API mocking, that allows full testing of the exporter"""
 
