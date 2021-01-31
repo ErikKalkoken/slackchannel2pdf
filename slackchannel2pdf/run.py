@@ -125,13 +125,13 @@ def parse_args(args):
         "--page-orientation",
         help="Orientation of PDF pages",
         choices=["portrait", "landscape"],
-        default=SlackChannelExporter._PAGE_ORIENTATION_DEFAULT,
+        default=SlackChannelExporter.PAGE_ORIENTATION_DEFAULT,
     )
     my_arg_parser.add_argument(
         "--page-format",
         help="Format of PDF pages",
         choices=["a3", "a4", "a5", "letter", "legal"],
-        default=SlackChannelExporter._PAGE_FORMAT_DEFAULT,
+        default=SlackChannelExporter.PAGE_FORMAT_DEFAULT,
     )
     my_arg_parser.add_argument(
         "--timezone",

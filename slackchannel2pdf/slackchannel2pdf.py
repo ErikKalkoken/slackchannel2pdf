@@ -19,56 +19,10 @@ import pytz
 from tzlocal import get_localzone
 
 from . import __version__
+from .my_fpdf import MyFPDF
 from .helpers import transform_encoding, LocaleHelper
 from .slack_service import SlackService
 from .message_transformer import MessageTransformer
-from .fpdf_ext import FPDF_ext
-
-
-class MyFPDF(FPDF_ext):
-    """Inheritance of FPDF class to add header and footers
-
-    Public properties:
-        page_title: text shown as title on every page
-    """
-
-    def __init__(self, orientation="P", unit="mm", format="A4"):
-        super().__init__(orientation=orientation, unit=unit, format=format)
-        self._page_title = ""
-
-    @property
-    def page_title(self):
-        return self._page_title
-
-    @page_title.setter
-    def page_title(self, text):
-        """set text to appear as title on every page"""
-        self._page_title = str(text)
-
-    def header(self):
-        """definition of custom header"""
-        self.set_font(
-            SlackChannelExporter._FONT_FAMILY_DEFAULT,
-            size=SlackChannelExporter._FONT_SIZE_NORMAL,
-            style="B",
-        )
-        self.cell(0, 0, self._page_title, 0, 1, "C")
-        self.ln(SlackChannelExporter._LINE_HEIGHT_DEFAULT)
-
-    def footer(self):
-        """definition of custom footer"""
-        self.set_y(-15)
-        self.cell(0, 10, "Page " + str(self.page_no()) + " / {nb}", 0, 0, "C")
-
-    def write_info_table(self, table_def):
-        """write info table defined by dict"""
-        cell_height = 10
-        for key, value in table_def.items():
-            self.set_font(self.font_family, style="B")
-            self.cell(50, cell_height, str(key), 1)
-            self.set_font(self.font_family)
-            self.cell(0, cell_height, str(value), 1)
-            self.ln()
 
 
 class SlackChannelExporter:
@@ -91,20 +45,6 @@ class SlackChannelExporter:
     Attachments and blocks (sections only for now) are supported.
 
     """
-
-    # style and layout settings for PDF
-    _PAGE_ORIENTATION_DEFAULT = "portrait"
-    _PAGE_FORMAT_DEFAULT = "a4"
-    _PAGE_UNITS_DEFAULT = "mm"
-    _FONT_FAMILY_DEFAULT = "NotoSans"
-    _FONT_FAMILY_MONO_DEFAULT = "NotoSansMono"
-    _FONT_SIZE_NORMAL = 12
-    _FONT_SIZE_LARGE = 14
-    _FONT_SIZE_SMALL = 10
-    _LINE_HEIGHT_DEFAULT = 6
-    _LINE_HEIGHT_SMALL = 2
-    _MARGIN_LEFT = 10
-    _TAB_WIDTH = 4
 
     _MAX_MESSAGES_PER_CHANNEL = 10000
 
@@ -185,7 +125,7 @@ class SlackChannelExporter:
         self.transformer = MessageTransformer(
             slack_service=self.slack_service,
             locale_helper=self.locale_helper,
-            font_family_mono_default=self._FONT_FAMILY_MONO_DEFAULT,
+            font_family_mono_default=MyFPDF._FONT_FAMILY_MONO_DEFAULT,
         )
 
         if add_debug_info:
@@ -270,18 +210,22 @@ class SlackChannelExporter:
 
             if last_user_id != user_id:
                 # write user name and date only when user switches
-                document.ln(self._LINE_HEIGHT_SMALL)
+                document.ln(MyFPDF._LINE_HEIGHT_SMALL)
                 document.set_font(
-                    self._FONT_FAMILY_DEFAULT, size=self._FONT_SIZE_NORMAL, style="B"
+                    MyFPDF._FONT_FAMILY_DEFAULT,
+                    size=MyFPDF._FONT_SIZE_NORMAL,
+                    style="B",
                 )
-                document.write(self._LINE_HEIGHT_DEFAULT, user_name + " ")
-                document.set_font(self._FONT_FAMILY_DEFAULT, size=self._FONT_SIZE_SMALL)
+                document.write(MyFPDF._LINE_HEIGHT_DEFAULT, user_name + " ")
+                document.set_font(
+                    MyFPDF._FONT_FAMILY_DEFAULT, size=MyFPDF._FONT_SIZE_SMALL
+                )
                 if is_bot:
                     document.set_text_color(100, 100, 100)
-                    document.write(self._LINE_HEIGHT_DEFAULT, "App ")
+                    document.write(MyFPDF._LINE_HEIGHT_DEFAULT, "App ")
                     document.set_text_color(0)
                 datetime_str = self.locale_helper.get_time_formatted_str(msg["ts"])
-                document.write(self._LINE_HEIGHT_DEFAULT, datetime_str)
+                document.write(MyFPDF._LINE_HEIGHT_DEFAULT, datetime_str)
                 document.ln()
 
             if "text" in msg and len(msg["text"]) > 0:
@@ -289,30 +233,30 @@ class SlackChannelExporter:
                 if self._add_debug_info:
                     debug_text = (
                         f' [<s fontfamily="'
-                        f'{self._FONT_FAMILY_MONO_DEFAULT}" size="8">'
+                        f'{MyFPDF._FONT_FAMILY_MONO_DEFAULT}" size="8">'
                         f'{msg["ts"]}]</s>'
                     )
                 else:
                     debug_text = ""
                 document.set_font(
-                    self._FONT_FAMILY_DEFAULT, size=self._FONT_SIZE_NORMAL
+                    MyFPDF._FONT_FAMILY_DEFAULT, size=MyFPDF._FONT_SIZE_NORMAL
                 )
                 text_html = self.transformer.transform_text(
                     text, msg["mrkdwn"] if "mrkdwn" in msg else True
                 )
-                document.write_html(self._LINE_HEIGHT_DEFAULT, text_html + debug_text)
+                document.write_html(MyFPDF._LINE_HEIGHT_DEFAULT, text_html + debug_text)
                 document.ln()
 
             if "reactions" in msg:
                 # draw reactions
                 for reaction in msg["reactions"]:
-                    document.set_left_margin(margin_left + self._TAB_WIDTH)
-                    document.set_x(margin_left + self._TAB_WIDTH)
+                    document.set_left_margin(margin_left + MyFPDF._TAB_WIDTH)
+                    document.set_x(margin_left + MyFPDF._TAB_WIDTH)
                     document.set_font(
-                        self._FONT_FAMILY_DEFAULT, size=self._FONT_SIZE_NORMAL
+                        MyFPDF._FONT_FAMILY_DEFAULT, size=MyFPDF._FONT_SIZE_NORMAL
                     )
                     document.write_html(
-                        self._LINE_HEIGHT_DEFAULT,
+                        MyFPDF._LINE_HEIGHT_DEFAULT,
                         (
                             "["
                             + reaction["name"]
@@ -334,29 +278,29 @@ class SlackChannelExporter:
                         users_with_names.append("<b>" + user_name + "</b>")
 
                     document.set_left_margin(
-                        margin_left + self._TAB_WIDTH + self._TAB_WIDTH
+                        margin_left + MyFPDF._TAB_WIDTH + MyFPDF._TAB_WIDTH
                     )
-                    document.set_x(margin_left + self._TAB_WIDTH + self._TAB_WIDTH)
+                    document.set_x(margin_left + MyFPDF._TAB_WIDTH + MyFPDF._TAB_WIDTH)
                     document.write_html(
-                        self._LINE_HEIGHT_DEFAULT, ", ".join(users_with_names)
+                        MyFPDF._LINE_HEIGHT_DEFAULT, ", ".join(users_with_names)
                     )
                     document.ln()
 
-                document.ln(self._LINE_HEIGHT_SMALL)
+                document.ln(MyFPDF._LINE_HEIGHT_SMALL)
 
             if "files" in msg:
                 # draw files
-                document.set_left_margin(margin_left + self._TAB_WIDTH)
-                document.set_x(margin_left + self._TAB_WIDTH)
+                document.set_left_margin(margin_left + MyFPDF._TAB_WIDTH)
+                document.set_x(margin_left + MyFPDF._TAB_WIDTH)
 
                 for file in msg["files"]:
                     file_type = file.get("pretty_type", "")
                     file_name = file.get("name", "")
                     text = "[" + file_type + " file: <b>" + file_name + "</b>" + "]"
                     document.set_font(
-                        self._FONT_FAMILY_DEFAULT, size=self._FONT_SIZE_NORMAL
+                        MyFPDF._FONT_FAMILY_DEFAULT, size=MyFPDF._FONT_SIZE_NORMAL
                     )
-                    document.write_html(self._LINE_HEIGHT_DEFAULT, text)
+                    document.write_html(MyFPDF._LINE_HEIGHT_DEFAULT, text)
                     document.ln()
 
                     if "preview" in file:
@@ -371,15 +315,15 @@ class SlackChannelExporter:
                         text = re.sub(r"\n|\r\n", r"<br>", text)
                         # output
                         document.set_font(
-                            self._FONT_FAMILY_DEFAULT, size=self._FONT_SIZE_NORMAL
+                            MyFPDF._FONT_FAMILY_DEFAULT, size=MyFPDF._FONT_SIZE_NORMAL
                         )
-                        document.write_html(self._LINE_HEIGHT_DEFAULT, text)
+                        document.write_html(MyFPDF._LINE_HEIGHT_DEFAULT, text)
                         document.ln()
 
             if "attachments" in msg:
                 # draw attachments
-                document.set_left_margin(margin_left + self._TAB_WIDTH)
-                document.set_x(margin_left + self._TAB_WIDTH)
+                document.set_left_margin(margin_left + MyFPDF._TAB_WIDTH)
+                document.set_x(margin_left + MyFPDF._TAB_WIDTH)
 
                 # draw normal text attachments
                 for attach in msg["attachments"]:
@@ -393,28 +337,28 @@ class SlackChannelExporter:
                         document.set_left_margin(margin_left)
                         document.set_x(margin_left)
                         document.set_font(
-                            self._FONT_FAMILY_DEFAULT, size=self._FONT_SIZE_NORMAL
+                            MyFPDF._FONT_FAMILY_DEFAULT, size=MyFPDF._FONT_SIZE_NORMAL
                         )
                         document.write_html(
-                            self._LINE_HEIGHT_DEFAULT,
+                            MyFPDF._LINE_HEIGHT_DEFAULT,
                             self.transformer.transform_text(
                                 attach["pretext"], "pretext" in mrkdwn_in
                             ),
                         )
-                        document.set_left_margin(margin_left + self._TAB_WIDTH)
-                        document.set_x(margin_left + self._TAB_WIDTH)
+                        document.set_left_margin(margin_left + MyFPDF._TAB_WIDTH)
+                        document.set_x(margin_left + MyFPDF._TAB_WIDTH)
                         document.ln()
 
-                    document.ln(self._LINE_HEIGHT_SMALL)
+                    document.ln(MyFPDF._LINE_HEIGHT_SMALL)
 
                     if "author_name" in attach:
                         document.set_font(
-                            self._FONT_FAMILY_DEFAULT,
-                            size=self._FONT_SIZE_LARGE,
+                            MyFPDF._FONT_FAMILY_DEFAULT,
+                            size=MyFPDF._FONT_SIZE_LARGE,
                             style="B",
                         )
                         document.write(
-                            self._LINE_HEIGHT_DEFAULT,
+                            MyFPDF._LINE_HEIGHT_DEFAULT,
                             self.transformer.transform_text(attach["author_name"]),
                         )
                         document.ln()
@@ -438,17 +382,17 @@ class SlackChannelExporter:
                         title_text = "<b>" + title_text + "</b>"
 
                         document.set_font(
-                            self._FONT_FAMILY_DEFAULT, size=self._FONT_SIZE_NORMAL
+                            MyFPDF._FONT_FAMILY_DEFAULT, size=MyFPDF._FONT_SIZE_NORMAL
                         )
-                        document.write_html(self._LINE_HEIGHT_DEFAULT, title_text)
+                        document.write_html(MyFPDF._LINE_HEIGHT_DEFAULT, title_text)
                         document.ln()
 
                     if "text" in attach:
                         document.set_font(
-                            self._FONT_FAMILY_DEFAULT, size=self._FONT_SIZE_NORMAL
+                            MyFPDF._FONT_FAMILY_DEFAULT, size=MyFPDF._FONT_SIZE_NORMAL
                         )
                         document.write_html(
-                            self._LINE_HEIGHT_DEFAULT,
+                            MyFPDF._LINE_HEIGHT_DEFAULT,
                             self.transformer.transform_text(
                                 attach["text"], "text" in mrkdwn_in
                             ),
@@ -458,20 +402,21 @@ class SlackChannelExporter:
                     if "fields" in attach:
                         for field in attach["fields"]:
                             document.set_font(
-                                self._FONT_FAMILY_DEFAULT,
-                                size=self._FONT_SIZE_NORMAL,
+                                MyFPDF._FONT_FAMILY_DEFAULT,
+                                size=MyFPDF._FONT_SIZE_NORMAL,
                                 style="B",
                             )
                             document.write(
-                                self._LINE_HEIGHT_DEFAULT,
+                                MyFPDF._LINE_HEIGHT_DEFAULT,
                                 self.transformer.transform_text(field["title"]),
                             )
                             document.ln()
                             document.set_font(
-                                self._FONT_FAMILY_DEFAULT, size=self._FONT_SIZE_NORMAL
+                                MyFPDF._FONT_FAMILY_DEFAULT,
+                                size=MyFPDF._FONT_SIZE_NORMAL,
                             )
                             document.write_html(
-                                self._LINE_HEIGHT_DEFAULT,
+                                MyFPDF._LINE_HEIGHT_DEFAULT,
                                 self.transformer.transform_text(
                                     field["value"], "fields" in mrkdwn_in
                                 ),
@@ -491,9 +436,9 @@ class SlackChannelExporter:
                             text = self.transformer.transform_text(attach["footer"])
 
                         document.set_font(
-                            self._FONT_FAMILY_DEFAULT, size=self._FONT_SIZE_SMALL
+                            MyFPDF._FONT_FAMILY_DEFAULT, size=MyFPDF._FONT_SIZE_SMALL
                         )
-                        document.write(self._LINE_HEIGHT_DEFAULT, text)
+                        document.write(MyFPDF._LINE_HEIGHT_DEFAULT, text)
                         document.ln()
 
                     if "image_url" in attach:
@@ -501,19 +446,20 @@ class SlackChannelExporter:
                             '<a href="' + attach["image_url"] + '">[Image]</a>'
                         )
                         document.set_font(
-                            self._FONT_FAMILY_DEFAULT, size=self._FONT_SIZE_NORMAL
+                            MyFPDF._FONT_FAMILY_DEFAULT, size=MyFPDF._FONT_SIZE_NORMAL
                         )
-                        document.write_html(self._LINE_HEIGHT_DEFAULT, image_url_html)
+                        document.write_html(MyFPDF._LINE_HEIGHT_DEFAULT, image_url_html)
                         document.ln()
 
                     # action attachments
                     if "actions" in attach:
                         for action in attach["actions"]:
                             document.set_font(
-                                self._FONT_FAMILY_DEFAULT, size=self._FONT_SIZE_SMALL
+                                MyFPDF._FONT_FAMILY_DEFAULT,
+                                size=MyFPDF._FONT_SIZE_SMALL,
                             )
                             document.write_html(
-                                self._LINE_HEIGHT_DEFAULT,
+                                MyFPDF._LINE_HEIGHT_DEFAULT,
                                 (
                                     "["
                                     + self.transformer.transform_text(action["text"])
@@ -523,23 +469,23 @@ class SlackChannelExporter:
 
                         document.ln()
 
-                document.ln(self._LINE_HEIGHT_SMALL)
+                document.ln(MyFPDF._LINE_HEIGHT_SMALL)
 
             if "blocks" in msg:
-                document.set_left_margin(margin_left + self._TAB_WIDTH)
-                document.set_x(margin_left + self._TAB_WIDTH)
+                document.set_left_margin(margin_left + MyFPDF._TAB_WIDTH)
+                document.set_x(margin_left + MyFPDF._TAB_WIDTH)
 
                 for layout_block in msg["blocks"]:
                     type = layout_block["type"]
-                    document.ln(self._LINE_HEIGHT_SMALL)
+                    document.ln(MyFPDF._LINE_HEIGHT_SMALL)
 
                     # section layout blocks
                     if type == "section":
                         document.set_font(
-                            self._FONT_FAMILY_DEFAULT, size=self._FONT_SIZE_NORMAL
+                            MyFPDF._FONT_FAMILY_DEFAULT, size=MyFPDF._FONT_SIZE_NORMAL
                         )
                         document.write_html(
-                            self._LINE_HEIGHT_DEFAULT,
+                            MyFPDF._LINE_HEIGHT_DEFAULT,
                             self.transformer.transform_text(
                                 layout_block["text"]["text"],
                                 layout_block["text"]["type"] == "mrkdwn",
@@ -550,23 +496,25 @@ class SlackChannelExporter:
                         if "fields" in layout_block:
                             for field in layout_block["fields"]:
                                 document.set_font(
-                                    self._FONT_FAMILY_DEFAULT,
-                                    size=self._FONT_SIZE_NORMAL,
+                                    MyFPDF._FONT_FAMILY_DEFAULT,
+                                    size=MyFPDF._FONT_SIZE_NORMAL,
                                 )
                                 document.write_html(
-                                    self._LINE_HEIGHT_DEFAULT,
+                                    MyFPDF._LINE_HEIGHT_DEFAULT,
                                     self.transformer.transform_text(
                                         field["text"], field["type"] == "mrkdwn"
                                     ),
                                 )
                                 document.ln()
 
-                document.ln(self._LINE_HEIGHT_SMALL)
+                document.ln(MyFPDF._LINE_HEIGHT_SMALL)
 
         else:
             user_id = None
             print(f"WARN: Can not process message with ts {msg['ts']}")
-            document.write(self._LINE_HEIGHT_DEFAULT, "[Can not process this message]")
+            document.write(
+                MyFPDF._LINE_HEIGHT_DEFAULT, "[Can not process this message]"
+            )
             document.ln()
 
         return user_id
@@ -592,15 +540,15 @@ class SlackChannelExporter:
 
                 # write day seperator if needed
                 if last_dt is None or msg_dt.date() != last_dt.date():
-                    document.ln(self._LINE_HEIGHT_SMALL)
-                    document.ln(self._LINE_HEIGHT_SMALL)
+                    document.ln(MyFPDF._LINE_HEIGHT_SMALL)
+                    document.ln(MyFPDF._LINE_HEIGHT_SMALL)
                     document.set_font(
-                        self._FONT_FAMILY_DEFAULT, size=self._FONT_SIZE_NORMAL
+                        MyFPDF._FONT_FAMILY_DEFAULT, size=MyFPDF._FONT_SIZE_NORMAL
                     )
 
                     # draw divider line for next day
-                    page_width = document.fw - 2 * self._MARGIN_LEFT
-                    x1 = self._MARGIN_LEFT
+                    page_width = document.fw - 2 * MyFPDF._MARGIN_LEFT
+                    x1 = MyFPDF._MARGIN_LEFT
                     x2 = x1 + page_width
                     y1 = document.get_y() + 3
                     document.line(x1, y1, x2, y1)
@@ -617,7 +565,7 @@ class SlackChannelExporter:
                     document.set_x(x4 - border_x)
                     document.cell(
                         text_width + 2 * border_x,
-                        self._LINE_HEIGHT_DEFAULT,
+                        MyFPDF._LINE_HEIGHT_DEFAULT,
                         date_text,
                         0,
                         0,
@@ -634,7 +582,7 @@ class SlackChannelExporter:
                     last_page = document.page_no()
 
                 last_user_id = self._parse_message_and_write_to_pdf(
-                    document, msg, self._MARGIN_LEFT, last_user_id
+                    document, msg, MyFPDF._MARGIN_LEFT, last_user_id
                 )
                 if "thread_ts" in msg and msg["thread_ts"] == msg["ts"]:
                     thread_ts = msg["thread_ts"]
@@ -648,7 +596,7 @@ class SlackChannelExporter:
                                 last_user_id = self._parse_message_and_write_to_pdf(
                                     document,
                                     thread_msg,
-                                    self._MARGIN_LEFT + self._TAB_WIDTH,
+                                    MyFPDF._MARGIN_LEFT + MyFPDF._TAB_WIDTH,
                                     last_user_id,
                                 )
 
@@ -656,9 +604,11 @@ class SlackChannelExporter:
 
                 last_dt = msg_dt
         else:
-            document.set_font(self._FONT_FAMILY_DEFAULT, size=self._FONT_SIZE_NORMAL)
+            document.set_font(
+                MyFPDF._FONT_FAMILY_DEFAULT, size=MyFPDF._FONT_SIZE_NORMAL
+            )
             document.ln()
-            document.write(self._LINE_HEIGHT_DEFAULT, "This channel is empty", "I")
+            document.write(MyFPDF._LINE_HEIGHT_DEFAULT, "This channel is empty", "I")
 
     def run(
         self,
@@ -852,41 +802,41 @@ class SlackChannelExporter:
                 )
 
             # create PDF
-            document = MyFPDF(page_orientation, self._PAGE_UNITS_DEFAULT, page_format)
+            document = MyFPDF(page_orientation, MyFPDF._PAGE_UNITS_DEFAULT, page_format)
 
             # add all fonts to support unicode
             document.add_font(
-                self._FONT_FAMILY_DEFAULT,
+                MyFPDF._FONT_FAMILY_DEFAULT,
                 style="",
                 fname="NotoSans-Regular.ttf",
                 uni=True,
             )
             document.add_font(
-                self._FONT_FAMILY_DEFAULT,
+                MyFPDF._FONT_FAMILY_DEFAULT,
                 style="B",
                 fname="NotoSans-Bold.ttf",
                 uni=True,
             )
             document.add_font(
-                self._FONT_FAMILY_DEFAULT,
+                MyFPDF._FONT_FAMILY_DEFAULT,
                 style="I",
                 fname="NotoSans-Italic.ttf",
                 uni=True,
             )
             document.add_font(
-                self._FONT_FAMILY_DEFAULT,
+                MyFPDF._FONT_FAMILY_DEFAULT,
                 style="BI",
                 fname="NotoSans-BoldItalic.ttf",
                 uni=True,
             )
             document.add_font(
-                self._FONT_FAMILY_MONO_DEFAULT,
+                MyFPDF._FONT_FAMILY_MONO_DEFAULT,
                 style="",
                 fname="NotoSansMono-Regular.ttf",
                 uni=True,
             )
             document.add_font(
-                self._FONT_FAMILY_MONO_DEFAULT,
+                MyFPDF._FONT_FAMILY_MONO_DEFAULT,
                 style="B",
                 fname="NotoSansMono-Bold.ttf",
                 uni=True,
@@ -937,16 +887,16 @@ class SlackChannelExporter:
 
             # write title on first page
             document.set_font(
-                self._FONT_FAMILY_DEFAULT, size=self._FONT_SIZE_LARGE, style="B"
+                MyFPDF._FONT_FAMILY_DEFAULT, size=MyFPDF._FONT_SIZE_LARGE, style="B"
             )
             document.cell(0, 0, title, 0, 1, "C")
-            document.ln(self._LINE_HEIGHT_DEFAULT)
+            document.ln(MyFPDF._LINE_HEIGHT_DEFAULT)
 
             document.set_font(
-                self._FONT_FAMILY_DEFAULT, size=self._FONT_SIZE_NORMAL, style="B"
+                MyFPDF._FONT_FAMILY_DEFAULT, size=MyFPDF._FONT_SIZE_NORMAL, style="B"
             )
             document.cell(0, 0, sub_title, 0, 1, "C")
-            document.ln(self._LINE_HEIGHT_DEFAULT)
+            document.ln(MyFPDF._LINE_HEIGHT_DEFAULT)
 
             # write info block after title
             thread_count = len(threads.keys()) if len(threads) > 0 else 0
