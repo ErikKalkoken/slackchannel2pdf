@@ -8,9 +8,9 @@ from .helpers import transform_encoding
 
 class MessageTransformer:
     def __init__(self, slack_service, locale_helper, font_family_mono_default) -> None:
-        self.slack_service = slack_service
-        self.locale_helper = locale_helper
-        self.font_family_mono_default = font_family_mono_default
+        self._slack_service = slack_service
+        self._locale_helper = locale_helper
+        self._font_family_mono_default = font_family_mono_default
 
     def transform_text(self, text, use_mrkdwn=False):
         """transforms mrkdwn text into HTML text for PDF output
@@ -42,15 +42,15 @@ class MessageTransformer:
             make_bold = True
             if id_chars == "@U" or id_chars == "@W":
                 # match is a user ID
-                if id in self.slack_service.user_names():
-                    replacement = "@" + self.slack_service.user_names()[id]
+                if id in self._slack_service.user_names():
+                    replacement = "@" + self._slack_service.user_names()[id]
                 else:
                     replacement = f"@user_{id}"
 
             elif id_chars == "#C":
                 # match is a channel ID
-                if id in self.slack_service.channel_names():
-                    replacement = "#" + self.slack_service.channel_names()[id]
+                if id in self._slack_service.channel_names():
+                    replacement = "#" + self._slack_service.channel_names()[id]
                 else:
                     replacement = f"#channel_{id}"
 
@@ -59,8 +59,8 @@ class MessageTransformer:
                 match2 = re.match(r"!subteam\^(S[A-Z0-9]+)", match)
                 if match2 is not None and len(match2.groups()) == 1:
                     id = match2.group(1)
-                    if id in self.slack_service.usergroup_names():
-                        usergroup_name = self.slack_service.usergroup_names()[id]
+                    if id in self._slack_service.usergroup_names():
+                        usergroup_name = self._slack_service.usergroup_names()[id]
                     else:
                         usergroup_name = f"usergroup_{id}"
                 else:
@@ -82,7 +82,7 @@ class MessageTransformer:
                     make_bold = False
                     date_parts = match.split("^")
                     if len(date_parts) > 1:
-                        replacement = self.locale_helper.get_datetime_formatted_str(
+                        replacement = self._locale_helper.get_datetime_formatted_str(
                             date_parts[1]
                         )
                     else:
@@ -129,7 +129,7 @@ class MessageTransformer:
             # code
             s2 = re.sub(
                 r"`(.*)`",
-                r'<s fontfamily="' + self.font_family_mono_default + r'">\1</s>',
+                r'<s fontfamily="' + self._font_family_mono_default + r'">\1</s>',
                 s2,
             )
 
