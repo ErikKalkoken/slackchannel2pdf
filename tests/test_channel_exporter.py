@@ -13,12 +13,14 @@ from slackchannel2pdf import __version__
 from slackchannel2pdf import constants
 from slackchannel2pdf.slackchannel2pdf import SlackChannelExporter
 
+from .no_sockets import NoSocketsTestCase
 from .testtools import SlackClientStub
+
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 
 
-class TestExporterTransformText(unittest.TestCase):
+class TestExporterTransformText(NoSocketsTestCase):
     def setUp(self):
         workspace_info = {"team": "test", "user_id": "U9234567X"}
         user_names = {
@@ -239,7 +241,7 @@ class TestExporterTransformText(unittest.TestCase):
         )
 
 
-class TestExporterTimezonesNLocale(unittest.TestCase):
+class TestExporterTimezonesNLocale(NoSocketsTestCase):
     def setUp(self):
         workspace_info = {"team": "test", "user_id": "U9234567X"}
         user_names = {
@@ -328,7 +330,7 @@ class TestExporterSlackMethods(unittest.TestCase):
 
 
 @patch("slackchannel2pdf.slack_service.slack")
-class TestSlackExporterFull(unittest.TestCase):
+class TestSlackExporterFull(NoSocketsTestCase):
     """New test approach with API mocking, that allows full testing of the exporter"""
 
     def test_basic(self, mock_slack):

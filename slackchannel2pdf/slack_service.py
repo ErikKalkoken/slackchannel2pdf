@@ -10,19 +10,20 @@ class SlackService:
     """Service layer between main app and Slack API"""
 
     # limits for fetching messages from Slack
-    _MESSAGES_PER_PAGE = 200  # max message retrieved per request during paging
+    _MESSAGES_PER_PAGE = 100  # max message retrieved per request during paging
 
     def __init__(self, slack_token) -> None:
         if slack_token is None:
             raise ValueError("slack_token can not be null")
 
         # load information for current Slack workspace
+        self._client = slack.WebClient(token=slack_token)
         if slack_token != "TEST":
-            self._client = slack.WebClient(token=slack_token)
             self._workspace_info = self._fetch_workspace_info()
             self._user_names = self.fetch_user_names()
             self._channel_names = self._fetch_channel_names()
             self._usergroup_names = self._fetch_usergroup_names()
+            self._is_test_mode = False
 
             # set author
             if "user_id" in self._workspace_info:
@@ -38,7 +39,6 @@ class SlackService:
         else:
             # if started with TEST parameter class properties will be
             # initialized empty and need to be set manually in test setup
-            self._client = None
             self._workspace_info = dict()
             self._user_names = dict()
             self._channel_names = dict()
@@ -46,6 +46,7 @@ class SlackService:
             self._bot_names = dict()
             author_id = None
             self._author = "test user"
+            self._is_test_mode = True
 
         if author_id is not None:
             self._author_info = self._fetch_user_info(author_id)
@@ -59,6 +60,10 @@ class SlackService:
     @property
     def team(self):
         return self._workspace_info["team"]
+
+    @property
+    def is_test_mode(self):
+        return self._is_test_mode
 
     def author_info(self) -> dict:
         return self._author_info
@@ -75,9 +80,6 @@ class SlackService:
     def _fetch_workspace_info(self):
         """returns dict with info about current workspace"""
 
-        # make sure slack client is set
-        assert self._client is not None
-
         print("Fetching workspace info from Slack...")
         res = self._client.auth_test()
         response = res.data
@@ -86,9 +88,6 @@ class SlackService:
 
     def fetch_user_names(self):
         """returns dict of user names with user ID as key"""
-
-        # make sure slack client is set
-        assert self._client is not None
 
         print("Fetching users for workspace...")
         response = self._client.users_list()
@@ -104,9 +103,6 @@ class SlackService:
     def _fetch_user_info(self, user_id):
         """returns dict of user info for user ID incl. locale"""
 
-        # make sure slack client is set
-        assert self._client is not None
-
         print("Fetching user info for author...")
         response = self._client.users_info(user=user_id, include_locale=1)
         assert response["ok"]
@@ -114,9 +110,6 @@ class SlackService:
 
     def _fetch_channel_names(self):
         """returns dict of channel names with channel ID as key"""
-
-        # make sure slack client is set
-        assert self._client is not None
 
         print("Fetching channels for workspace...")
         response = self._client.conversations_list(
@@ -132,9 +125,6 @@ class SlackService:
     def _fetch_usergroup_names(self):
         """returns dict of usergroup names with usergroup ID as key"""
 
-        # make sure slack client is set
-        assert self._client is not None
-
         print("Fetching usergroups for workspace...")
         response = self._client.usergroups_list()
         assert response["ok"]
@@ -149,48 +139,57 @@ class SlackService:
     ):
         """retrieve messages from a channel on Slack and return as list"""
 
-        # make sure slack client is set
-        assert self._client is not None
-
         messages_per_page = min(self._MESSAGES_PER_PAGE, max_messages)
-        # get first page
-        page = 1
-        print(f"Fetching messages from channel - page {page}")
         oldest_ts = str(oldest.timestamp()) if oldest is not None else 0
         latest_ts = str(latest.timestamp()) if latest is not None else 0
-        response = self._client.conversations_history(
-            channel=channel_id,
+        messages = self._fetch_pages(
+            "conversations_history",
+            args={
+                "channel": channel_id,
+                "oldest": oldest_ts,
+                "latest": latest_ts,
+            },
             limit=messages_per_page,
-            oldest=oldest_ts,
-            latest=latest_ts,
+            key="messages",
+            max_rows=max_messages,
         )
-        assert response["ok"]
-        messages_all = response["messages"]
-
-        # get additional pages if below max message and if they are any
-        while len(messages_all) < max_messages and response["has_more"]:
-            page += 1
-            print(f"Fetching messages from channel - page {page}")
-            sleep(1)  # need to wait 1 sec before next call due to rate limits
-            # allow smaller page sized to fetch final page
-            page_limit = min(messages_per_page, max_messages - len(messages_all))
-            response = self._client.conversations_history(
-                channel=channel_id,
-                limit=page_limit,
-                oldest=oldest_ts,
-                latest=latest_ts,
-                cursor=response["response_metadata"]["next_cursor"],
-            )
-            assert response["ok"]
-            messages = response["messages"]
-            messages_all = messages_all + messages
-
         print(
             f"Fetched a total of "
-            f"{format_number(len(messages_all), locale=locale)}"
+            f"{format_number(len(messages), locale=locale)}"
             f" messages from channel {self._channel_names[channel_id]}"
         )
-        return messages_all
+        return messages
+
+    def _fetch_pages(
+        self, method, args: dict, limit: int, key: str, max_rows: int
+    ) -> list:
+        # get first page
+        page = 1
+        print(f"{method} - Fetching page {page}")
+        new_args = {**args, **{"limit": limit}}
+        response = getattr(self._client, method)(**new_args)
+        assert response["ok"]
+        rows = response[key]
+
+        # get additional pages if below max message and if they are any
+        while len(rows) < max_rows and response.get("response_metadata"):
+            page += 1
+            print(f"{method} - Fetching page {page}")
+            sleep(1)  # need to wait 1 sec before next call due to rate limits
+            # allow smaller page sized to fetch final page
+            page_limit = min(limit, max_rows - len(rows))
+            new_args = {
+                **args,
+                **{
+                    "limit": page_limit,
+                    "cursor": response["response_metadata"].get("next_cursor"),
+                },
+            }
+            response = getattr(self._client, method)(**new_args)
+            assert response["ok"]
+            rows += response[key]
+
+        return rows
 
     def fetch_threads_from_messages(
         self,
@@ -200,8 +199,8 @@ class SlackService:
         locale=LC_NUMERIC,
         oldest=None,
         latest=None,
-    ):
-        """returns threads for all message from for a channel as dict"""
+    ) -> dict:
+        """returns threads from all messages from for a channel as dict"""
 
         threads = dict()
         thread_num = 0
@@ -229,49 +228,67 @@ class SlackService:
 
     def _fetch_messages_from_thread(
         self, channel_id, thread_ts, thread_num, max_messages, oldest=None, latest=None
-    ):
+    ) -> list:
         """retrieve messages from a Slack thread and return as list"""
-
-        # make sure slack client is set
-        assert self._client is not None
-
         messages_per_page = min(self._MESSAGES_PER_PAGE, max_messages)
-        # get first page
-        page = 1
-        print(f"Fetching messages from thread {thread_num} - page {page}")
         oldest_ts = str(oldest.timestamp()) if oldest is not None else 0
         latest_ts = str(latest.timestamp()) if latest is not None else 0
-        response = self._client.conversations_replies(
-            channel=channel_id,
-            ts=thread_ts,
+        messages = self._fetch_pages(
+            "conversations_replies",
+            args={
+                "channel": channel_id,
+                "ts": thread_ts,
+                "oldest": oldest_ts,
+                "latest": latest_ts,
+            },
             limit=messages_per_page,
-            oldest=oldest_ts,
-            latest=latest_ts,
+            key="messages",
+            max_rows=max_messages,
         )
-        assert response["ok"]
-        messages_all = response["messages"]
+        return messages
 
-        # get additional pages if below max message and if they are any
-        while (
-            len(messages_all) + messages_per_page <= max_messages
-            and response["has_more"]
-        ):
-            page += 1
-            print(f"Fetching messages from thread {thread_num} - page {page}")
-            sleep(1)  # need to wait 1 sec before next call due to rate limits
-            response = self._client.conversations_replies(
-                channel=channel_id,
-                ts=thread_ts,
-                limit=messages_per_page,
-                oldest=oldest_ts,
-                latest=latest_ts,
-                cursor=response["response_metadata"]["next_cursor"],
-            )
-            assert response["ok"]
-            messages = response["messages"]
-            messages_all = messages_all + messages
+    # def _fetch_messages_from_thread_old(
+    #     self, channel_id, thread_ts, thread_num, max_messages, oldest=None, latest=None
+    # ):
+    #     """retrieve messages from a Slack thread and return as list"""
 
-        return messages_all
+    #     messages_per_page = min(self._MESSAGES_PER_PAGE, max_messages)
+    #     # get first page
+    #     page = 1
+    #     print(f"Fetching messages from thread {thread_num} - page {page}")
+    #     oldest_ts = str(oldest.timestamp()) if oldest is not None else 0
+    #     latest_ts = str(latest.timestamp()) if latest is not None else 0
+    #     response = self._client.conversations_replies(
+    #         channel=channel_id,
+    #         ts=thread_ts,
+    #         limit=messages_per_page,
+    #         oldest=oldest_ts,
+    #         latest=latest_ts,
+    #     )
+    #     assert response["ok"]
+    #     messages_all = response["messages"]
+
+    #     # get additional pages if below max message and if they are any
+    #     while (
+    #         len(messages_all) + messages_per_page <= max_messages
+    #         and response["has_more"]
+    #     ):
+    #         page += 1
+    #         print(f"Fetching messages from thread {thread_num} - page {page}")
+    #         sleep(1)  # need to wait 1 sec before next call due to rate limits
+    #         response = self._client.conversations_replies(
+    #             channel=channel_id,
+    #             ts=thread_ts,
+    #             limit=messages_per_page,
+    #             oldest=oldest_ts,
+    #             latest=latest_ts,
+    #             cursor=response["response_metadata"]["next_cursor"],
+    #         )
+    #         assert response["ok"]
+    #         messages = response["messages"]
+    #         messages_all = messages_all + messages
+
+    #     return messages_all
 
     def fetch_bot_names_for_messages(self, messages, threads):
         """Fetches bot names from API for provided messages
@@ -279,9 +296,6 @@ class SlackService:
         Will only fetch names for bots that never appeared with a username
         in any message (lazy approach since calls to bots_info are very slow)
         """
-
-        # make sure slack client is set
-        assert self._client is not None
 
         # collect bot_ids without user name from messages
         bot_ids = list()

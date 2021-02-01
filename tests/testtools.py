@@ -11,7 +11,7 @@ def chunks(lst, size):
         yield lst[i : i + size]
 
 
-def slack_response(data, ok=True, error=None) -> str:
+def slack_response(data: dict, ok: bool = True, error: str = None) -> str:
     if not ok:
         return {"ok": False, **{"error": error}}
     else:
@@ -33,24 +33,17 @@ class SlackClientStub:
 
     def _paging(self, data, key, cursor=None) -> str:
         if not self._page_size:
-            return slack_response(data)
+            return slack_response({key: data})
         else:
-            chanels_chunks = list(chunks(data[key], self._page_size))
+            data_chunks = list(chunks(data, self._page_size))
             if cursor is None:
                 cursor = 0
 
-            channels = chanels_chunks[cursor]
-            if len(chanels_chunks) > cursor + 1:
-                next_cursor = cursor + 1
-            else:
-                next_cursor = None
+            response = {key: data_chunks[cursor]}
+            if len(data_chunks) > cursor + 1:
+                response["response_metadata"] = {"next_cursor": cursor + 1}
 
-            return slack_response(
-                {
-                    key: channels,
-                    "response_metadata": {"next_cursor": next_cursor},
-                }
-            )
+            return slack_response(response)
 
     def auth_test(self) -> str:
         return SlackResponseStub(self._slack_data[self._team]["auth_test"])
@@ -75,9 +68,7 @@ class SlackClientStub:
     def conversations_history(self, channel, limit, oldest, latest, cursor=None) -> str:
         if channel in self._slack_data[self._team]["conversations_history"]:
             messages = self._slack_data[self._team]["conversations_history"][channel]
-            # return self._paging(messages, "messages")
-            return slack_response(self._messages_to_response(messages))
-
+            return self._paging(messages, "messages", cursor)
         else:
             return slack_response(None, ok=False, error="Channel not found")
 
@@ -87,7 +78,9 @@ class SlackClientStub:
 
     def conversations_list(self, types, cursor=None) -> str:
         return self._paging(
-            self._slack_data[self._team]["conversations_list"], "channels", cursor
+            self._slack_data[self._team]["conversations_list"]["channels"],
+            "channels",
+            cursor,
         )
 
     def users_info(self, user, include_locale=None) -> str:

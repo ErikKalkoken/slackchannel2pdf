@@ -673,7 +673,7 @@ class SlackChannelExporter:
 
             # fetch messages
             # if we have a client fetch data from Slack
-            if self._slack_service._client is not None:
+            if not self._slack_service.is_test_mode:
                 if len(channel_inputs) > 1:
                     text = f"({channel_count}/{len(channel_inputs)}) "
                 else:
