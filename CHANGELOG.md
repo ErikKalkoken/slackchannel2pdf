@@ -9,7 +9,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
-- Refactoring and adding tests
+- Major refactoring
+
+### Changed
+
+- Works with general and random but not other channels [#4](https://github.com/ErikKalkoken/slackchannel2pdf/issues/4)
 
 ## [1.1.4] - 2020-12-07
 

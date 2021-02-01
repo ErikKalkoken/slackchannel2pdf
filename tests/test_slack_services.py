@@ -5,6 +5,9 @@ from .testtools import SlackClientStub
 from .no_sockets import NoSocketsTestCase
 
 
+MODULE_NAME = "slackchannel2pdf.slack_service"
+
+
 class TestExporterReduceToDict(NoSocketsTestCase):
     def setUp(self):
         self.a = [
@@ -34,8 +37,10 @@ class TestExporterReduceToDict(NoSocketsTestCase):
 class TestFetchChannelNames(NoSocketsTestCase):
     def test_should_return_all_names(self):
         # given
-        with patch("slackchannel2pdf.slack_service.slack") as mock_slack:
-            mock_slack.WebClient.return_value = SlackClientStub(team="T12345678")
+        with patch(MODULE_NAME + ".slack") as mock_slack:
+            mock_slack.WebClient.return_value = SlackClientStub(
+                team="T12345678", page_size=2
+            )
             slack_service = SlackService("TOKEN_DUMMY")
         # when
         result = slack_service.channel_names()
@@ -79,12 +84,13 @@ class TestFetchChannelNames(NoSocketsTestCase):
 class TestFetchMessagesFromChannel(NoSocketsTestCase):
     def test_should_return_all_message_no_paging(self):
         # given
-        with patch("slackchannel2pdf.slack_service.slack") as mock_slack:
+        with patch(MODULE_NAME + ".slack") as mock_slack:
             mock_slack.WebClient.return_value = SlackClientStub(team="T12345678")
             slack_service = SlackService("TEST")
             slack_service._channel_names = {"C72345678": "dummy"}
         # when
-        result = slack_service.fetch_messages_from_channel("C72345678", 200)
+        with patch(MODULE_NAME + ".sleep", lambda x: None):
+            result = slack_service.fetch_messages_from_channel("C72345678", 200)
         # then
         ids = {message["ts"] for message in result}
         self.assertSetEqual(
@@ -100,14 +106,14 @@ class TestFetchMessagesFromChannel(NoSocketsTestCase):
 
     def test_should_return_all_message_with_paging(self):
         # given
-        with patch("slackchannel2pdf.slack_service.slack") as mock_slack:
+        with patch(MODULE_NAME + ".slack") as mock_slack:
             mock_slack.WebClient.return_value = SlackClientStub(
                 team="T12345678", page_size=2
             )
             slack_service = SlackService("TEST")
             slack_service._channel_names = {"C72345678": "dummy"}
         # when
-        with patch("slackchannel2pdf.slack_service.sleep", lambda x: None):
+        with patch(MODULE_NAME + ".sleep", lambda x: None):
             result = slack_service.fetch_messages_from_channel("C72345678", 200)
         # then
         ids = {message["ts"] for message in result}
@@ -126,7 +132,7 @@ class TestFetchMessagesFromChannel(NoSocketsTestCase):
 class TestFetchThreadsFromMessages(NoSocketsTestCase):
     def test_should_return_all_threads(self):
         # given
-        with patch("slackchannel2pdf.slack_service.slack") as mock_slack:
+        with patch(MODULE_NAME + ".slack") as mock_slack:
             slack_stub = SlackClientStub(team="T12345678", page_size=2)
             mock_slack.WebClient.return_value = slack_stub
             slack_service = SlackService("TEST")

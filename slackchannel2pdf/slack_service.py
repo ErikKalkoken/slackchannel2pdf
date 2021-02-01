@@ -112,11 +112,15 @@ class SlackService:
         """returns dict of channel names with channel ID as key"""
 
         print("Fetching channels for workspace...")
-        response = self._client.conversations_list(
-            types="public_channel,private_channel"
+        # response = self._client.conversations_list(
+        #     types="public_channel,private_channel"
+        # )
+        channel_names_raw = self._fetch_pages(
+            "conversations_list",
+            args={"types": "public_channel,private_channel"},
+            key="channels",
         )
-        assert response["ok"]
-        channel_names = self._reduce_to_dict(response["channels"], "id", "name")
+        channel_names = self._reduce_to_dict(channel_names_raw, "id", "name")
         for channel in channel_names:
             channel_names[channel] = transform_encoding(channel_names[channel])
 
@@ -149,8 +153,8 @@ class SlackService:
                 "oldest": oldest_ts,
                 "latest": latest_ts,
             },
-            limit=messages_per_page,
             key="messages",
+            limit=messages_per_page,
             max_rows=max_messages,
         )
         print(
@@ -159,37 +163,6 @@ class SlackService:
             f" messages from channel {self._channel_names[channel_id]}"
         )
         return messages
-
-    def _fetch_pages(
-        self, method, args: dict, limit: int, key: str, max_rows: int
-    ) -> list:
-        # get first page
-        page = 1
-        print(f"{method} - Fetching page {page}")
-        new_args = {**args, **{"limit": limit}}
-        response = getattr(self._client, method)(**new_args)
-        assert response["ok"]
-        rows = response[key]
-
-        # get additional pages if below max message and if they are any
-        while len(rows) < max_rows and response.get("response_metadata"):
-            page += 1
-            print(f"{method} - Fetching page {page}")
-            sleep(1)  # need to wait 1 sec before next call due to rate limits
-            # allow smaller page sized to fetch final page
-            page_limit = min(limit, max_rows - len(rows))
-            new_args = {
-                **args,
-                **{
-                    "limit": page_limit,
-                    "cursor": response["response_metadata"].get("next_cursor"),
-                },
-            }
-            response = getattr(self._client, method)(**new_args)
-            assert response["ok"]
-            rows += response[key]
-
-        return rows
 
     def fetch_threads_from_messages(
         self,
@@ -241,54 +214,11 @@ class SlackService:
                 "oldest": oldest_ts,
                 "latest": latest_ts,
             },
-            limit=messages_per_page,
             key="messages",
+            limit=messages_per_page,
             max_rows=max_messages,
         )
         return messages
-
-    # def _fetch_messages_from_thread_old(
-    #     self, channel_id, thread_ts, thread_num, max_messages, oldest=None, latest=None
-    # ):
-    #     """retrieve messages from a Slack thread and return as list"""
-
-    #     messages_per_page = min(self._MESSAGES_PER_PAGE, max_messages)
-    #     # get first page
-    #     page = 1
-    #     print(f"Fetching messages from thread {thread_num} - page {page}")
-    #     oldest_ts = str(oldest.timestamp()) if oldest is not None else 0
-    #     latest_ts = str(latest.timestamp()) if latest is not None else 0
-    #     response = self._client.conversations_replies(
-    #         channel=channel_id,
-    #         ts=thread_ts,
-    #         limit=messages_per_page,
-    #         oldest=oldest_ts,
-    #         latest=latest_ts,
-    #     )
-    #     assert response["ok"]
-    #     messages_all = response["messages"]
-
-    #     # get additional pages if below max message and if they are any
-    #     while (
-    #         len(messages_all) + messages_per_page <= max_messages
-    #         and response["has_more"]
-    #     ):
-    #         page += 1
-    #         print(f"Fetching messages from thread {thread_num} - page {page}")
-    #         sleep(1)  # need to wait 1 sec before next call due to rate limits
-    #         response = self._client.conversations_replies(
-    #             channel=channel_id,
-    #             ts=thread_ts,
-    #             limit=messages_per_page,
-    #             oldest=oldest_ts,
-    #             latest=latest_ts,
-    #             cursor=response["response_metadata"]["next_cursor"],
-    #         )
-    #         assert response["ok"]
-    #         messages = response["messages"]
-    #         messages_all = messages_all + messages
-
-    #     return messages_all
 
     def fetch_bot_names_for_messages(self, messages, threads):
         """Fetches bot names from API for provided messages
@@ -333,6 +263,39 @@ class SlackService:
                     sleep(1)  # need to wait 1 sec before next call due to rate limits
 
         return bot_names
+
+    def _fetch_pages(
+        self, method, args: dict, key: str, limit: int = None, max_rows: int = None
+    ) -> list:
+        """helper for retrieving all pages from an API endpoint"""
+        # fetch first page
+        page = 1
+        print(f"{method} - Fetching page {page}")
+        base_args = {**args, **{"limit": limit}} if limit else args
+        response = getattr(self._client, method)(**base_args)
+        assert response["ok"]
+        rows = response[key]
+
+        # fetch additional page (if any)
+        while (
+            (not max_rows or len(rows) < max_rows)
+            and response.get("response_metadata")
+            and response["response_metadata"].get("next_cursor")
+        ):
+            page += 1
+            print(f"{method} - Fetching page {page}")
+            sleep(1)  # need to wait 1 sec before next call due to rate limits
+            page_args = {
+                **base_args,
+                **{
+                    "cursor": response["response_metadata"].get("next_cursor"),
+                },
+            }
+            response = getattr(self._client, method)(**page_args)
+            assert response["ok"]
+            rows += response[key]
+
+        return rows
 
     @staticmethod
     def _reduce_to_dict(arr, key_name, col_name_primary, col_name_secondary=None):
