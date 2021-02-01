@@ -36,45 +36,47 @@ class MessageTransformer:
             id_chars = match[0:2]
             id_raw = match[1 : len(match)]
             parts = id_raw.split("|", 1)
-            id = parts[0]
+            obj_id = parts[0]
 
             make_bold = True
             if id_chars == "@U" or id_chars == "@W":
                 # match is a user ID
-                if id in self._slack_service.user_names():
-                    replacement = "@" + self._slack_service.user_names()[id]
+                if obj_id in self._slack_service.user_names():
+                    replacement = "@" + self._slack_service.user_names()[obj_id]
                 else:
-                    replacement = f"@user_{id}"
+                    replacement = f"@user_{obj_id}"
 
             elif id_chars == "#C":
                 # match is a channel ID
-                if id in self._slack_service.channel_names():
-                    replacement = "#" + self._slack_service.channel_names()[id]
+                if obj_id in self._slack_service.channel_names():
+                    replacement = "#" + self._slack_service.channel_names()[obj_id]
                 else:
-                    replacement = f"#channel_{id}"
+                    replacement = f"#channel_{obj_id}"
 
             elif match[0:9] == "!subteam^":
                 # match is a user group ID
                 match2 = re.match(r"!subteam\^(S[A-Z0-9]+)", match)
                 if match2 is not None and len(match2.groups()) == 1:
-                    id = match2.group(1)
-                    if id in self._slack_service.usergroup_names():
-                        usergroup_name = self._slack_service.usergroup_names()[id]
+                    usergroup_id = match2.group(1)
+                    if usergroup_id in self._slack_service.usergroup_names():
+                        usergroup_name = self._slack_service.usergroup_names()[
+                            usergroup_id
+                        ]
                     else:
-                        usergroup_name = f"usergroup_{id}"
+                        usergroup_name = f"usergroup_{usergroup_id}"
                 else:
                     usergroup_name = "usergroup_unknown"
                 replacement = "@" + usergroup_name
 
             elif match[0:1] == "!":
                 # match is a special mention
-                if id == "here":
+                if obj_id == "here":
                     replacement = "@here"
 
-                elif id == "channel":
+                elif obj_id == "channel":
                     replacement = "@channel"
 
-                elif id == "everyone":
+                elif obj_id == "everyone":
                     replacement = "@everyone"
 
                 elif match[0:5] == "!date":
@@ -88,7 +90,7 @@ class MessageTransformer:
                         replacement = "(failed to parse date)"
 
                 else:
-                    replacement = f"@special_{id}"
+                    replacement = f"@special_{obj_id}"
 
             else:
                 # match is an URL

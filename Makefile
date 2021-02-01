@@ -1,5 +1,5 @@
-appname = aa-structures
-package = structures
+appname = slackchannel2pdf
+package = slackchannel2pdf
 
 help:
 	@echo "Makefile for $(appname)"
@@ -8,7 +8,7 @@ coverage:
 	coverage run -m unittest discover && coverage html && coverage report
 
 pylint:
-	pylint --load-plugins pylint_django $(package)
+	pylint $(package)
 
 check_complexity:
 	flake8 $(package) --max-complexity=10

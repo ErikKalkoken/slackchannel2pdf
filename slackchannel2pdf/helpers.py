@@ -28,7 +28,7 @@ def read_array_from_json_file(filename, quiet=False):
         try:
             with open(filename, "r", encoding="utf-8") as f:
                 arr = json.load(f)
-        except Exception as e:
+        except IOError as e:
             if quiet is False:
                 print(f"WARN: failed to read from {filename}: ", e)
             arr = list()
@@ -43,7 +43,7 @@ def write_array_to_json_file(arr, filename):
     try:
         with open(filename, "w", encoding="utf-8") as f:
             json.dump(arr, f, sort_keys=True, indent=4, ensure_ascii=False)
-    except Exception as e:
+    except IOError as e:
         print(f"ERROR: failed to write to {filename}: ", e)
 
 
@@ -100,24 +100,24 @@ class LocaleHelper:
     def timezone(self):
         return self._timezone
 
-    def format_date_full_str(self, dt):
-        return format_date(dt, format="full", locale=self.locale)
+    def format_date_full_str(self, my_datetime):
+        return format_date(my_datetime, format="full", locale=self.locale)
 
-    def format_datetime_str(self, dt):
+    def format_datetime_str(self, my_datetime):
         """returns formated datetime string for given dt using locale"""
-        return format_datetime(dt, format="short", locale=self.locale)
+        return format_datetime(my_datetime, format="short", locale=self.locale)
 
     def get_datetime_formatted_str(self, ts):
         """return given timestamp as formated datetime string using locale"""
-        dt = self.get_datetime_from_ts(ts)
-        return format_datetime(dt, format="short", locale=self.locale)
+        my_datetime = self.get_datetime_from_ts(ts)
+        return format_datetime(my_datetime, format="short", locale=self.locale)
 
     def get_time_formatted_str(self, ts):
         """return given timestamp as formated datetime string using locale"""
-        dt = self.get_datetime_from_ts(ts)
-        return format_time(dt, format="short", locale=self.locale)
+        my_datetime = self.get_datetime_from_ts(ts)
+        return format_time(my_datetime, format="short", locale=self.locale)
 
     def get_datetime_from_ts(self, ts):
         """returns datetime object of a unix timestamp with local timezone"""
-        my_dt = dt.datetime.fromtimestamp(float(ts), pytz.UTC)
-        return my_dt.astimezone(self.timezone)
+        my_datetime = dt.datetime.fromtimestamp(float(ts), pytz.UTC)
+        return my_datetime.astimezone(self.timezone)

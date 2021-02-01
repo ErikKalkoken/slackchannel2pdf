@@ -1,9 +1,9 @@
+from datetime import datetime, timedelta
 import inspect
 import os
 import re
 
 from babel.numbers import format_number
-from datetime import datetime, timedelta
 
 from . import __version__
 from . import constants
@@ -51,6 +51,7 @@ class SlackChannelExporter:
             add_debug_info: wether to add debug info to message output
 
         """
+        self._bot_names = dict()
         if slack_token is None:
             raise ValueError("slack_token can not be null")
 
@@ -74,7 +75,7 @@ class SlackChannelExporter:
         )
 
         # validate add_debug_info
-        if type(add_debug_info) != bool:
+        if not isinstance(add_debug_info, bool):
             raise ValueError("add_debug_info must be bool")
         self._add_debug_info = add_debug_info
         if add_debug_info:
@@ -403,11 +404,11 @@ class SlackChannelExporter:
                 document.set_x(margin_left + constants.TAB_WIDTH)
 
                 for layout_block in msg["blocks"]:
-                    type = layout_block["type"]
+                    block_type = layout_block["type"]
                     document.ln(constants.LINE_HEIGHT_SMALL)
 
                     # section layout blocks
-                    if type == "section":
+                    if block_type == "section":
                         document.set_font(
                             constants.FONT_FAMILY_DEFAULT,
                             size=constants.FONT_SIZE_NORMAL,
@@ -582,14 +583,12 @@ class SlackChannelExporter:
         if oldest is not None:
             if not isinstance(oldest, datetime):
                 raise TypeError("oldest must be a datetime")
-            else:
-                oldest = self._locale_helper.timezone.localize(oldest)
+            oldest = self._locale_helper.timezone.localize(oldest)
 
         if latest is not None:
             if not isinstance(latest, datetime):
                 raise TypeError("latest must be a datetime")
-            else:
-                latest = self._locale_helper.timezone.localize(latest)
+            latest = self._locale_helper.timezone.localize(latest)
 
         if oldest is not None and latest is not None and oldest > latest:
             raise RuntimeError("ERROR: oldest has to be before latest")
@@ -605,7 +604,7 @@ class SlackChannelExporter:
                 text += f" before {self._locale_helper.format_datetime_str(latest)}"
             print(text)
 
-        if type(channel_inputs) is not list:
+        if not isinstance(channel_inputs, list):
             raise TypeError("channel_inputs must be of type list")
 
         # set destination path as current dir if not set
@@ -617,7 +616,7 @@ class SlackChannelExporter:
         else:
             if not isinstance(dest_path, str):
                 raise TypeError("dest_path must be of type str")
-            elif not os.path.isdir(dest_path):
+            if not os.path.isdir(dest_path):
                 raise RuntimeError(
                     f"ERROR: give destination path does not exist: {dest_path}"
                 )
@@ -706,7 +705,7 @@ class SlackChannelExporter:
                         self._slack_service.channel_names(), filename_base + "_channels"
                     )
                     write_array_to_json_file(
-                        self._usergroup_names, filename_base + "_usergroups"
+                        self._slack_service.user_names(), filename_base + "_usergroups"
                     )
                     write_array_to_json_file(
                         messages, filename_base_channel + "_messages"
@@ -779,7 +778,7 @@ class SlackChannelExporter:
             # count all messages including threads
             message_count = len(messages)
             if len(threads) > 0:
-                for thread_ts, thread_messages in threads.items():
+                for _, thread_messages in threads.items():
                     message_count += len(thread_messages) - 1
 
             if message_count > 0:
@@ -857,8 +856,8 @@ class SlackChannelExporter:
             try:
                 document.output(filename_pdf)
                 success_channel = True
-            except Exception as e:
-                print("ERROR: Failed to write PDF file: ", e)
+            except IOError as ex:
+                print("ERROR: Failed to write PDF file: ", ex)
 
             # compile response dict
             response["channels"][channel_id] = {

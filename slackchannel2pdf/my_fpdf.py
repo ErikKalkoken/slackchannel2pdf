@@ -5,8 +5,8 @@ from .fpdf_ext import FPDF_ext
 class MyFPDF(FPDF_ext):
     """Inheritance of FPDF class to add header and footers and set PDF constants"""
 
-    def __init__(self, orientation="P", unit="mm", format="A4"):
-        super().__init__(orientation=orientation, unit=unit, format=format)
+    def __init__(self, orientation="P", unit="mm", page_format="A4"):
+        super().__init__(orientation=orientation, unit=unit, page_format=page_format)
         self._page_title = ""
 
     @property

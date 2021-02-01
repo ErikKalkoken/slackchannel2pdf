@@ -38,10 +38,10 @@ class FPDF_ext(fpdf_mod.FPDF):
     """
 
     _TAB_WIDTH = 4
-    _TAGS_SUPPORTED = ["b", "i", "u", "a", "br" "blockquote", "s"]
+    _TAGS_SUPPORTED = ["b", "i", "u", "a", "br", "blockquote", "s"]
 
-    def __init__(self, orientation="P", unit="mm", format="A4"):
-        super().__init__(orientation=orientation, unit=unit, format=format)
+    def __init__(self, orientation="P", unit="mm", page_format="A4"):
+        super().__init__(orientation=orientation, unit=unit, format=page_format)
         self._tags = dict()
         self._tags["B"] = 0
         self._tags["I"] = 0
@@ -78,16 +78,16 @@ class FPDF_ext(fpdf_mod.FPDF):
                     tag = tag_parts.pop(0).upper()
                     attributes = dict()
                     for tag_part in tag_parts:
-                        matchObj = re.search(r'([^=]*)=["\']?([^"\']*)', tag_part)
-                        if matchObj is not None and len(matchObj.groups()) == 2:
-                            attributes[matchObj.group(1).upper()] = matchObj.group(2)
+                        match_obj = re.search(r'([^=]*)=["\']?([^"\']*)', tag_part)
+                        if match_obj is not None and len(match_obj.groups()) == 2:
+                            attributes[match_obj.group(1).upper()] = match_obj.group(2)
 
                     self._open_tag(tag, attributes)
 
     def _open_tag(self, tag, attributes):
         """set style for opening tags and singular tags"""
 
-        if tag == "B" or tag == "I" or tag == "U":
+        if tag in ["B", "I", "U"]:
             self._set_style(tag, True)
 
         if tag == "BLOCKQUOTE":
@@ -102,12 +102,12 @@ class FPDF_ext(fpdf_mod.FPDF):
         if tag == "S":
             if self._last_font is not None:
                 raise RuntimeError("<s> tags can not be nested")
-            else:
-                self._last_font = {
-                    "font_family": self.font_family,
-                    "size": self.font_size_pt,
-                    "style": self.font_style,
-                }
+
+            self._last_font = {
+                "font_family": self.font_family,
+                "size": self.font_size_pt,
+                "style": self.font_style,
+            }
 
             if "FONTFAMILY" in attributes:
                 font_family = attributes["FONTFAMILY"]
@@ -129,7 +129,7 @@ class FPDF_ext(fpdf_mod.FPDF):
     def _close_tag(self, tag):
         """set style for closing tags"""
 
-        if tag == "B" or tag == "I" or tag == "U":
+        if tag in ["B", "I", "U"]:
             self._set_style(tag, False)
 
         if tag == "BLOCKQUOTE":

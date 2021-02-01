@@ -43,7 +43,6 @@ class SlackService:
             self._user_names = dict()
             self._channel_names = dict()
             self._usergroup_names = dict()
-            self._bot_names = dict()
             author_id = None
             self._author = "test user"
             self._is_test_mode = True
@@ -183,7 +182,7 @@ class SlackService:
                 thread_ts = msg["thread_ts"]
                 thread_num += 1
                 thread_messages = self._fetch_messages_from_thread(
-                    channel_id, thread_ts, thread_num, max_messages, oldest, latest
+                    channel_id, thread_ts, max_messages, oldest, latest
                 )
                 threads[thread_ts] = thread_messages
                 thread_messages_total += len(thread_messages)
@@ -200,7 +199,7 @@ class SlackService:
         return threads
 
     def _fetch_messages_from_thread(
-        self, channel_id, thread_ts, thread_num, max_messages, oldest=None, latest=None
+        self, channel_id, thread_ts, max_messages, oldest=None, latest=None
     ) -> list:
         """retrieve messages from a Slack thread and return as list"""
         messages_per_page = min(self._MESSAGES_PER_PAGE, max_messages)
@@ -257,9 +256,7 @@ class SlackService:
             for bot_id in bot_ids:
                 response = self._client.bots_info(bot=bot_id)
                 if response["ok"]:
-                    bot_names[bot_id] = self._transform_encoding(
-                        response["bot"]["name"]
-                    )
+                    bot_names[bot_id] = transform_encoding(response["bot"]["name"])
                     sleep(1)  # need to wait 1 sec before next call due to rate limits
 
         return bot_names
