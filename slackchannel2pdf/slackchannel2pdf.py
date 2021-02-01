@@ -2,12 +2,8 @@ import inspect
 import os
 import re
 
-from babel import Locale, UnknownLocaleError
-from babel.dates import format_date
 from babel.numbers import format_number
 from datetime import datetime, timedelta
-import pytz
-from tzlocal import get_localzone
 
 from . import __version__
 from .my_fpdf import MyFPDF
@@ -69,61 +65,19 @@ class SlackChannelExporter:
         print()
         print("Welcome " + self._slack_service.author)
 
-        # get timezone and local for author from Slack
+        # set locale & timezone
         author_info = self._slack_service.author_info()
-
-        # set timezone
-        # check if overridden timezone is valid
-        if my_tz is not None:
-            if not isinstance(my_tz, pytz.BaseTzInfo):
-                raise TypeError("my_tz must be of type pytz")
-        # if not overridden use timezone info from author on Slack if available
-        # else use local time of this system
-        else:
-            if author_info:
-                try:
-                    my_tz = pytz.timezone(author_info["tz"])
-                except pytz.exceptions.UnknownTimeZoneError:
-                    print("WARN: Could not use timezone info from Slack")
-                    my_tz = get_localzone()
-            else:
-                my_tz = get_localzone()
-
-        print(f"Timezone is: {str(my_tz)}")
-
-        # set locale
-        # check if overridden locale is valid
-        if my_locale is not None:
-            if not isinstance(my_locale, Locale):
-                raise TypeError("my_locale must be a babel Locale object")
-        # if not overridden use timezone info from author on Slack if available
-        # else use local time of this system
-        else:
-            if author_info:
-                try:
-                    my_locale = Locale.parse(author_info["locale"], sep="-")
-                except UnknownLocaleError:
-                    print("WARN: Could not use locale info from Slack")
-                    my_locale = Locale.default()
-
-            else:
-                my_locale = Locale.default()
-
-        self._locale_helper = LocaleHelper(my_locale, my_tz)
-        print(
-            f"Locale is: {my_locale.get_display_name()} [{self._locale_helper.locale}]"
-        )
-
-        # validate add_debug_info
-        if type(add_debug_info) != bool:
-            raise ValueError("add_debug_info must be bool")
-        self._add_debug_info = add_debug_info
+        self._locale_helper = LocaleHelper(my_locale, my_tz, author_info)
         self._transformer = MessageTransformer(
             slack_service=self._slack_service,
             locale_helper=self._locale_helper,
             font_family_mono_default=MyFPDF._FONT_FAMILY_MONO_DEFAULT,
         )
 
+        # validate add_debug_info
+        if type(add_debug_info) != bool:
+            raise ValueError("add_debug_info must be bool")
+        self._add_debug_info = add_debug_info
         if add_debug_info:
             print("Adding DEBUG info to PDF")
 
@@ -516,9 +470,7 @@ class SlackChannelExporter:
                     document.line(x1, y1, x2, y1)
 
                     # stamp date on divider
-                    date_text = format_date(
-                        msg_dt, format="full", locale=self._locale_helper.locale
-                    )
+                    date_text = self._locale_helper.format_date_full_str(msg_dt)
                     text_width = document.get_string_width(date_text)
                     x3 = (x2 - x1) / 2 + x1
                     x4 = x3 - (text_width / 2)

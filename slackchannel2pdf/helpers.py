@@ -3,8 +3,10 @@ import html
 import json
 import os
 
-from babel.dates import format_datetime, format_time
+from babel import Locale, UnknownLocaleError
+from babel.dates import format_datetime, format_time, format_date
 import pytz
+from tzlocal import get_localzone
 
 
 def transform_encoding(text):
@@ -48,9 +50,47 @@ def write_array_to_json_file(arr, filename):
 class LocaleHelper:
     """Helpers for converting date & time according to current locale and timezone"""
 
-    def __init__(self, locale, timezone) -> None:
-        self._locale = locale
-        self._timezone = timezone
+    def __init__(self, my_locale, my_tz, author_info) -> None:
+        # set locale
+        # check if overridden locale is valid
+        if my_locale is not None:
+            if not isinstance(my_locale, Locale):
+                raise TypeError("my_locale must be a babel Locale object")
+        else:
+            # if not overridden use timezone info from author on Slack if available
+            if author_info:
+                try:
+                    my_locale = Locale.parse(author_info["locale"], sep="-")
+                except UnknownLocaleError:
+                    print("WARN: Could not use locale info from Slack")
+                    my_locale = Locale.default()
+
+            # else use local time of this system
+            else:
+                my_locale = Locale.default()
+
+        print(f"Locale is: {my_locale.get_display_name()} [{my_locale}]")
+        self._locale = my_locale
+
+        # set timezone
+        # check if overridden timezone is valid
+        if my_tz is not None:
+            if not isinstance(my_tz, pytz.BaseTzInfo):
+                raise TypeError("my_tz must be of type pytz")
+        else:
+            # if not overridden use timezone info from author on Slack if available
+            if author_info:
+                try:
+                    my_tz = pytz.timezone(author_info["tz"])
+                except pytz.exceptions.UnknownTimeZoneError:
+                    print("WARN: Could not use timezone info from Slack")
+                    my_tz = get_localzone()
+            # else use local time of this system
+            else:
+                my_tz = get_localzone()
+
+        print(f"Timezone is: {str(my_tz)}")
+        self._timezone = my_tz
 
     @property
     def locale(self):
@@ -59,6 +99,9 @@ class LocaleHelper:
     @property
     def timezone(self):
         return self._timezone
+
+    def format_date_full_str(self, dt):
+        return format_date(dt, format="full", locale=self.locale)
 
     def format_datetime_str(self, dt):
         """returns formated datetime string for given dt using locale"""

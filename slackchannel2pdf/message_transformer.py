@@ -1,12 +1,11 @@
-"""
-Methods for parsing and transforming Slack messages
-"""
 import re
 
 from .helpers import transform_encoding
 
 
 class MessageTransformer:
+    """parsing and transforming Slack messages"""
+
     def __init__(self, slack_service, locale_helper, font_family_mono_default) -> None:
         self._slack_service = slack_service
         self._locale_helper = locale_helper
