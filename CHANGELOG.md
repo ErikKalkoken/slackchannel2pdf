@@ -7,11 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.2.0] - 2021-02-02
+
 ### Changed
 
 - Major refactoring
 
-### Changed
+### Fixed
 
 - Works with general and random but not other channels [#4](https://github.com/ErikKalkoken/slackchannel2pdf/issues/4)
 
