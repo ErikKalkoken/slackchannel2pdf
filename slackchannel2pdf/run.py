@@ -1,11 +1,3 @@
-# Copyright 2019 Erik Kalkoken
-#
-# Licensed under MIT license. See attached file for details
-#
-# This package contains the implementation of the command line interface
-# for Channelexport
-#
-
 import argparse
 import os
 import sys
@@ -15,6 +7,7 @@ import pytz
 from babel import Locale, UnknownLocaleError
 
 from . import __version__
+from . import constants
 from .slackchannel2pdf import SlackChannelExporter
 
 
@@ -35,6 +28,7 @@ def main():
         else:
             print("ERROR: No slack token provided")
             start_export = False
+            slack_token = None
     else:
         slack_token = args.token
 
@@ -56,6 +50,7 @@ def main():
         except UnknownLocaleError:
             print("ERROR: provided locale string is not valid")
             start_export = False
+            my_locale = None
     else:
         my_locale = None
 
@@ -66,6 +61,7 @@ def main():
         except ValueError:
             print("Invalid date input for --oldest")
             start_export = False
+            oldest = None
     else:
         oldest = None
 
@@ -76,6 +72,7 @@ def main():
         except ValueError:
             print("Invalid date input for --latest")
             start_export = False
+            latest = None
     else:
         latest = None
 
@@ -125,13 +122,13 @@ def parse_args(args):
         "--page-orientation",
         help="Orientation of PDF pages",
         choices=["portrait", "landscape"],
-        default=SlackChannelExporter.PAGE_ORIENTATION_DEFAULT,
+        default=constants.PAGE_ORIENTATION_DEFAULT,
     )
     my_arg_parser.add_argument(
         "--page-format",
         help="Format of PDF pages",
         choices=["a3", "a4", "a5", "letter", "legal"],
-        default=SlackChannelExporter.PAGE_FORMAT_DEFAULT,
+        default=constants.PAGE_FORMAT_DEFAULT,
     )
     my_arg_parser.add_argument(
         "--timezone",
@@ -164,7 +161,7 @@ def parse_args(args):
         "--max-messages",
         help="max number of messages to export",
         type=int,
-        default=SlackChannelExporter._MAX_MESSAGES_PER_CHANNEL,
+        default=constants.MAX_MESSAGES_PER_CHANNEL,
     )
 
     # Developer needs

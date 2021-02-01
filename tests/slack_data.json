@@ -13,6 +13,38 @@
                     "user": "U92345678"
                 }
             ],
+            "C72345678": [
+                {
+                    "text": "Message 1",
+                    "ts": "1562274541.000800",
+                    "type": "message",
+                    "user": "U92345678"
+                },
+                {
+                    "text": "Message 2",
+                    "ts": "1562274542.000800",
+                    "type": "message",
+                    "user": "U92345678"
+                },
+                {
+                    "text": "Message 3",
+                    "ts": "1562274543.000800",
+                    "type": "message",
+                    "user": "U92345678"
+                },
+                {
+                    "text": "Message 4",
+                    "ts": "1562274544.000800",
+                    "type": "message",
+                    "user": "U92345678"
+                },
+                {
+                    "text": "Message 5",
+                    "ts": "1562274545.000800",
+                    "type": "message",
+                    "user": "U92345678"
+                }
+            ],
             "G1234567X": [
                 {
                     "team": "T12345678",

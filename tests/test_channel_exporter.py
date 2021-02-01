@@ -10,9 +10,10 @@ import babel
 import PyPDF2
 
 from slackchannel2pdf import __version__
+from slackchannel2pdf import constants
 from slackchannel2pdf.slackchannel2pdf import SlackChannelExporter
 
-from . import SlackClientStub
+from .testtools import SlackClientStub
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 
@@ -75,7 +76,7 @@ class TestExporterTransformText(unittest.TestCase):
             self.assertEqual(res_channel["page_orientation"], "portrait")
             self.assertEqual(
                 res_channel["max_messages"],
-                SlackChannelExporter._MAX_MESSAGES_PER_CHANNEL,
+                constants.MAX_MESSAGES_PER_CHANNEL,
             )
             self.assertEqual(res_channel["timezone"], get_localzone())
             self.assertEqual(res_channel["locale"], babel.Locale.default())

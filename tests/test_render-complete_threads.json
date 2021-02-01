@@ -30,6 +30,15 @@
             "ts": "1562171321.000100",
             "type": "message",
             "user": "U92345678"
+        },
+        {
+            "parent_user_id": "U82345678",
+            "team": "T12345678",
+            "text": "This is another reply within a thread",
+            "thread_ts": "1561764011.015500",
+            "ts": "1562171322.000100",
+            "type": "message",
+            "user": "U82345678"
         }
     ]
 }
