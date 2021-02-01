@@ -43,7 +43,8 @@ class TestFetchChannelNames(NoSocketsTestCase):
             )
             slack_service = SlackService("TOKEN_DUMMY")
         # when
-        result = slack_service.channel_names()
+        with patch(MODULE_NAME + ".sleep", lambda x: None):
+            result = slack_service.channel_names()
         # then
         self.assertDictEqual(
             {
@@ -141,7 +142,10 @@ class TestFetchThreadsFromMessages(NoSocketsTestCase):
             "G1234567X"
         ]
         # when
-        result = slack_service.fetch_threads_from_messages("G1234567X", messages, 200)
+        with patch(MODULE_NAME + ".sleep", lambda x: None):
+            result = slack_service.fetch_threads_from_messages(
+                "G1234567X", messages, 200
+            )
         # then
         self.assertIn("1561764011.015500", result)
         ids = {message["ts"] for message in result["1561764011.015500"]}
