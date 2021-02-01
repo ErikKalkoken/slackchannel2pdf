@@ -8,7 +8,7 @@ from babel import Locale, UnknownLocaleError
 
 from . import __version__
 from . import constants
-from .slackchannel2pdf import SlackChannelExporter
+from .channel_exporter import SlackChannelExporter
 
 
 def main():
@@ -95,7 +95,8 @@ def main():
         )
 
 
-def parse_args(args):
+def parse_args(args) -> argparse.ArgumentParser:
+    """defines the argument parser and returns parsed result from given argument"""
     my_arg_parser = argparse.ArgumentParser(
         description="This program exports the text of a Slack channel to a PDF file",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,

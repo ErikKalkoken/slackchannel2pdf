@@ -1,7 +1,7 @@
 import inspect
 import os
 
-from slackchannel2pdf.slackchannel2pdf import SlackChannelExporter
+from slackchannel2pdf.channel_exporter import SlackChannelExporter
 
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))

@@ -11,7 +11,7 @@ import PyPDF2
 
 from slackchannel2pdf import __version__
 from slackchannel2pdf import constants
-from slackchannel2pdf.slackchannel2pdf import SlackChannelExporter
+from slackchannel2pdf.channel_exporter import SlackChannelExporter
 
 from .no_sockets import NoSocketsTestCase
 from .testtools import SlackClientStub
