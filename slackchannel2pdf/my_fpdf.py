@@ -1,9 +1,9 @@
-from . import constants
+from . import settings
 from .fpdf_ext import FPDF_ext
 
 
 class MyFPDF(FPDF_ext):
-    """Inheritance of FPDF class to add header and footers and set PDF constants"""
+    """Inheritance of FPDF class to add header and footers and set PDF settings"""
 
     def __init__(self, orientation="P", unit="mm", page_format="A4"):
         super().__init__(orientation=orientation, unit=unit, page_format=page_format)
@@ -22,10 +22,10 @@ class MyFPDF(FPDF_ext):
     def header(self):
         """definition of custom header"""
         self.set_font(
-            constants.FONT_FAMILY_DEFAULT, size=constants.FONT_SIZE_NORMAL, style="B"
+            settings.FONT_FAMILY_DEFAULT, size=settings.FONT_SIZE_NORMAL, style="B"
         )
         self.cell(0, 0, self._page_title, 0, 1, "C")
-        self.ln(constants.LINE_HEIGHT_DEFAULT)
+        self.ln(settings.LINE_HEIGHT_DEFAULT)
 
     def footer(self):
         """definition of custom footer"""

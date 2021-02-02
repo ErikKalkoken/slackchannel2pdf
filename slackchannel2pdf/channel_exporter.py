@@ -6,7 +6,7 @@ import re
 from babel.numbers import format_number
 
 from . import __version__
-from . import constants
+from . import settings
 from .my_fpdf import MyFPDF
 from .helpers import (
     transform_encoding,
@@ -65,7 +65,7 @@ class SlackChannelExporter:
         self._transformer = MessageTransformer(
             slack_service=self._slack_service,
             locale_helper=self._locale_helper,
-            font_family_mono_default=constants.FONT_FAMILY_MONO_DEFAULT,
+            font_family_mono_default=settings.FONT_FAMILY_MONO_DEFAULT,
         )
 
         # validate add_debug_info
@@ -120,22 +120,22 @@ class SlackChannelExporter:
 
             if last_user_id != user_id:
                 # write user name and date only when user switches
-                document.ln(constants.LINE_HEIGHT_SMALL)
+                document.ln(settings.LINE_HEIGHT_SMALL)
                 document.set_font(
-                    constants.FONT_FAMILY_DEFAULT,
-                    size=constants.FONT_SIZE_NORMAL,
+                    settings.FONT_FAMILY_DEFAULT,
+                    size=settings.FONT_SIZE_NORMAL,
                     style="B",
                 )
-                document.write(constants.LINE_HEIGHT_DEFAULT, user_name + " ")
+                document.write(settings.LINE_HEIGHT_DEFAULT, user_name + " ")
                 document.set_font(
-                    constants.FONT_FAMILY_DEFAULT, size=constants.FONT_SIZE_SMALL
+                    settings.FONT_FAMILY_DEFAULT, size=settings.FONT_SIZE_SMALL
                 )
                 if is_bot:
                     document.set_text_color(100, 100, 100)
-                    document.write(constants.LINE_HEIGHT_DEFAULT, "App ")
+                    document.write(settings.LINE_HEIGHT_DEFAULT, "App ")
                     document.set_text_color(0)
                 datetime_str = self._locale_helper.get_time_formatted_str(msg["ts"])
-                document.write(constants.LINE_HEIGHT_DEFAULT, datetime_str)
+                document.write(settings.LINE_HEIGHT_DEFAULT, datetime_str)
                 document.ln()
 
             if "text" in msg and len(msg["text"]) > 0:
@@ -143,32 +143,32 @@ class SlackChannelExporter:
                 if self._add_debug_info:
                     debug_text = (
                         f' [<s fontfamily="'
-                        f'{constants.FONT_FAMILY_MONO_DEFAULT}" size="8">'
+                        f'{settings.FONT_FAMILY_MONO_DEFAULT}" size="8">'
                         f'{msg["ts"]}]</s>'
                     )
                 else:
                     debug_text = ""
                 document.set_font(
-                    constants.FONT_FAMILY_DEFAULT, size=constants.FONT_SIZE_NORMAL
+                    settings.FONT_FAMILY_DEFAULT, size=settings.FONT_SIZE_NORMAL
                 )
                 text_html = self._transformer.transform_text(
                     text, msg["mrkdwn"] if "mrkdwn" in msg else True
                 )
                 document.write_html(
-                    constants.LINE_HEIGHT_DEFAULT, text_html + debug_text
+                    settings.LINE_HEIGHT_DEFAULT, text_html + debug_text
                 )
                 document.ln()
 
             if "reactions" in msg:
                 # draw reactions
                 for reaction in msg["reactions"]:
-                    document.set_left_margin(margin_left + constants.TAB_WIDTH)
-                    document.set_x(margin_left + constants.TAB_WIDTH)
+                    document.set_left_margin(margin_left + settings.TAB_WIDTH)
+                    document.set_x(margin_left + settings.TAB_WIDTH)
                     document.set_font(
-                        constants.FONT_FAMILY_DEFAULT, size=constants.FONT_SIZE_NORMAL
+                        settings.FONT_FAMILY_DEFAULT, size=settings.FONT_SIZE_NORMAL
                     )
                     document.write_html(
-                        constants.LINE_HEIGHT_DEFAULT,
+                        settings.LINE_HEIGHT_DEFAULT,
                         (
                             "["
                             + reaction["name"]
@@ -190,31 +190,31 @@ class SlackChannelExporter:
                         users_with_names.append("<b>" + user_name + "</b>")
 
                     document.set_left_margin(
-                        margin_left + constants.TAB_WIDTH + constants.TAB_WIDTH
+                        margin_left + settings.TAB_WIDTH + settings.TAB_WIDTH
                     )
                     document.set_x(
-                        margin_left + constants.TAB_WIDTH + constants.TAB_WIDTH
+                        margin_left + settings.TAB_WIDTH + settings.TAB_WIDTH
                     )
                     document.write_html(
-                        constants.LINE_HEIGHT_DEFAULT, ", ".join(users_with_names)
+                        settings.LINE_HEIGHT_DEFAULT, ", ".join(users_with_names)
                     )
                     document.ln()
 
-                document.ln(constants.LINE_HEIGHT_SMALL)
+                document.ln(settings.LINE_HEIGHT_SMALL)
 
             if "files" in msg:
                 # draw files
-                document.set_left_margin(margin_left + constants.TAB_WIDTH)
-                document.set_x(margin_left + constants.TAB_WIDTH)
+                document.set_left_margin(margin_left + settings.TAB_WIDTH)
+                document.set_x(margin_left + settings.TAB_WIDTH)
 
                 for file in msg["files"]:
                     file_type = file.get("pretty_type", "")
                     file_name = file.get("name", "")
                     text = "[" + file_type + " file: <b>" + file_name + "</b>" + "]"
                     document.set_font(
-                        constants.FONT_FAMILY_DEFAULT, size=constants.FONT_SIZE_NORMAL
+                        settings.FONT_FAMILY_DEFAULT, size=settings.FONT_SIZE_NORMAL
                     )
-                    document.write_html(constants.LINE_HEIGHT_DEFAULT, text)
+                    document.write_html(settings.LINE_HEIGHT_DEFAULT, text)
                     document.ln()
 
                     if "preview" in file:
@@ -229,16 +229,16 @@ class SlackChannelExporter:
                         text = re.sub(r"\n|\r\n", r"<br>", text)
                         # output
                         document.set_font(
-                            constants.FONT_FAMILY_DEFAULT,
-                            size=constants.FONT_SIZE_NORMAL,
+                            settings.FONT_FAMILY_DEFAULT,
+                            size=settings.FONT_SIZE_NORMAL,
                         )
-                        document.write_html(constants.LINE_HEIGHT_DEFAULT, text)
+                        document.write_html(settings.LINE_HEIGHT_DEFAULT, text)
                         document.ln()
 
             if "attachments" in msg:
                 # draw attachments
-                document.set_left_margin(margin_left + constants.TAB_WIDTH)
-                document.set_x(margin_left + constants.TAB_WIDTH)
+                document.set_left_margin(margin_left + settings.TAB_WIDTH)
+                document.set_x(margin_left + settings.TAB_WIDTH)
 
                 # draw normal text attachments
                 for attach in msg["attachments"]:
@@ -252,29 +252,29 @@ class SlackChannelExporter:
                         document.set_left_margin(margin_left)
                         document.set_x(margin_left)
                         document.set_font(
-                            constants.FONT_FAMILY_DEFAULT,
-                            size=constants.FONT_SIZE_NORMAL,
+                            settings.FONT_FAMILY_DEFAULT,
+                            size=settings.FONT_SIZE_NORMAL,
                         )
                         document.write_html(
-                            constants.LINE_HEIGHT_DEFAULT,
+                            settings.LINE_HEIGHT_DEFAULT,
                             self._transformer.transform_text(
                                 attach["pretext"], "pretext" in mrkdwn_in
                             ),
                         )
-                        document.set_left_margin(margin_left + constants.TAB_WIDTH)
-                        document.set_x(margin_left + constants.TAB_WIDTH)
+                        document.set_left_margin(margin_left + settings.TAB_WIDTH)
+                        document.set_x(margin_left + settings.TAB_WIDTH)
                         document.ln()
 
-                    document.ln(constants.LINE_HEIGHT_SMALL)
+                    document.ln(settings.LINE_HEIGHT_SMALL)
 
                     if "author_name" in attach:
                         document.set_font(
-                            constants.FONT_FAMILY_DEFAULT,
-                            size=constants.FONT_SIZE_LARGE,
+                            settings.FONT_FAMILY_DEFAULT,
+                            size=settings.FONT_SIZE_LARGE,
                             style="B",
                         )
                         document.write(
-                            constants.LINE_HEIGHT_DEFAULT,
+                            settings.LINE_HEIGHT_DEFAULT,
                             self._transformer.transform_text(attach["author_name"]),
                         )
                         document.ln()
@@ -298,19 +298,19 @@ class SlackChannelExporter:
                         title_text = "<b>" + title_text + "</b>"
 
                         document.set_font(
-                            constants.FONT_FAMILY_DEFAULT,
-                            size=constants.FONT_SIZE_NORMAL,
+                            settings.FONT_FAMILY_DEFAULT,
+                            size=settings.FONT_SIZE_NORMAL,
                         )
-                        document.write_html(constants.LINE_HEIGHT_DEFAULT, title_text)
+                        document.write_html(settings.LINE_HEIGHT_DEFAULT, title_text)
                         document.ln()
 
                     if "text" in attach:
                         document.set_font(
-                            constants.FONT_FAMILY_DEFAULT,
-                            size=constants.FONT_SIZE_NORMAL,
+                            settings.FONT_FAMILY_DEFAULT,
+                            size=settings.FONT_SIZE_NORMAL,
                         )
                         document.write_html(
-                            constants.LINE_HEIGHT_DEFAULT,
+                            settings.LINE_HEIGHT_DEFAULT,
                             self._transformer.transform_text(
                                 attach["text"], "text" in mrkdwn_in
                             ),
@@ -320,21 +320,21 @@ class SlackChannelExporter:
                     if "fields" in attach:
                         for field in attach["fields"]:
                             document.set_font(
-                                constants.FONT_FAMILY_DEFAULT,
-                                size=constants.FONT_SIZE_NORMAL,
+                                settings.FONT_FAMILY_DEFAULT,
+                                size=settings.FONT_SIZE_NORMAL,
                                 style="B",
                             )
                             document.write(
-                                constants.LINE_HEIGHT_DEFAULT,
+                                settings.LINE_HEIGHT_DEFAULT,
                                 self._transformer.transform_text(field["title"]),
                             )
                             document.ln()
                             document.set_font(
-                                constants.FONT_FAMILY_DEFAULT,
-                                size=constants.FONT_SIZE_NORMAL,
+                                settings.FONT_FAMILY_DEFAULT,
+                                size=settings.FONT_SIZE_NORMAL,
                             )
                             document.write_html(
-                                constants.LINE_HEIGHT_DEFAULT,
+                                settings.LINE_HEIGHT_DEFAULT,
                                 self._transformer.transform_text(
                                     field["value"], "fields" in mrkdwn_in
                                 ),
@@ -354,10 +354,10 @@ class SlackChannelExporter:
                             text = self._transformer.transform_text(attach["footer"])
 
                         document.set_font(
-                            constants.FONT_FAMILY_DEFAULT,
-                            size=constants.FONT_SIZE_SMALL,
+                            settings.FONT_FAMILY_DEFAULT,
+                            size=settings.FONT_SIZE_SMALL,
                         )
-                        document.write(constants.LINE_HEIGHT_DEFAULT, text)
+                        document.write(settings.LINE_HEIGHT_DEFAULT, text)
                         document.ln()
 
                     if "image_url" in attach:
@@ -365,11 +365,11 @@ class SlackChannelExporter:
                             '<a href="' + attach["image_url"] + '">[Image]</a>'
                         )
                         document.set_font(
-                            constants.FONT_FAMILY_DEFAULT,
-                            size=constants.FONT_SIZE_NORMAL,
+                            settings.FONT_FAMILY_DEFAULT,
+                            size=settings.FONT_SIZE_NORMAL,
                         )
                         document.write_html(
-                            constants.LINE_HEIGHT_DEFAULT, image_url_html
+                            settings.LINE_HEIGHT_DEFAULT, image_url_html
                         )
                         document.ln()
 
@@ -377,11 +377,11 @@ class SlackChannelExporter:
                     if "actions" in attach:
                         for action in attach["actions"]:
                             document.set_font(
-                                constants.FONT_FAMILY_DEFAULT,
-                                size=constants.FONT_SIZE_SMALL,
+                                settings.FONT_FAMILY_DEFAULT,
+                                size=settings.FONT_SIZE_SMALL,
                             )
                             document.write_html(
-                                constants.LINE_HEIGHT_DEFAULT,
+                                settings.LINE_HEIGHT_DEFAULT,
                                 (
                                     "["
                                     + self._transformer.transform_text(action["text"])
@@ -391,24 +391,24 @@ class SlackChannelExporter:
 
                         document.ln()
 
-                document.ln(constants.LINE_HEIGHT_SMALL)
+                document.ln(settings.LINE_HEIGHT_SMALL)
 
             if "blocks" in msg:
-                document.set_left_margin(margin_left + constants.TAB_WIDTH)
-                document.set_x(margin_left + constants.TAB_WIDTH)
+                document.set_left_margin(margin_left + settings.TAB_WIDTH)
+                document.set_x(margin_left + settings.TAB_WIDTH)
 
                 for layout_block in msg["blocks"]:
                     block_type = layout_block["type"]
-                    document.ln(constants.LINE_HEIGHT_SMALL)
+                    document.ln(settings.LINE_HEIGHT_SMALL)
 
                     # section layout blocks
                     if block_type == "section":
                         document.set_font(
-                            constants.FONT_FAMILY_DEFAULT,
-                            size=constants.FONT_SIZE_NORMAL,
+                            settings.FONT_FAMILY_DEFAULT,
+                            size=settings.FONT_SIZE_NORMAL,
                         )
                         document.write_html(
-                            constants.LINE_HEIGHT_DEFAULT,
+                            settings.LINE_HEIGHT_DEFAULT,
                             self._transformer.transform_text(
                                 layout_block["text"]["text"],
                                 layout_block["text"]["type"] == "mrkdwn",
@@ -419,24 +419,24 @@ class SlackChannelExporter:
                         if "fields" in layout_block:
                             for field in layout_block["fields"]:
                                 document.set_font(
-                                    constants.FONT_FAMILY_DEFAULT,
-                                    size=constants.FONT_SIZE_NORMAL,
+                                    settings.FONT_FAMILY_DEFAULT,
+                                    size=settings.FONT_SIZE_NORMAL,
                                 )
                                 document.write_html(
-                                    constants.LINE_HEIGHT_DEFAULT,
+                                    settings.LINE_HEIGHT_DEFAULT,
                                     self._transformer.transform_text(
                                         field["text"], field["type"] == "mrkdwn"
                                     ),
                                 )
                                 document.ln()
 
-                document.ln(constants.LINE_HEIGHT_SMALL)
+                document.ln(settings.LINE_HEIGHT_SMALL)
 
         else:
             user_id = None
             print(f"WARN: Can not process message with ts {msg['ts']}")
             document.write(
-                constants.LINE_HEIGHT_DEFAULT, "[Can not process this message]"
+                settings.LINE_HEIGHT_DEFAULT, "[Can not process this message]"
             )
             document.ln()
 
@@ -463,15 +463,15 @@ class SlackChannelExporter:
 
                 # write day seperator if needed
                 if last_dt is None or msg_dt.date() != last_dt.date():
-                    document.ln(constants.LINE_HEIGHT_SMALL)
-                    document.ln(constants.LINE_HEIGHT_SMALL)
+                    document.ln(settings.LINE_HEIGHT_SMALL)
+                    document.ln(settings.LINE_HEIGHT_SMALL)
                     document.set_font(
-                        constants.FONT_FAMILY_DEFAULT, size=constants.FONT_SIZE_NORMAL
+                        settings.FONT_FAMILY_DEFAULT, size=settings.FONT_SIZE_NORMAL
                     )
 
                     # draw divider line for next day
-                    page_width = document.fw - 2 * constants.MARGIN_LEFT
-                    x1 = constants.MARGIN_LEFT
+                    page_width = document.fw - 2 * settings.MARGIN_LEFT
+                    x1 = settings.MARGIN_LEFT
                     x2 = x1 + page_width
                     y1 = document.get_y() + 3
                     document.line(x1, y1, x2, y1)
@@ -486,7 +486,7 @@ class SlackChannelExporter:
                     document.set_x(x4 - border_x)
                     document.cell(
                         text_width + 2 * border_x,
-                        constants.LINE_HEIGHT_DEFAULT,
+                        settings.LINE_HEIGHT_DEFAULT,
                         date_text,
                         0,
                         0,
@@ -503,7 +503,7 @@ class SlackChannelExporter:
                     last_page = document.page_no()
 
                 last_user_id = self._parse_message_and_write_to_pdf(
-                    document, msg, constants.MARGIN_LEFT, last_user_id
+                    document, msg, settings.MARGIN_LEFT, last_user_id
                 )
                 if "thread_ts" in msg and msg["thread_ts"] == msg["ts"]:
                     thread_ts = msg["thread_ts"]
@@ -517,7 +517,7 @@ class SlackChannelExporter:
                                 last_user_id = self._parse_message_and_write_to_pdf(
                                     document,
                                     thread_msg,
-                                    constants.MARGIN_LEFT + constants.TAB_WIDTH,
+                                    settings.MARGIN_LEFT + settings.TAB_WIDTH,
                                     last_user_id,
                                 )
 
@@ -526,10 +526,10 @@ class SlackChannelExporter:
                 last_dt = msg_dt
         else:
             document.set_font(
-                constants.FONT_FAMILY_DEFAULT, size=constants.FONT_SIZE_NORMAL
+                settings.FONT_FAMILY_DEFAULT, size=settings.FONT_SIZE_NORMAL
             )
             document.ln()
-            document.write(constants.LINE_HEIGHT_DEFAULT, "This channel is empty", "I")
+            document.write(settings.LINE_HEIGHT_DEFAULT, "This channel is empty", "I")
 
     def run(
         self,
@@ -572,7 +572,7 @@ class SlackChannelExporter:
             if not isinstance(max_messages, int):
                 raise TypeError("max_messages must be of type int")
         else:
-            max_messages = constants.MAX_MESSAGES_PER_CHANNEL
+            max_messages = settings.MAX_MESSAGES_PER_CHANNEL
 
         if oldest is not None:
             if not isinstance(oldest, datetime):
@@ -715,42 +715,42 @@ class SlackChannelExporter:
 
             # create PDF
             document = MyFPDF(
-                page_orientation, constants.PAGE_UNITS_DEFAULT, page_format
+                page_orientation, settings.PAGE_UNITS_DEFAULT, page_format
             )
 
             # add all fonts to support unicode
             document.add_font(
-                constants.FONT_FAMILY_DEFAULT,
+                settings.FONT_FAMILY_DEFAULT,
                 style="",
                 fname="NotoSans-Regular.ttf",
                 uni=True,
             )
             document.add_font(
-                constants.FONT_FAMILY_DEFAULT,
+                settings.FONT_FAMILY_DEFAULT,
                 style="B",
                 fname="NotoSans-Bold.ttf",
                 uni=True,
             )
             document.add_font(
-                constants.FONT_FAMILY_DEFAULT,
+                settings.FONT_FAMILY_DEFAULT,
                 style="I",
                 fname="NotoSans-Italic.ttf",
                 uni=True,
             )
             document.add_font(
-                constants.FONT_FAMILY_DEFAULT,
+                settings.FONT_FAMILY_DEFAULT,
                 style="BI",
                 fname="NotoSans-BoldItalic.ttf",
                 uni=True,
             )
             document.add_font(
-                constants.FONT_FAMILY_MONO_DEFAULT,
+                settings.FONT_FAMILY_MONO_DEFAULT,
                 style="",
                 fname="NotoSansMono-Regular.ttf",
                 uni=True,
             )
             document.add_font(
-                constants.FONT_FAMILY_MONO_DEFAULT,
+                settings.FONT_FAMILY_MONO_DEFAULT,
                 style="B",
                 fname="NotoSansMono-Bold.ttf",
                 uni=True,
@@ -801,18 +801,18 @@ class SlackChannelExporter:
 
             # write title on first page
             document.set_font(
-                constants.FONT_FAMILY_DEFAULT, size=constants.FONT_SIZE_LARGE, style="B"
+                settings.FONT_FAMILY_DEFAULT, size=settings.FONT_SIZE_LARGE, style="B"
             )
             document.cell(0, 0, title, 0, 1, "C")
-            document.ln(constants.LINE_HEIGHT_DEFAULT)
+            document.ln(settings.LINE_HEIGHT_DEFAULT)
 
             document.set_font(
-                constants.FONT_FAMILY_DEFAULT,
-                size=constants.FONT_SIZE_NORMAL,
+                settings.FONT_FAMILY_DEFAULT,
+                size=settings.FONT_SIZE_NORMAL,
                 style="B",
             )
             document.cell(0, 0, sub_title, 0, 1, "C")
-            document.ln(constants.LINE_HEIGHT_DEFAULT)
+            document.ln(settings.LINE_HEIGHT_DEFAULT)
 
             # write info block after title
             thread_count = len(threads.keys()) if len(threads) > 0 else 0

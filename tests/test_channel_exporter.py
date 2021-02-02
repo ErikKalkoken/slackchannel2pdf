@@ -10,7 +10,7 @@ import babel
 import PyPDF2
 
 from slackchannel2pdf import __version__
-from slackchannel2pdf import constants
+from slackchannel2pdf import settings
 from slackchannel2pdf.channel_exporter import SlackChannelExporter
 
 from .no_sockets import NoSocketsTestCase
@@ -78,7 +78,7 @@ class TestExporterTransformText(NoSocketsTestCase):
             self.assertEqual(res_channel["page_orientation"], "portrait")
             self.assertEqual(
                 res_channel["max_messages"],
-                constants.MAX_MESSAGES_PER_CHANNEL,
+                settings.MAX_MESSAGES_PER_CHANNEL,
             )
             self.assertEqual(res_channel["timezone"], get_localzone())
             self.assertEqual(res_channel["locale"], babel.Locale.default())

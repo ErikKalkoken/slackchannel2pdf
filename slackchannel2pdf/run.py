@@ -7,7 +7,7 @@ import pytz
 from babel import Locale, UnknownLocaleError
 
 from . import __version__
-from . import constants
+from . import settings
 from .channel_exporter import SlackChannelExporter
 
 
@@ -126,13 +126,13 @@ def parse_args(args) -> argparse.ArgumentParser:
         "--page-orientation",
         help="Orientation of PDF pages",
         choices=["portrait", "landscape"],
-        default=constants.PAGE_ORIENTATION_DEFAULT,
+        default=settings.PAGE_ORIENTATION_DEFAULT,
     )
     my_arg_parser.add_argument(
         "--page-format",
         help="Format of PDF pages",
         choices=["a3", "a4", "a5", "letter", "legal"],
-        default=constants.PAGE_FORMAT_DEFAULT,
+        default=settings.PAGE_FORMAT_DEFAULT,
     )
     my_arg_parser.add_argument(
         "--timezone",
@@ -165,7 +165,7 @@ def parse_args(args) -> argparse.ArgumentParser:
         "--max-messages",
         help="max number of messages to export",
         type=int,
-        default=constants.MAX_MESSAGES_PER_CHANNEL,
+        default=settings.MAX_MESSAGES_PER_CHANNEL,
     )
 
     # Developer needs

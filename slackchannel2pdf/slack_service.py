@@ -3,14 +3,12 @@ from time import sleep
 from babel.numbers import format_number
 import slack
 
+from . import settings
 from .helpers import transform_encoding, LocaleHelper
 
 
 class SlackService:
     """Service layer between main app and Slack API"""
-
-    # limits for fetching messages from Slack
-    _MESSAGES_PER_PAGE = 100  # max message retrieved per request during paging
 
     def __init__(self, slack_token: str, locale_helper: LocaleHelper = None) -> None:
         """
@@ -150,7 +148,7 @@ class SlackService:
     ):
         """retrieve messages from a channel on Slack and return as list"""
 
-        messages_per_page = min(self._MESSAGES_PER_PAGE, max_messages)
+        messages_per_page = min(settings.MAX_ITEMS_PER_PAGE_REQUEST, max_messages)
         oldest_ts = str(oldest.timestamp()) if oldest is not None else 0
         latest_ts = str(latest.timestamp()) if latest is not None else 0
         messages = self._fetch_pages(
@@ -209,7 +207,7 @@ class SlackService:
         self, channel_id, thread_ts, max_messages, oldest=None, latest=None
     ) -> list:
         """retrieve messages from a Slack thread and return as list"""
-        messages_per_page = min(self._MESSAGES_PER_PAGE, max_messages)
+        messages_per_page = min(settings.MAX_ITEMS_PER_PAGE_REQUEST, max_messages)
         oldest_ts = str(oldest.timestamp()) if oldest is not None else 0
         latest_ts = str(latest.timestamp()) if latest is not None else 0
         messages = self._fetch_pages(
