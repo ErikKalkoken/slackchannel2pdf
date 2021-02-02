@@ -95,7 +95,7 @@ class SlackClientStub:
         else:
             return slack_response(None, ok=False, error="User not found")
 
-    def users_list(self) -> str:
+    def users_list(self, limit=None) -> str:
         return slack_response(self._slack_data[self._team]["users_list"])
 
     def usergroups_list(self) -> str:

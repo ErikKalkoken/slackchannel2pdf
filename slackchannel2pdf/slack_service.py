@@ -91,21 +91,14 @@ class SlackService:
         assert response["ok"]
         return response
 
-    def fetch_user_names(self):
+    def fetch_user_names(self) -> dict:
         """returns dict of user names with user ID as key"""
-
-        print("Fetching users for workspace...")
-        response = self._client.users_list()
-        assert response["ok"]
-        user_names = self._reduce_to_dict(
-            response["members"], "id", "real_name", "name"
+        user_names_raw = self._fetch_pages(
+            "users_list", key="members", items_name="users"
         )
+        user_names = self._reduce_to_dict(user_names_raw, "id", "real_name", "name")
         for user in user_names:
             user_names[user] = transform_encoding(user_names[user])
-        print(
-            f"Got a total of "
-            f"{format_number(len(user_names))} users for this workspace"
-        )
         return user_names
 
     def _fetch_user_info(self, user_id):
@@ -118,26 +111,21 @@ class SlackService:
 
     def _fetch_channel_names(self) -> dict:
         """returns dict of channel names with channel ID as key"""
-
-        print("Fetching conversations for workspace...")
         channel_names_raw = self._fetch_pages(
             "conversations_list",
-            args={"types": "public_channel,private_channel"},
             key="channels",
+            args={"types": "public_channel,private_channel"},
+            items_name="channels",
         )
         channel_names = self._reduce_to_dict(channel_names_raw, "id", "name")
         for channel in channel_names:
             channel_names[channel] = transform_encoding(channel_names[channel])
-        print(
-            f"Got a total of "
-            f"{format_number(len(channel_names))} conversations for this workspace"
-        )
         return channel_names
 
     def _fetch_usergroup_names(self):
         """returns dict of usergroup names with usergroup ID as key"""
 
-        print("Fetching usergroups for workspace...")
+        print("Fetching usergroups from Slack...")
         response = self._client.usergroups_list()
         assert response["ok"]
         usergroup_names = self._reduce_to_dict(response["usergroups"], "id", "handle")
@@ -163,18 +151,15 @@ class SlackService:
         latest_ts = str(latest.timestamp()) if latest is not None else 0
         messages = self._fetch_pages(
             "conversations_history",
+            key="messages",
             args={
                 "channel": channel_id,
                 "oldest": oldest_ts,
                 "latest": latest_ts,
             },
-            key="messages",
             max_rows=max_messages,
-        )
-        print(
-            f"Fetched a total of "
-            f"{format_number(len(messages), locale=self._locale)}"
-            f" messages from channel {self._channel_names[channel_id]}"
+            items_name="messages",
+            collection_name="channel",
         )
         return messages
 
@@ -182,7 +167,6 @@ class SlackService:
         self, channel_id, messages, max_messages, oldest=None, latest=None
     ) -> dict:
         """returns threads from all messages from for a channel as dict"""
-
         threads = dict()
         thread_num = 0
         thread_messages_total = 0
@@ -196,9 +180,9 @@ class SlackService:
                 threads[thread_ts] = thread_messages
                 thread_messages_total += len(thread_messages)
 
-        if thread_messages_total > 0:
+        if thread_messages_total:
             print(
-                f"Fetched a total of "
+                f"Received a total of "
                 f"{format_number(thread_messages_total, locale=self._locale)}"
                 f" messages from {thread_num} threads"
             )
@@ -215,16 +199,74 @@ class SlackService:
         latest_ts = str(latest.timestamp()) if latest is not None else 0
         messages = self._fetch_pages(
             "conversations_replies",
+            key="messages",
             args={
                 "channel": channel_id,
                 "ts": thread_ts,
                 "oldest": oldest_ts,
                 "latest": latest_ts,
             },
-            key="messages",
             max_rows=max_messages,
+            items_name="threads",
+            collection_name="channel",
+            print_result=False,
         )
         return messages
+
+    def _fetch_pages(
+        self,
+        method,
+        key: str,
+        args: dict = None,
+        limit: int = None,
+        max_rows: int = None,
+        items_name: str = None,
+        collection_name: str = None,
+        print_result: bool = True,
+    ) -> list:
+        """helper for retrieving all pages from an API endpoint"""
+        # fetch first page
+        page = 1
+        output_str = (
+            f"Fetching {items_name if items_name else method} "
+            f"from {collection_name if collection_name else 'Slack'}"
+        )
+        print(output_str)
+        if not args:
+            args = {}
+        if not limit:
+            limit = settings.SLACK_PAGE_LIMIT
+        base_args = {**args, **{"limit": limit}}
+        response = getattr(self._client, method)(**base_args)
+        assert response["ok"]
+        rows = response[key]
+
+        # fetch additional page (if any)
+        while (
+            (not max_rows or len(rows) < max_rows)
+            and response.get("response_metadata")
+            and response["response_metadata"].get("next_cursor")
+        ):
+            page += 1
+            print(f"{output_str} - page {page}")
+            sleep(1)  # need to wait 1 sec before next call due to rate limits
+            page_args = {
+                **base_args,
+                **{
+                    "cursor": response["response_metadata"].get("next_cursor"),
+                },
+            }
+            response = getattr(self._client, method)(**page_args)
+            assert response["ok"]
+            rows += response[key]
+
+        if print_result:
+            print(
+                f"Received a total of "
+                f"{format_number(len(rows), locale=self._locale)} "
+                f"{items_name if items_name else 'objects'}"
+            )
+        return rows
 
     def fetch_bot_names_for_messages(self, messages, threads):
         """Fetches bot names from API for provided messages
@@ -232,7 +274,6 @@ class SlackService:
         Will only fetch names for bots that never appeared with a username
         in any message (lazy approach since calls to bots_info are very slow)
         """
-
         # collect bot_ids without user name from messages
         bot_ids = list()
         bot_names = dict()
@@ -267,41 +308,6 @@ class SlackService:
                     sleep(1)  # need to wait 1 sec before next call due to rate limits
 
         return bot_names
-
-    def _fetch_pages(
-        self, method, args: dict, key: str, limit: int = None, max_rows: int = None
-    ) -> list:
-        """helper for retrieving all pages from an API endpoint"""
-        # fetch first page
-        page = 1
-        print(f"{method} - Fetching page {page}")
-        if not limit:
-            limit = settings.SLACK_PAGE_LIMIT
-        base_args = {**args, **{"limit": limit}}
-        response = getattr(self._client, method)(**base_args)
-        assert response["ok"]
-        rows = response[key]
-
-        # fetch additional page (if any)
-        while (
-            (not max_rows or len(rows) < max_rows)
-            and response.get("response_metadata")
-            and response["response_metadata"].get("next_cursor")
-        ):
-            page += 1
-            print(f"{method} - Fetching page {page}")
-            sleep(1)  # need to wait 1 sec before next call due to rate limits
-            page_args = {
-                **base_args,
-                **{
-                    "cursor": response["response_metadata"].get("next_cursor"),
-                },
-            }
-            response = getattr(self._client, method)(**page_args)
-            assert response["ok"]
-            rows += response[key]
-
-        return rows
 
     @staticmethod
     def _reduce_to_dict(arr, key_name, col_name_primary, col_name_secondary=None):

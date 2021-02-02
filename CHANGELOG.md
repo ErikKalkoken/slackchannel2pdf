@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 - Major refactoring
+- Now also uses paging to fetch list of users
 
 ### Fixed
 

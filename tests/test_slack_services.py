@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 from slackchannel2pdf.slack_service import SlackService
-from .testtools import SlackClientStub
+from .slack_client_stub import SlackClientStub
 from .no_sockets import NoSocketsTestCase
 
 
@@ -37,32 +37,50 @@ class TestExporterReduceToDict(NoSocketsTestCase):
 @patch(MODULE_NAME + ".slack")
 @patch(MODULE_NAME + ".sleep", lambda x: None)
 class TestSlackService(NoSocketsTestCase):
-    def test_should_return_list_of_conversations_1(self, mock_slack):
+    def test_should_return_all_user_names_1(self, mock_slack):
         # given
         mock_slack.WebClient.return_value = SlackClientStub(team="T12345678")
-        slack_service = SlackService("TOKEN_DUMMY")
+        slack_service = SlackService("TEST")
         # when
-        result = slack_service.channel_names()
+        result = slack_service.fetch_user_names()
         # then
         self.assertDictEqual(
             {
-                "C12345678": "berlin",
-                "C42345678": "oslo",
-                "C72345678": "london",
-                "G1234567X": "bangkok",
-                "G2234567X": "tokyo",
+                "U12345678": "Naoko Kobayashi",
+                "U62345678": "Janet Hakuli",
+                "U72345678": "Yuna Kobayashi",
+                "U92345678": "Rosie Dunbar",
+                "U9234567X": "Erik Kalkoken",
             },
             result,
         )
 
-    def test_should_return_list_of_conversations_2(self, mock_slack):
+    def test_should_return_all_user_names_2(self, mock_slack):
         # given
         mock_slack.WebClient.return_value = SlackClientStub(
             team="T12345678", page_size=2
         )
         slack_service = SlackService("TOKEN_DUMMY")
         # when
-        result = slack_service.channel_names()
+        result = slack_service.fetch_user_names()
+        # then
+        self.assertDictEqual(
+            {
+                "U12345678": "Naoko Kobayashi",
+                "U62345678": "Janet Hakuli",
+                "U72345678": "Yuna Kobayashi",
+                "U92345678": "Rosie Dunbar",
+                "U9234567X": "Erik Kalkoken",
+            },
+            result,
+        )
+
+    def test_should_return_all_conversations_1(self, mock_slack):
+        # given
+        mock_slack.WebClient.return_value = SlackClientStub(team="T12345678")
+        slack_service = SlackService("TEST")
+        # when
+        result = slack_service._fetch_channel_names()
         # then
         self.assertDictEqual(
             {
@@ -75,7 +93,27 @@ class TestSlackService(NoSocketsTestCase):
             result,
         )
 
-    def test_should_return_messages_of_conversation_1(self, mock_slack):
+    def test_should_return_all_conversations_2(self, mock_slack):
+        # given
+        mock_slack.WebClient.return_value = SlackClientStub(
+            team="T12345678", page_size=2
+        )
+        slack_service = SlackService("TEST")
+        # when
+        result = slack_service._fetch_channel_names()
+        # then
+        self.assertDictEqual(
+            {
+                "C12345678": "berlin",
+                "C42345678": "oslo",
+                "C72345678": "london",
+                "G1234567X": "bangkok",
+                "G2234567X": "tokyo",
+            },
+            result,
+        )
+
+    def test_should_return_all_messages_from_conversation_1(self, mock_slack):
         # given
         mock_slack.WebClient.return_value = SlackClientStub(team="T12345678")
         slack_service = SlackService("TEST")
@@ -95,7 +133,7 @@ class TestSlackService(NoSocketsTestCase):
             },
         )
 
-    def test_should_return_messages_of_conversation_2(self, mock_slack):
+    def test_should_return_all_messages_from_conversation_2(self, mock_slack):
         # given
         mock_slack.WebClient.return_value = SlackClientStub(
             team="T12345678", page_size=2
@@ -117,7 +155,7 @@ class TestSlackService(NoSocketsTestCase):
             },
         )
 
-    def test_should_return_threads_from_messages(self, mock_slack):
+    def test_should_return_all_threads_from_messages(self, mock_slack):
         # given
         slack_stub = SlackClientStub(team="T12345678", page_size=2)
         mock_slack.WebClient.return_value = slack_stub

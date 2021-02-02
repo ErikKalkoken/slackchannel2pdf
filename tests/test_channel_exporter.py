@@ -14,7 +14,7 @@ from slackchannel2pdf import settings
 from slackchannel2pdf.channel_exporter import SlackChannelExporter
 
 from .no_sockets import NoSocketsTestCase
-from .testtools import SlackClientStub
+from .slack_client_stub import SlackClientStub
 
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
