@@ -52,7 +52,7 @@ class SlackClientStub:
         return slack_response({}, ok=False)
 
     def conversations_replies(
-        self, channel, ts, limit, oldest, latest, cursor=None
+        self, channel, ts, limit=None, oldest=None, latest=None, cursor=None
     ) -> str:
         if (
             channel in self._slack_data[self._team]["conversations_replies"]
@@ -65,7 +65,9 @@ class SlackClientStub:
         else:
             return slack_response(None, ok=False, error="Thread not found")
 
-    def conversations_history(self, channel, limit, oldest, latest, cursor=None) -> str:
+    def conversations_history(
+        self, channel, limit=None, oldest=None, latest=None, cursor=None
+    ) -> str:
         if channel in self._slack_data[self._team]["conversations_history"]:
             messages = self._slack_data[self._team]["conversations_history"][channel]
             return self._paging(messages, "messages", cursor)
@@ -76,7 +78,7 @@ class SlackClientStub:
     def _messages_to_response(messages: list) -> dict:
         return {"messages": messages, "has_more": False}
 
-    def conversations_list(self, types, cursor=None) -> str:
+    def conversations_list(self, types, limit=None, cursor=None) -> str:
         return self._paging(
             self._slack_data[self._team]["conversations_list"]["channels"],
             "channels",
