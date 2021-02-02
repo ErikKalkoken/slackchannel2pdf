@@ -330,34 +330,38 @@ class TestExporterSlackMethods(unittest.TestCase):
 
 
 @patch("slackchannel2pdf.slack_service.slack")
+@patch("slackchannel2pdf.slack_service.sleep", lambda x: None)
 class TestSlackExporterFull(NoSocketsTestCase):
     """New test approach with API mocking, that allows full testing of the exporter"""
 
     def test_basic(self, mock_slack):
+        # given
         mock_slack.WebClient.return_value = SlackClientStub(team="T12345678")
-
         exporter = SlackChannelExporter("TOKEN_DUMMY")
         channels = ["C12345678"]
+        # when
         response = exporter.run(channels, currentdir)
-
+        # then
         self.assertTrue(response["ok"])
 
     def test_all_message_variants(self, mock_slack):
+        # given
         mock_slack.WebClient.return_value = SlackClientStub(team="T12345678")
-
         exporter = SlackChannelExporter("TOKEN_DUMMY")
         channels = ["G1234567X"]
+        # when
         response = exporter.run(channels, currentdir)
-
+        # then
         self.assertTrue(response["ok"])
 
     def test_team_name_invalid_characters(self, mock_slack):
+        # given
         mock_slack.WebClient.return_value = SlackClientStub(team="T92345678")
-
         exporter = SlackChannelExporter("TOKEN_DUMMY")
         channels = ["C12345678"]
+        # when
         response = exporter.run(channels, currentdir)
-
+        # then
         self.assertTrue(response["ok"])
 
 
