@@ -50,42 +50,47 @@ def write_array_to_json_file(arr, filename):
 class LocaleHelper:
     """Helpers for converting date & time according to current locale and timezone"""
 
-    def __init__(self, my_locale, my_tz, author_info) -> None:
-        # set locale
-        # check if overridden locale is valid
-        if my_locale is not None:
+    def __init__(
+        self,
+        my_locale: Locale = None,
+        my_tz: pytz.BaseTzInfo = None,
+        author_info: dict = None,
+    ) -> None:
+        """
+        Args:
+        - my_locale: Primary locale to use
+        - my_tz: Primary timezone to use
+        - author_info: locale and timezone to use from this Slack response
+        if my_locale and/or my_tz are not given
+        """
+        # get locale to use
+        if my_locale:
             if not isinstance(my_locale, Locale):
                 raise TypeError("my_locale must be a babel Locale object")
         else:
-            # if not overridden use timezone info from author on Slack if available
             if author_info:
                 try:
                     my_locale = Locale.parse(author_info["locale"], sep="-")
                 except UnknownLocaleError:
                     print("WARN: Could not use locale info from Slack")
                     my_locale = Locale.default()
-
-            # else use local time of this system
             else:
                 my_locale = Locale.default()
 
         print(f"Locale is: {my_locale.get_display_name()} [{my_locale}]")
         self._locale = my_locale
 
-        # set timezone
-        # check if overridden timezone is valid
-        if my_tz is not None:
+        # get timezone to use
+        if my_tz:
             if not isinstance(my_tz, pytz.BaseTzInfo):
                 raise TypeError("my_tz must be of type pytz")
         else:
-            # if not overridden use timezone info from author on Slack if available
             if author_info:
                 try:
                     my_tz = pytz.timezone(author_info["tz"])
                 except pytz.exceptions.UnknownTimeZoneError:
                     print("WARN: Could not use timezone info from Slack")
                     my_tz = get_localzone()
-            # else use local time of this system
             else:
                 my_tz = get_localzone()
 

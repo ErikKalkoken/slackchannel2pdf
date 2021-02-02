@@ -1,9 +1,9 @@
 from time import sleep
 
-from babel.numbers import format_number, LC_NUMERIC
+from babel.numbers import format_number
 import slack
 
-from .helpers import transform_encoding
+from .helpers import transform_encoding, LocaleHelper
 
 
 class SlackService:
@@ -12,12 +12,20 @@ class SlackService:
     # limits for fetching messages from Slack
     _MESSAGES_PER_PAGE = 100  # max message retrieved per request during paging
 
-    def __init__(self, slack_token) -> None:
+    def __init__(self, slack_token: str, locale_helper: LocaleHelper = None) -> None:
+        """
+        Args:
+        - slack_token: Slack token to use for all API calls
+        - locale_helper: locale to use
+        """
         if slack_token is None:
             raise ValueError("slack_token can not be null")
 
         # load information for current Slack workspace
         self._client = slack.WebClient(token=slack_token)
+        if not locale_helper:
+            locale_helper = LocaleHelper()
+        self._locale = locale_helper.locale
         if slack_token != "TEST":
             self._workspace_info = self._fetch_workspace_info()
             self._user_names = self.fetch_user_names()
@@ -107,13 +115,10 @@ class SlackService:
         assert response["ok"]
         return response["user"]
 
-    def _fetch_channel_names(self):
+    def _fetch_channel_names(self) -> dict:
         """returns dict of channel names with channel ID as key"""
 
-        print("Fetching channels for workspace...")
-        # response = self._client.conversations_list(
-        #     types="public_channel,private_channel"
-        # )
+        print("Fetching conversations for workspace...")
         channel_names_raw = self._fetch_pages(
             "conversations_list",
             args={"types": "public_channel,private_channel"},
@@ -122,7 +127,10 @@ class SlackService:
         channel_names = self._reduce_to_dict(channel_names_raw, "id", "name")
         for channel in channel_names:
             channel_names[channel] = transform_encoding(channel_names[channel])
-
+        print(
+            f"Fetched a total of "
+            f"{format_number(len(channel_names))} conversations for this workspace"
+        )
         return channel_names
 
     def _fetch_usergroup_names(self):
@@ -138,7 +146,7 @@ class SlackService:
         return usergroup_names
 
     def fetch_messages_from_channel(
-        self, channel_id, max_messages, locale=LC_NUMERIC, oldest=None, latest=None
+        self, channel_id, max_messages, oldest=None, latest=None
     ):
         """retrieve messages from a channel on Slack and return as list"""
 
@@ -158,7 +166,7 @@ class SlackService:
         )
         print(
             f"Fetched a total of "
-            f"{format_number(len(messages), locale=locale)}"
+            f"{format_number(len(messages), locale=self._locale)}"
             f" messages from channel {self._channel_names[channel_id]}"
         )
         return messages
@@ -168,7 +176,6 @@ class SlackService:
         channel_id,
         messages,
         max_messages,
-        locale=LC_NUMERIC,
         oldest=None,
         latest=None,
     ) -> dict:
@@ -190,7 +197,7 @@ class SlackService:
         if thread_messages_total > 0:
             print(
                 f"Fetched a total of "
-                f"{format_number(thread_messages_total, locale=locale)}"
+                f"{format_number(thread_messages_total, locale=self._locale)}"
                 f" messages from {thread_num} threads"
             )
         else:

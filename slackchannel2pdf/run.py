@@ -14,6 +14,9 @@ from .channel_exporter import SlackChannelExporter
 def main():
     """Implements the arg parser and starts the slackchannel2pdf with its input"""
 
+    print(f"slackchannel2pdf v{__version__} by Erik Kalkoken")
+    print("")
+
     args = parse_args(sys.argv[1:])
     start_export = True
 

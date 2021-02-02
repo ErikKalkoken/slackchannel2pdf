@@ -39,8 +39,6 @@ class SlackChannelExporter:
 
     """
 
-    FALLBACK_LOCALE = "en"
-
     def __init__(self, slack_token, my_tz=None, my_locale=None, add_debug_info=False):
         """
         Args:
@@ -54,10 +52,6 @@ class SlackChannelExporter:
         self._bot_names = dict()
         if slack_token is None:
             raise ValueError("slack_token can not be null")
-
-        # output welcome message
-        print(f"slackchannel2pdf v{__version__} by Erik Kalkoken")
-        print("")
 
         self._slack_service = SlackService(slack_token)
 
@@ -681,15 +675,10 @@ class SlackChannelExporter:
 
                 print(text + " ...")
                 messages = self._slack_service.fetch_messages_from_channel(
-                    channel_id, max_messages, self._locale_helper.locale, oldest, latest
+                    channel_id, max_messages, oldest, latest
                 )
                 threads = self._slack_service.fetch_threads_from_messages(
-                    channel_id,
-                    messages,
-                    max_messages,
-                    self._locale_helper.locale,
-                    oldest,
-                    latest,
+                    channel_id, messages, max_messages, oldest, latest
                 )
                 self._bot_names = self._slack_service.fetch_bot_names_for_messages(
                     messages, threads
