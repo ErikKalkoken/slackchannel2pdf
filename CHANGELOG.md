@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.2.2] - 2021-02-03
+
 ### Fixed
 
 - 'NoneType' object has no attribute 'get_display_name'
