@@ -458,7 +458,7 @@ class SlackChannelExporter:
                 if last_dt is not None:
                     dt_delta = msg_dt - last_dt
                     minutes_delta = dt_delta / timedelta(minutes=1)
-                    if minutes_delta > 30:
+                    if minutes_delta > settings.MINUTES_UNTIL_USERNAME_REPEATS:
                         last_user_id = None
 
                 # write day seperator if needed
@@ -511,9 +511,23 @@ class SlackChannelExporter:
                     if thread_ts in threads:
                         thread_messages = threads[thread_ts]
                         last_user_id = None
+                        last_dt = None
                         thread_messages = sorted(thread_messages, key=lambda k: k["ts"])
                         for thread_msg in thread_messages:
                             if thread_msg["ts"] != thread_msg["thread_ts"]:
+                                # repeat user name for if last post from same user is older
+                                msg_dt = self._locale_helper.get_datetime_from_ts(
+                                    thread_msg["ts"]
+                                )
+                                if last_dt is not None:
+                                    dt_delta = msg_dt - last_dt
+                                    minutes_delta = dt_delta / timedelta(minutes=1)
+                                    if (
+                                        minutes_delta
+                                        > settings.MINUTES_UNTIL_USERNAME_REPEATS
+                                    ):
+                                        last_user_id = None
+                                last_dt = msg_dt
                                 last_user_id = self._parse_message_and_write_to_pdf(
                                     document,
                                     thread_msg,

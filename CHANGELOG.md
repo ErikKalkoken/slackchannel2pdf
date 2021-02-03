@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.2.1] - 2021-02-03
+
+### Fixed
+
+- Missing timestamp for posts in thread [#5](https://github.com/ErikKalkoken/slackchannel2pdf/issues/5)
+
 ## [1.2.0] - 2021-02-02
 
 ### Changed
