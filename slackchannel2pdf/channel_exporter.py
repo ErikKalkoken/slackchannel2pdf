@@ -62,6 +62,8 @@ class SlackChannelExporter:
         # set locale & timezone
         author_info = self._slack_service.author_info()
         self._locale_helper = LocaleHelper(my_locale, my_tz, author_info)
+        self._locale_helper.print_locale()
+        self._locale_helper.print_timezone()
         self._transformer = MessageTransformer(
             slack_service=self._slack_service,
             locale_helper=self._locale_helper,

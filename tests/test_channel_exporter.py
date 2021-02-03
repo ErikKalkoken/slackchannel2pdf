@@ -3,12 +3,10 @@ import os
 import unittest
 from unittest.mock import patch
 
-from datetime import datetime
-import pytz
-from tzlocal import get_localzone
 import babel
-import PyPDF2
+import pytz
 
+import PyPDF2
 from slackchannel2pdf import __version__
 from slackchannel2pdf import settings
 from slackchannel2pdf.channel_exporter import SlackChannelExporter
@@ -19,54 +17,48 @@ from .slack_client_stub import SlackClientStub
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 
+"""
+def test_run_with_error(self):
+    self.assertRaises(RuntimeError, self.exporter.run(
+        ["channel-exporter"],
+        "invalid_path"
+    ))
+"""
 
-class TestExporterTransformText(NoSocketsTestCase):
-    def setUp(self):
-        workspace_info = {"team": "test", "user_id": "U9234567X"}
-        user_names = {
-            "U12345678": "Naoko Kobayashi",
-            "U62345678": "Janet Hakuli",
-            "U72345678": "Yuna Kobayashi",
-            "U9234567X": "Erik Kalkoken",
-            "U92345678": "Rosie Dunbar",
-        }
 
-        channel_names = {
-            "C12345678": "berlin",
-            "C72345678": "tokio",
-            "C42345678": "oslo",
-            "G1234567X": "channel-exporter",
-            "G2234567X": "channel-exporter-2",
-        }
+@patch("slackchannel2pdf.slack_service.slack")
+@patch("slackchannel2pdf.slack_service.sleep", lambda x: None)
+class TestSlackChannelExporter(NoSocketsTestCase):
+    """New test approach with API mocking, that allows full testing of the exporter"""
 
-        usergroup_names = {
-            "S12345678": "admins",
-            "S72345678": "marketing",
-            "S42345678": "sales",
-        }
-
-        self.exporter = SlackChannelExporter("TEST")
-        self.exporter._slack_service._workspace_info = workspace_info
-        self.exporter._slack_service._user_names = user_names
-        self.exporter._slack_service._channel_names = channel_names
-        self.exporter._slack_service._usergroup_names = usergroup_names
-        self.exporter._slack_service._author = "Erik Kalkoken"
-
-    def test_run_with_defaults(self):
-        channels = ["G1234567X", "G2234567X"]
-        response = self.exporter.run(channels, currentdir)
+    def test_basic(self, mock_slack):
+        # given
+        mock_slack.WebClient.return_value = SlackClientStub(team="T12345678")
+        exporter = SlackChannelExporter("TOKEN_DUMMY")
+        channels = ["C12345678"]
+        # when
+        response = exporter.run(channels, currentdir)
+        # then
         self.assertTrue(response["ok"])
-        self.assertIn("G1234567X", response["channels"])
-        self.assertIn("G2234567X", response["channels"])
 
-        for channel_id in ["G1234567X", "G2234567X"]:
+    def test_run_with_defaults(self, mock_slack):
+        # given
+        mock_slack.WebClient.return_value = SlackClientStub(team="T12345678")
+        exporter = SlackChannelExporter("TOKEN_DUMMY")
+        channels = ["C12345678", "C72345678"]
+        # when
+        response = exporter.run(channels, currentdir)
+        # then
+        self.assertTrue(response["ok"])
+        for channel_id in channels:
+            self.assertIn(channel_id, response["channels"])
             res_channel = response["channels"][channel_id]
-            channel_name = self.exporter._slack_service.channel_names()[channel_id]
+            channel_name = exporter._slack_service.channel_names()[channel_id]
             self.assertEqual(
                 res_channel["filename_pdf"],
                 os.path.join(
                     currentdir,
-                    (self.exporter._slack_service.team + "_" + channel_name + ".pdf"),
+                    (exporter._slack_service.team + "_" + channel_name + ".pdf"),
                 ),
             )
             self.assertTrue(os.path.isfile(res_channel["filename_pdf"]))
@@ -80,8 +72,8 @@ class TestExporterTransformText(NoSocketsTestCase):
                 res_channel["max_messages"],
                 settings.MAX_MESSAGES_PER_CHANNEL,
             )
-            self.assertEqual(res_channel["timezone"], get_localzone())
-            self.assertEqual(res_channel["locale"], babel.Locale.default())
+            self.assertEqual(res_channel["timezone"], pytz.UTC)
+            self.assertEqual(res_channel["locale"], babel.Locale("en", "US"))
 
             # assert infos in PDF file are correct
             pdf_file = open(res_channel["filename_pdf"], "rb")
@@ -91,34 +83,79 @@ class TestExporterTransformText(NoSocketsTestCase):
             self.assertEqual(doc_info.creator, f"Channel Export v{__version__}")
             self.assertEqual(
                 doc_info.title,
-                (self.exporter._slack_service.team + " / " + channel_name),
+                (exporter._slack_service.team + " / " + channel_name),
             )
 
-    def test_run_with_args_1(self):
-        # self.exporter._channel_names["G2234567X"] = "channel-exporter-run_with_args_1"
-        response = self.exporter.run(
-            ["G2234567X"], currentdir, None, None, "landscape", "a3", 42
+    def test_run_with_args_1(self, mock_slack):
+        # given
+        mock_slack.WebClient.return_value = SlackClientStub(team="T12345678")
+        exporter = SlackChannelExporter("TOKEN_DUMMY")
+        channel = "C72345678"
+        # when
+        response = exporter.run(
+            [channel], currentdir, None, None, "landscape", "a3", 42
         )
+        # then
         self.assertTrue(response["ok"])
-        self.assertIn("G2234567X", response["channels"])
-        res_channel = response["channels"]["G2234567X"]
-
-        # assert export details are correct
+        self.assertIn(channel, response["channels"])
+        res_channel = response["channels"][channel]
         self.assertTrue(res_channel["ok"])
-        self.assertEqual(res_channel["message_count"], 4)
+        self.assertEqual(res_channel["message_count"], 5)
         self.assertEqual(res_channel["thread_count"], 0)
         self.assertEqual(res_channel["dest_path"], currentdir)
         self.assertEqual(res_channel["page_format"], "a3")
         self.assertEqual(res_channel["page_orientation"], "landscape")
         self.assertEqual(res_channel["max_messages"], 42)
 
-    """
-    def test_run_with_error(self):
-        self.assertRaises(RuntimeError, self.exporter.run(
-            ["channel-exporter"],
-            "invalid_path"
-        ))
-    """
+    def test_all_message_variants(self, mock_slack):
+        # given
+        mock_slack.WebClient.return_value = SlackClientStub(team="T12345678")
+        exporter = SlackChannelExporter("TOKEN_DUMMY")
+        channels = ["G1234567X"]
+        # when
+        response = exporter.run(channels, currentdir)
+        # then
+        self.assertTrue(response["ok"])
+
+    def test_should_handle_team_name_with_invalid_characters(self, mock_slack):
+        # given
+        mock_slack.WebClient.return_value = SlackClientStub(team="T92345678")
+        exporter = SlackChannelExporter("TOKEN_DUMMY")
+        channels = ["C12345678"]
+        # when
+        response = exporter.run(channels, currentdir)
+        # then
+        self.assertTrue(response["ok"])
+
+    def test_should_use_given_timezone(self, mock_slack):
+        # given
+        mock_slack.WebClient.return_value = SlackClientStub(team="T12345678")
+        exporter = SlackChannelExporter(
+            slack_token="TOKEN_DUMMY",
+            my_tz=pytz.timezone("Asia/Bangkok"),
+            my_locale=babel.Locale.parse("es-MX", sep="-"),
+        )
+        channel = "C12345678"
+        # when
+        response = exporter.run([channel], currentdir)
+        # then
+        self.assertTrue(response["ok"])
+        res_channel = response["channels"][channel]
+        self.assertTrue(res_channel["ok"])
+        self.assertEqual(
+            res_channel["timezone"],
+            pytz.timezone("Asia/Bangkok"),
+        )
+        self.assertEqual(res_channel["locale"], babel.Locale.parse("es-MX", sep="-"))
+
+
+class TestTransformations(NoSocketsTestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        with patch("slackchannel2pdf.slack_service.slack") as mock_slack:
+            mock_slack.WebClient.return_value = SlackClientStub(team="T12345678")
+            cls.exporter = SlackChannelExporter("TOKEN_DUMMY")
 
     def test_transform_text_user(self):
         self.assertEqual(
@@ -137,7 +174,7 @@ class TestExporterTransformText(NoSocketsTestCase):
     def test_transform_text_channel(self):
         self.assertEqual(
             self.exporter._transformer.transform_text("<#C72345678>", True),
-            "<b>#tokio</b>",
+            "<b>#london</b>",
         )
         self.assertEqual(
             self.exporter._transformer.transform_text("<#C55555555>", True),
@@ -241,128 +278,13 @@ class TestExporterTransformText(NoSocketsTestCase):
         )
 
 
-class TestExporterTimezonesNLocale(NoSocketsTestCase):
-    def setUp(self):
-        workspace_info = {"team": "test", "user_id": "U9234567X"}
-        user_names = {
-            "U12345678": "Naoko Kobayashi",
-            "U62345678": "Janet Hakuli",
-            "U72345678": "Yuna Kobayashi",
-            "U9234567X": "Erik Kalkoken",
-        }
-
-        channel_names = {
-            "C12345678": "berlin",
-            "C72345678": "tokio",
-            "C42345678": "oslo",
-            "G1234567X": "channel-exporter",
-            "G2234567X": "channel-exporter-2",
-        }
-
-        usergroup_names = {
-            "S12345678": "admins",
-            "S72345678": "marketing",
-            "S42345678": "sales",
-        }
-
-        self.exporter = SlackChannelExporter(
-            "TEST", pytz.timezone("Asia/Bangkok"), babel.Locale.parse("es-MX", sep="-")
-        )
-        self.exporter._slack_service._workspace_info = workspace_info
-        self.exporter._slack_service._user_names = user_names
-        self.exporter._slack_service._channel_names = channel_names
-        self.exporter._slack_service._usergroup_names = usergroup_names
-
-    def test_timezone_locale(self):
-        # self.exporter._channel_names["G2234567X"] = "channel-exporter-timezone-locale"
-        channels = ["G2234567X"]
-        response = self.exporter.run(channels, currentdir)
-        self.assertTrue(response["ok"])
-        res_channel = response["channels"]["G2234567X"]
-
-        # assert export details are correct
-        self.assertTrue(res_channel["ok"])
-        self.assertEqual(
-            res_channel["timezone"],
-            pytz.timezone("Asia/Bangkok"),
-        )
-        self.assertEqual(res_channel["locale"], babel.Locale.parse("es-MX", sep="-"))
-
-    def test_get_datetime(self):
-        ts = 1006300923
-        dt = self.exporter._locale_helper.get_datetime_from_ts(ts)
-        self.assertEqual(dt.timestamp(), ts)
-
-    def test_dummy(self):
-        dt = datetime.utcnow()
-        print(self.exporter._locale_helper.format_datetime_str(dt))
-        print(self.exporter._locale_helper.get_datetime_formatted_str(dt.timestamp()))
-
-
-"""
-class TestExporterSlackMethods(unittest.TestCase):
-
+class TestOther(NoSocketsTestCase):
     @classmethod
     def setUpClass(cls):
-        cls.exporter = SlackChannelExporter(os.environ['SLACK_TOKEN'])
-
-    def test_fetch_messages(self):
-        oldest = parser.parse("2019-JUL-04")
-        oldest = self.exporter._tz_local.localize(oldest)
-
-        latest = parser.parse("2019-JUL-06")
-        latest = self.exporter._tz_local.localize(latest)
-
-        messages = self.exporter._fetch_messages_from_channel(
-            channel_id="G7LULJD46",
-            max_messages=1000
-        )
-        self.assertIsInstance(messages, list)
-
-        messages = self.exporter._fetch_messages_from_channel(
-            channel_id="G7LULJD46",
-            max_messages=1000,
-            oldest=oldest,
-            latest=latest
-        )
-        self.assertIsInstance(messages, list)
-"""
-
-
-@patch("slackchannel2pdf.slack_service.slack")
-@patch("slackchannel2pdf.slack_service.sleep", lambda x: None)
-class TestSlackExporterFull(NoSocketsTestCase):
-    """New test approach with API mocking, that allows full testing of the exporter"""
-
-    def test_basic(self, mock_slack):
-        # given
-        mock_slack.WebClient.return_value = SlackClientStub(team="T12345678")
-        exporter = SlackChannelExporter("TOKEN_DUMMY")
-        channels = ["C12345678"]
-        # when
-        response = exporter.run(channels, currentdir)
-        # then
-        self.assertTrue(response["ok"])
-
-    def test_all_message_variants(self, mock_slack):
-        # given
-        mock_slack.WebClient.return_value = SlackClientStub(team="T12345678")
-        exporter = SlackChannelExporter("TOKEN_DUMMY")
-        channels = ["G1234567X"]
-        # when
-        response = exporter.run(channels, currentdir)
-        # then
-        self.assertTrue(response["ok"])
-
-    def test_team_name_invalid_characters(self, mock_slack):
-        # given
-        mock_slack.WebClient.return_value = SlackClientStub(team="T92345678")
-        exporter = SlackChannelExporter("TOKEN_DUMMY")
-        channels = ["C12345678"]
-        # when
-        response = exporter.run(channels, currentdir)
-        # then
-        self.assertTrue(response["ok"])
+        super().setUpClass()
+        with patch("slackchannel2pdf.slack_service.slack") as mock_slack:
+            mock_slack.WebClient.return_value = SlackClientStub(team="T12345678")
+            cls.exporter = SlackChannelExporter("TOKEN_DUMMY")
 
 
 if __name__ == "__main__":

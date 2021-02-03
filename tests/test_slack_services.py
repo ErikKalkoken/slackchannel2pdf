@@ -8,7 +8,7 @@ from .no_sockets import NoSocketsTestCase
 MODULE_NAME = "slackchannel2pdf.slack_service"
 
 
-class TestExporterReduceToDict(NoSocketsTestCase):
+class TestReduceToDict(NoSocketsTestCase):
     def setUp(self):
         self.a = [
             {"id": "1", "name_1": "Naoko Kobayashi", "name_2": "naoko.kobayashi"},

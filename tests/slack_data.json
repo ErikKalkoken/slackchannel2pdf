@@ -617,15 +617,15 @@
             "usergroups": [
                 {
                     "id": "S12345678",
-                    "name": "admins"
+                    "handle": "admins"
                 },
                 {
                     "id": "S72345678",
-                    "name": "marketing"
+                    "handle": "marketing"
                 },
                 {
                     "id": "S42345678",
-                    "name": "sales"
+                    "handle": "sales"
                 }
             ]
         }
