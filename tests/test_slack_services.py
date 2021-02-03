@@ -1,8 +1,8 @@
 from unittest.mock import patch
 
 from slackchannel2pdf.slack_service import SlackService
-from .slack_client_stub import SlackClientStub
-from .no_sockets import NoSocketsTestCase
+from .helpers.slack_client_stub import SlackClientStub
+from .helpers.no_sockets import NoSocketsTestCase
 
 
 MODULE_NAME = "slackchannel2pdf.slack_service"

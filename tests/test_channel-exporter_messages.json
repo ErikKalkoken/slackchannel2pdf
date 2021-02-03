@@ -1,9 +1,0 @@
-[
-    {
-        "team": "T12345678",
-        "text": "Hello user!\nhere we have some *bold* text, some _italic_ and some `code`",
-        "ts": "1562274541.000800",
-        "type": "message",
-        "user": "U92345678"
-    }
-]
