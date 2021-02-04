@@ -1,5 +1,6 @@
 import datetime as dt
 import logging
+import logging.config
 from pathlib import Path
 import re
 from typing import List, Optional
@@ -20,7 +21,7 @@ from .locales import LocaleHelper
 from .slack_service import SlackService
 from .message_transformer import MessageTransformer
 
-
+logging.config.dictConfig(settings.DEFAULT_LOGGING)
 logger = logging.getLogger(__name__)
 
 
