@@ -29,16 +29,23 @@ DEFAULT_LOGGING = {
         "file": {"format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s"},
     },
     "handlers": {
-        "default": {
+        "console": {
             "level": "INFO",
             "formatter": "console",
             "class": "logging.StreamHandler",
             "stream": "ext://sys.stdout",  # Default is stderr
         },
+        # "file": {
+        #     "level": "INFO",
+        #     "formatter": "file",
+        #     "class": "logging.FileHandler",
+        #     "filename": "slackchannel2pdf.log",
+        #     "mode": "a",
+        # },
     },
     "loggers": {
         "": {  # root logger
-            "handlers": ["default"],
+            "handlers": ["console"],
             "level": "INFO",
             "propagate": False,
         },

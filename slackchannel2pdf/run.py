@@ -186,7 +186,9 @@ def parse_args(args) -> argparse.ArgumentParser:
         const=True,
         default=False,
     )
-
+    my_arg_parser.add_argument(
+        "--logfile", help="will write logs to this filepath when provided"
+    )
     return my_arg_parser.parse_args(args)
 
 

@@ -1,10 +1,11 @@
-from datetime import datetime, timedelta
+import datetime as dt
 import logging
-
 from pathlib import Path
 import re
 
+from babel import Locale
 from babel.numbers import format_number
+import pytz
 
 from . import __version__
 from . import settings
@@ -43,13 +44,20 @@ class SlackChannelExporter:
 
     """
 
-    def __init__(self, slack_token, my_tz=None, my_locale=None, add_debug_info=False):
+    def __init__(
+        self,
+        slack_token: str,
+        my_tz: pytz.BaseTzInfo = None,
+        my_locale: Locale = None,
+        add_debug_info: bool = False,
+        logfile_path: Path = None,
+    ):
         """
         Args:
             slack_token: OAuth token to be used for all calls to the Slack API
-                "TEST" can be provided to start test mode
-            my_tz: override system's timezone (pytz.BaseTzInfo object)
-            my_locale: override system's locale (locale string, e.g. 'de_DE')
+                "TEST" can be provided to run in test mode
+            my_tz: override system's timezone
+            my_locale: override system's default locale
             add_debug_info: wether to add debug info to message output
 
         """
@@ -58,9 +66,6 @@ class SlackChannelExporter:
             raise ValueError("slack_token can not be null")
 
         self._slack_service = SlackService(slack_token)
-
-        # output welcome message and inform about current parameters
-        logger.info("Author is %s ", self._slack_service.author)
 
         # set locale & timezone
         author_info = self._slack_service.author_info()
@@ -83,6 +88,9 @@ class SlackChannelExporter:
         self._add_debug_info = add_debug_info
         if add_debug_info:
             logger.info("Adding DEBUG info to PDF")
+
+        if logfile_path:
+            pass
 
     def _parse_message_and_write_to_pdf(self, document, msg, margin_left, last_user_id):
         """parse a message and write it to the PDF"""
@@ -466,7 +474,7 @@ class SlackChannelExporter:
                 # repeat user name for if last post from same user is older
                 if last_dt is not None:
                     dt_delta = msg_dt - last_dt
-                    minutes_delta = dt_delta / timedelta(minutes=1)
+                    minutes_delta = dt_delta / dt.timedelta(minutes=1)
                     if minutes_delta > settings.MINUTES_UNTIL_USERNAME_REPEATS:
                         last_user_id = None
 
@@ -530,7 +538,7 @@ class SlackChannelExporter:
                                 )
                                 if last_dt is not None:
                                     dt_delta = msg_dt - last_dt
-                                    minutes_delta = dt_delta / timedelta(minutes=1)
+                                    minutes_delta = dt_delta / dt.timedelta(minutes=1)
                                     if (
                                         minutes_delta
                                         > settings.MINUTES_UNTIL_USERNAME_REPEATS
@@ -556,37 +564,29 @@ class SlackChannelExporter:
 
     def run(
         self,
-        channel_inputs,
-        dest_path=None,
-        oldest=None,
-        latest=None,
-        page_orientation="portrait",
-        page_format="a4",
-        max_messages=None,
-        write_raw_data=False,
-    ):
-        """export all message from a channel and store them in a PDF
+        channel_inputs: list,
+        dest_path: Path = None,
+        oldest: dt.datetime = None,
+        latest: dt.datetime = None,
+        page_orientation: str = "portrait",
+        page_format: str = "a4",
+        max_messages: int = None,
+        write_raw_data: bool = False,
+    ) -> dict:
+        """Exports all message from a channel and stores them in a PDF
 
         Args:
-            channel_inputs: list of names and/or IDs of channels
-            to retrieve messages from
-
-            dest_path: path to write output files to.
-            Will use current working directory if None
-
-            oldest: oldest message to fetch in UNIX epoch
-            latest: latest message to fetch in UNIX epoch
-
-            page_orientation: orientation of pages  as defined in FPDF class,
-
-            page_format: format of pages, see as defined in FPDF class
-
-            max_messages: maximum number of messages to retrieve
-
-            write_raw_data: will safe data received from API to files if true
+        - channel_inputs: list of names and/or IDs of channels to retrieve messages from
+        - dest_path: path to write output files to. Will use current working directory if None
+        - oldest: oldest message to fetch in UNIX epoch
+        - latest: latest message to fetch in UNIX epoch
+        - page_orientation: orientation of pages  as defined in FPDF class
+        - page_format: format of pages, see as defined in FPDF class
+        - max_messages: maximum number of messages to retrieve
+        - write_raw_data: will safe data received from API to files if true
 
         Returns:
-            dict with full details of the export run
+        - info about export result
         """
         # set defaults
         success = False
@@ -599,13 +599,13 @@ class SlackChannelExporter:
             max_messages = settings.MAX_MESSAGES_PER_CHANNEL
 
         if oldest is not None:
-            if not isinstance(oldest, datetime):
-                raise TypeError("oldest must be a datetime")
+            if not isinstance(oldest, dt.datetime):
+                raise TypeError("oldest must be a dt.datetime")
             oldest = self._locale_helper.timezone.localize(oldest)
 
         if latest is not None:
-            if not isinstance(latest, datetime):
-                raise TypeError("latest must be a datetime")
+            if not isinstance(latest, dt.datetime):
+                raise TypeError("latest must be a dt.datetime")
             latest = self._locale_helper.timezone.localize(latest)
 
         if oldest is not None and latest is not None and oldest > latest:
@@ -786,7 +786,7 @@ class SlackChannelExporter:
             document.add_page()
 
             # compile all values
-            creation_date = datetime.now(tz=self._locale_helper.timezone)
+            creation_date = dt.datetime.now(tz=self._locale_helper.timezone)
             creation_datetime_str = self._locale_helper.format_datetime_str(
                 creation_date
             )

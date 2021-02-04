@@ -31,10 +31,8 @@ class SlackService:
         self._locale = locale_helper.locale
         if slack_token != "TEST":
             self._workspace_info = self._fetch_workspace_info()
+            logger.info("Current Slack workspace '%s'", self.team)
             self._user_names = self.fetch_user_names()
-            self._channel_names = self._fetch_channel_names()
-            self._usergroup_names = self._fetch_usergroup_names()
-            self._is_test_mode = False
 
             # set author
             if "user_id" in self._workspace_info:
@@ -46,6 +44,11 @@ class SlackService:
             else:
                 author_id = None
                 self._author = "unknown user"
+
+            logger.info("Current Slack user is: '%s'", self.author)
+            self._channel_names = self._fetch_channel_names()
+            self._usergroup_names = self._fetch_usergroup_names()
+            self._is_test_mode = False
 
         else:
             # if started with TEST parameter class properties will be
