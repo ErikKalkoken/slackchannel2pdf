@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta
+import logging
+
 from pathlib import Path
 import re
 
@@ -9,12 +11,15 @@ from . import settings
 from .my_fpdf import MyFPDF
 from .helpers import (
     transform_encoding,
-    LocaleHelper,
     read_array_from_json_file,
     write_array_to_json_file,
 )
+from .locales import LocaleHelper
 from .slack_service import SlackService
 from .message_transformer import MessageTransformer
+
+
+logger = logging.getLogger(__name__)
 
 
 class SlackChannelExporter:
@@ -55,14 +60,17 @@ class SlackChannelExporter:
         self._slack_service = SlackService(slack_token)
 
         # output welcome message and inform about current parameters
-        print()
-        print("Welcome " + self._slack_service.author)
+        logger.info("Author is %s ", self._slack_service.author)
 
         # set locale & timezone
         author_info = self._slack_service.author_info()
         self._locale_helper = LocaleHelper(my_locale, my_tz, author_info)
-        self._locale_helper.print_locale()
-        self._locale_helper.print_timezone()
+        logger.info(
+            "Locale is: %s [%s]",
+            self._locale_helper.locale.get_display_name(),
+            self._locale_helper.locale,
+        )
+        logger.info("Timezone is: %s", self._locale_helper.timezone)
         self._transformer = MessageTransformer(
             slack_service=self._slack_service,
             locale_helper=self._locale_helper,
@@ -74,7 +82,7 @@ class SlackChannelExporter:
             raise ValueError("add_debug_info must be bool")
         self._add_debug_info = add_debug_info
         if add_debug_info:
-            print("Adding DEBUG info to PDF")
+            logger.info("Adding DEBUG info to PDF")
 
     def _parse_message_and_write_to_pdf(self, document, msg, margin_left, last_user_id):
         """parse a message and write it to the PDF"""
@@ -435,7 +443,7 @@ class SlackChannelExporter:
 
         else:
             user_id = None
-            print(f"WARN: Can not process message with ts {msg['ts']}")
+            logger.warning("Can not process message with ts %s", msg["ts"])
             document.write(
                 settings.LINE_HEIGHT_DEFAULT, "[Can not process this message]"
             )
@@ -612,7 +620,7 @@ class SlackChannelExporter:
 
             if latest is not None:
                 text += f" before {self._locale_helper.format_datetime_str(latest)}"
-            print(text)
+            logger.info(text)
 
         if not isinstance(channel_inputs, list):
             raise TypeError("channel_inputs must be of type list")
@@ -629,17 +637,17 @@ class SlackChannelExporter:
                     f"ERROR: give destination path does not exist: {dest_path}"
                 )
 
-        print(f"Writing output to: {dest_path}")
+        logger.info("Writing output to: %s", dest_path)
 
         if not isinstance(page_orientation, str):
             raise TypeError("page_orientation must be of type str")
         else:
-            print(f"Page orientation: {page_orientation.title()}")
+            logger.info("Page orientation: %s", page_orientation.title())
 
         if not isinstance(page_format, str):
             raise TypeError("page_format must be of type str")
         else:
-            print(f"Page format: {page_format.title()}")
+            logger.info("Page format: %s", page_format.title())
 
         if write_raw_data is not None and not isinstance(write_raw_data, bool):
             raise TypeError("write_raw_data must be of type bool")
@@ -654,7 +662,6 @@ class SlackChannelExporter:
         for channel_input in channel_inputs:
             success_channel = False
             channel_count += 1
-            print()
             if channel_input.upper() in self._slack_service.channel_names():
                 channel_id = channel_input.upper()
             else:
@@ -663,10 +670,12 @@ class SlackChannelExporter:
                     v: k for k, v in self._slack_service.channel_names().items()
                 }
                 if channel_input.lower() not in channel_names_ids:
-                    print(
-                        f"({channel_count}/{len(channel_inputs)}) "
-                        "ERROR: Unknown channel '"
-                        f"{channel_input}' on {team_name}"
+                    logger.error(
+                        "(%d/%d) Unknown channel '%s' on %s",
+                        channel_count,
+                        len(channel_inputs),
+                        channel_input,
+                        team_name,
                     )
                     continue
                 else:
@@ -685,7 +694,7 @@ class SlackChannelExporter:
                     text = ""
                 text += "Retrieving messages from " + f"{team_name} / {channel_name}"
 
-                print(text + " ...")
+                logger.info(text + " ...")
                 messages = self._slack_service.fetch_messages_from_channel(
                     channel_id, max_messages, oldest, latest
                 )
@@ -859,12 +868,12 @@ class SlackChannelExporter:
 
             # store PDF
             filename_pdf = dest_path / (filename_base_channel + ".pdf")
-            print(f"Writing PDF file: {filename_pdf.absolute()}")
+            logger.info("Writing PDF file: %s", filename_pdf.absolute())
             try:
                 document.output(str(filename_pdf))
                 success_channel = True
-            except IOError as ex:
-                print("ERROR: Failed to write PDF file: ", ex)
+            except IOError:
+                logger.error("Failed to write PDF file:", exc_info=True)
 
             # compile response dict
             response["channels"][channel_id] = {

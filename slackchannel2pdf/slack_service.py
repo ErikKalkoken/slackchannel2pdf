@@ -1,10 +1,15 @@
+import logging
 from time import sleep
 
 from babel.numbers import format_number
 import slack
 
 from . import settings
-from .helpers import transform_encoding, LocaleHelper
+from .helpers import transform_encoding
+from .locales import LocaleHelper
+
+
+logger = logging.getLogger(__name__)
 
 
 class SlackService:
@@ -85,7 +90,7 @@ class SlackService:
     def _fetch_workspace_info(self):
         """returns dict with info about current workspace"""
 
-        print("Fetching workspace info from Slack...")
+        logger.info("Fetching workspace info from Slack...")
         res = self._client.auth_test()
         response = res.data
         assert response["ok"]
@@ -104,7 +109,7 @@ class SlackService:
     def _fetch_user_info(self, user_id):
         """returns dict of user info for user ID incl. locale"""
 
-        print("Fetching user info for author...")
+        logger.info("Fetching user info for author...")
         response = self._client.users_info(user=user_id, include_locale=1)
         assert response["ok"]
         return response["user"]
@@ -125,7 +130,7 @@ class SlackService:
     def _fetch_usergroup_names(self):
         """returns dict of usergroup names with usergroup ID as key"""
 
-        print("Fetching usergroups from Slack...")
+        logger.info("Fetching usergroups from Slack...")
         response = self._client.usergroups_list()
         assert response["ok"]
         usergroup_names = self._reduce_to_dict(response["usergroups"], "id", "handle")
@@ -134,12 +139,12 @@ class SlackService:
                 usergroup_names[usergroup] = transform_encoding(
                     usergroup_names[usergroup]
                 )
-            print(
-                f"Got a total of "
-                f"{format_number(len(usergroup_names))} usergroups for this workspace"
+            logger.info(
+                "Got a total of %s usergroups for this workspace",
+                format_number(len(usergroup_names)),
             )
         else:
-            print("This workspace has no usergroups")
+            logger.info("This workspace has no usergroups")
         return usergroup_names
 
     def fetch_messages_from_channel(
@@ -181,13 +186,13 @@ class SlackService:
                 thread_messages_total += len(thread_messages)
 
         if thread_messages_total:
-            print(
-                f"Received a total of "
-                f"{format_number(thread_messages_total, locale=self._locale)}"
-                f" messages from {thread_num} threads"
+            logger.info(
+                "Received a total of %s messages from %d threads",
+                format_number(thread_messages_total, locale=self._locale),
+                thread_num,
             )
         else:
-            print("This channel has no threads")
+            logger.info("This channel has no threads")
 
         return threads
 
@@ -231,7 +236,7 @@ class SlackService:
             f"Fetching {items_name if items_name else method} "
             f"from {collection_name if collection_name else 'Slack'}"
         )
-        print(output_str)
+        logger.info(output_str)
         if not args:
             args = {}
         if not limit:
@@ -248,7 +253,7 @@ class SlackService:
             and response["response_metadata"].get("next_cursor")
         ):
             page += 1
-            print(f"{output_str} - page {page}")
+            logger.info("%s - page %s", output_str, page)
             sleep(1)  # need to wait 1 sec before next call due to rate limits
             page_args = {
                 **base_args,
@@ -261,10 +266,10 @@ class SlackService:
             rows += response[key]
 
         if print_result:
-            print(
-                f"Received a total of "
-                f"{format_number(len(rows), locale=self._locale)} "
-                f"{items_name if items_name else 'objects'}"
+            logger.info(
+                "Received a total of %s %s",
+                format_number(len(rows), locale=self._locale),
+                items_name if items_name else "objects",
             )
         return rows
 
@@ -300,7 +305,7 @@ class SlackService:
 
         # collect bot names from API if needed
         if len(bot_ids) > 0:
-            print(f"Fetching names for {len(bot_ids)} bots")
+            logger.info("Fetching names for %d bots", len(bot_ids))
             for bot_id in bot_ids:
                 response = self._client.bots_info(bot=bot_id)
                 if response["ok"]:

@@ -19,3 +19,28 @@ FALLBACK_LOCALE = "en"
 MINUTES_UNTIL_USERNAME_REPEATS = 10
 MAX_MESSAGES_PER_CHANNEL = 10000
 SLACK_PAGE_LIMIT = 200
+
+# logging
+DEFAULT_LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "console": {"format": "[%(levelname)s] %(message)s"},
+        "file": {"format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s"},
+    },
+    "handlers": {
+        "default": {
+            "level": "INFO",
+            "formatter": "console",
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stdout",  # Default is stderr
+        },
+    },
+    "loggers": {
+        "": {  # root logger
+            "handlers": ["default"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}

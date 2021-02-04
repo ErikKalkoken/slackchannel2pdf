@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+### Changed
+
+- Replaced print statements with logger
+
 ## [1.2.2] - 2021-02-03
 
 ### Fixed
