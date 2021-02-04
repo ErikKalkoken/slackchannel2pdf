@@ -1,5 +1,6 @@
 import argparse
 import os
+from pathlib import Path
 import sys
 
 from dateutil import parser
@@ -12,7 +13,7 @@ from .channel_exporter import SlackChannelExporter
 
 
 def main():
-    """Implements the arg parser and starts the slackchannel2pdf with its input"""
+    """Implements the arg parser and starts the channel exporter with its input"""
 
     print(f"slackchannel2pdf v{__version__} by Erik Kalkoken")
     print("")
@@ -88,7 +89,7 @@ def main():
         )
         exporter.run(
             channel_inputs=args.channel,
-            dest_path=args.destination,
+            dest_path=Path(args.destination) if args.destination else None,
             oldest=oldest,
             latest=latest,
             page_orientation=args.page_orientation,

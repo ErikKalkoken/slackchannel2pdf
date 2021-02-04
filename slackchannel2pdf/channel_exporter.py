@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
-import inspect
-import os
+from pathlib import Path
 import re
 
 from babel.numbers import format_number
@@ -564,7 +563,8 @@ class SlackChannelExporter:
             channel_inputs: list of names and/or IDs of channels
             to retrieve messages from
 
-            dest_path: path to write output files to. Will use current path if None
+            dest_path: path to write output files to.
+            Will use current working directory if None
 
             oldest: oldest message to fetch in UNIX epoch
             latest: latest message to fetch in UNIX epoch
@@ -620,13 +620,11 @@ class SlackChannelExporter:
         # set destination path as current dir if not set
         # or check if given path exists
         if dest_path is None:
-            dest_path = os.path.dirname(
-                os.path.abspath(inspect.getfile(inspect.currentframe()))
-            )
+            dest_path = Path.cwd()
         else:
-            if not isinstance(dest_path, str):
-                raise TypeError("dest_path must be of type str")
-            if not os.path.isdir(dest_path):
+            if not isinstance(dest_path, Path):
+                raise TypeError("dest_path must be of type Path")
+            if not dest_path.is_dir():
                 raise RuntimeError(
                     f"ERROR: give destination path does not exist: {dest_path}"
                 )
@@ -675,9 +673,7 @@ class SlackChannelExporter:
                     channel_id = channel_names_ids[channel_input.lower()]
 
             channel_name = self._slack_service.channel_names()[channel_id]
-            filename_base = os.path.join(
-                dest_path, re.sub(r"[^\w\-_\.]", "_", team_name)
-            )
+            filename_base = re.sub(r"[^\w\-_\.]", "_", team_name)
             filename_base_channel = filename_base + "_" + channel_name
 
             # fetch messages
@@ -703,30 +699,36 @@ class SlackChannelExporter:
                 if write_raw_data:
                     # write raw data received from Slack API to file
                     write_array_to_json_file(
-                        self._slack_service.user_names(), filename_base + "_users"
-                    )
-                    write_array_to_json_file(self._bot_names, filename_base + "_bots")
-                    write_array_to_json_file(
-                        self._slack_service.channel_names(), filename_base + "_channels"
+                        self._slack_service.user_names(),
+                        dest_path / (filename_base + "_users"),
                     )
                     write_array_to_json_file(
-                        self._slack_service.user_names(), filename_base + "_usergroups"
+                        self._bot_names, dest_path / (filename_base + "_bots")
                     )
                     write_array_to_json_file(
-                        messages, filename_base_channel + "_messages"
+                        self._slack_service.channel_names(),
+                        dest_path / (filename_base + "_channels"),
+                    )
+                    write_array_to_json_file(
+                        self._slack_service.user_names(),
+                        dest_path / (filename_base + "_usergroups"),
+                    )
+                    write_array_to_json_file(
+                        messages, dest_path / (filename_base_channel + "_messages")
                     )
                     if len(threads) > 0:
                         write_array_to_json_file(
-                            threads, filename_base_channel + "_threads"
+                            threads, dest_path / (filename_base_channel + "_threads")
                         )
             else:
                 # if we don't have a client we will try to fetch from a file
                 # this is used for testing
                 messages = read_array_from_json_file(
-                    filename_base_channel + "_messages"
+                    dest_path / (filename_base_channel + "_messages")
                 )
                 threads = read_array_from_json_file(
-                    filename=filename_base_channel + "_threads", quiet=True
+                    filename=dest_path / (filename_base_channel + "_threads"),
+                    quiet=True,
                 )
 
             # create PDF
@@ -856,10 +858,10 @@ class SlackChannelExporter:
             self._write_messages_to_pdf(document, messages, threads)
 
             # store PDF
-            filename_pdf = filename_base_channel + ".pdf"
-            print("Writing PDF file: " + filename_pdf)
+            filename_pdf = dest_path / (filename_base_channel + ".pdf")
+            print(f"Writing PDF file: {filename_pdf.absolute()}")
             try:
-                document.output(filename_pdf)
+                document.output(str(filename_pdf))
                 success_channel = True
             except IOError as ex:
                 print("ERROR: Failed to write PDF file: ", ex)
@@ -869,9 +871,9 @@ class SlackChannelExporter:
                 "ok": success_channel,
                 "channel_id": channel_id,
                 "channel_name": channel_name,
-                "filename_pdf": filename_pdf,
-                "filename_base_channel": filename_base_channel,
-                "dest_path": dest_path,
+                "filename_pdf": str(filename_pdf),
+                "filename_base_channel": str(dest_path / filename_base_channel),
+                "dest_path": str(dest_path),
                 "page_format": page_format,
                 "page_orientation": page_orientation,
                 "max_messages": max_messages,

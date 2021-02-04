@@ -19,3 +19,4 @@ MANIFEST
 *.egg-info/
 *.pyc
 htmlcov/
+*/temp/

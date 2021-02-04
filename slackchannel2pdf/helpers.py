@@ -1,7 +1,7 @@
 import datetime as dt
 import html
 import json
-import os
+from pathlib import Path
 
 from babel import Locale, UnknownLocaleError
 from babel.dates import format_datetime, format_time, format_date
@@ -19,34 +19,34 @@ def transform_encoding(text):
     return text2
 
 
-def read_array_from_json_file(filename, quiet=False):
+def read_array_from_json_file(filepath: Path, quiet=False):
     """reads a json file and returns its contents as array"""
-    filename += ".json"
-    if not os.path.isfile(filename):
+    my_file = filepath.parent / (filepath.name + ".json")
+    if not my_file.is_file:
         if quiet is False:
-            print(f"WARN: file does not exist: {filename}")
+            print(f"WARN: file does not exist: {filepath}")
         arr = list()
     else:
         try:
-            with open(filename, "r", encoding="utf-8") as f:
+            with my_file.open("r", encoding="utf-8") as f:
                 arr = json.load(f)
         except IOError as e:
             if quiet is False:
-                print(f"WARN: failed to read from {filename}: ", e)
+                print(f"WARN: failed to read from {my_file}: ", e)
             arr = list()
 
     return arr
 
 
-def write_array_to_json_file(arr, filename):
+def write_array_to_json_file(arr, filepath: Path):
     """writes array to a json file"""
-    filename += ".json"
-    print(f"Writing file: name {filename}")
+    my_file = filepath.parent / (filepath.name + ".json")
+    print(f"Writing file: name {filepath}")
     try:
-        with open(filename, "w", encoding="utf-8") as f:
+        with my_file.open("w", encoding="utf-8") as f:
             json.dump(arr, f, sort_keys=True, indent=4, ensure_ascii=False)
     except IOError as e:
-        print(f"ERROR: failed to write to {filename}: ", e)
+        print(f"ERROR: failed to write to {my_file}: ", e)
 
 
 class LocaleHelper:

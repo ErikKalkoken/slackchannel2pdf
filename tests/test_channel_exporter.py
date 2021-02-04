@@ -1,5 +1,5 @@
-import inspect
 import os
+from pathlib import Path
 import unittest
 from unittest.mock import patch
 
@@ -15,8 +15,6 @@ from .helpers.no_sockets import NoSocketsTestCase
 from .helpers.slack_client_stub import SlackClientStub
 
 
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-
 """
 def test_run_with_error(self):
     self.assertRaises(RuntimeError, self.exporter.run(
@@ -25,21 +23,35 @@ def test_run_with_error(self):
     ))
 """
 
+currentdir = Path(__file__).resolve().parent
+outputdir = currentdir / "temp"
+if not outputdir.exists():
+    os.mkdir(outputdir)
+
 
 @patch("slackchannel2pdf.slack_service.slack")
 @patch("slackchannel2pdf.slack_service.sleep", lambda x: None)
 class TestSlackChannelExporter(NoSocketsTestCase):
     """New test approach with API mocking, that allows full testing of the exporter"""
 
+    def setUp(self) -> None:
+        for file in outputdir.glob("*"):
+            file.unlink()
+
     def test_basic(self, mock_slack):
         # given
         mock_slack.WebClient.return_value = SlackClientStub(team="T12345678")
         exporter = SlackChannelExporter("TOKEN_DUMMY")
-        channels = ["C12345678"]
+        channel = "C12345678"
         # when
-        response = exporter.run(channels, currentdir)
+        response = exporter.run([channel], outputdir)
         # then
         self.assertTrue(response["ok"])
+        res_channel = response["channels"][channel]
+        self.assertTrue(res_channel["ok"])
+        filename_pdf = Path(res_channel["filename_pdf"])
+        self.assertTrue(filename_pdf.is_file())
+        self.assertEqual(filename_pdf.name, "test_berlin.pdf")
 
     def test_run_with_defaults(self, mock_slack):
         # given
@@ -47,7 +59,7 @@ class TestSlackChannelExporter(NoSocketsTestCase):
         exporter = SlackChannelExporter("TOKEN_DUMMY")
         channels = ["C12345678", "C72345678"]
         # when
-        response = exporter.run(channels, currentdir)
+        response = exporter.run(channels)
         # then
         self.assertTrue(response["ok"])
         for channel_id in channels:
@@ -56,16 +68,16 @@ class TestSlackChannelExporter(NoSocketsTestCase):
             channel_name = exporter._slack_service.channel_names()[channel_id]
             self.assertEqual(
                 res_channel["filename_pdf"],
-                os.path.join(
-                    currentdir,
-                    (exporter._slack_service.team + "_" + channel_name + ".pdf"),
+                str(
+                    currentdir.parent
+                    / (exporter._slack_service.team + "_" + channel_name + ".pdf")
                 ),
             )
-            self.assertTrue(os.path.isfile(res_channel["filename_pdf"]))
+            self.assertTrue(Path(res_channel["filename_pdf"]).is_file())
 
             # assert export details are correct
             self.assertTrue(res_channel["ok"])
-            self.assertEqual(res_channel["dest_path"], currentdir)
+            self.assertEqual(res_channel["dest_path"], str(currentdir.parent))
             self.assertEqual(res_channel["page_format"], "a4")
             self.assertEqual(res_channel["page_orientation"], "portrait")
             self.assertEqual(
@@ -92,20 +104,33 @@ class TestSlackChannelExporter(NoSocketsTestCase):
         exporter = SlackChannelExporter("TOKEN_DUMMY")
         channel = "C72345678"
         # when
-        response = exporter.run(
-            [channel], currentdir, None, None, "landscape", "a3", 42
-        )
+        response = exporter.run([channel], outputdir, None, None, "landscape", "a3", 42)
         # then
         self.assertTrue(response["ok"])
-        self.assertIn(channel, response["channels"])
         res_channel = response["channels"][channel]
         self.assertTrue(res_channel["ok"])
         self.assertEqual(res_channel["message_count"], 5)
         self.assertEqual(res_channel["thread_count"], 0)
-        self.assertEqual(res_channel["dest_path"], currentdir)
+        self.assertEqual(res_channel["dest_path"], str(outputdir))
         self.assertEqual(res_channel["page_format"], "a3")
         self.assertEqual(res_channel["page_orientation"], "landscape")
         self.assertEqual(res_channel["max_messages"], 42)
+
+    def test_run_with_args_2(self, mock_slack):
+        # given
+        mock_slack.WebClient.return_value = SlackClientStub(team="T12345678")
+        exporter = SlackChannelExporter("TOKEN_DUMMY")
+        channel = "C72345678"
+        # when
+        response = exporter.run([channel], outputdir, write_raw_data=True)
+        # then
+        self.assertTrue(response["ok"])
+        self.assertTrue((outputdir / "test_bots.json").is_file())
+        self.assertTrue((outputdir / "test_channels.json").is_file())
+        self.assertTrue((outputdir / "test_london.pdf").is_file())
+        self.assertTrue((outputdir / "test_london_messages.json").is_file())
+        self.assertTrue((outputdir / "test_usergroups.json").is_file())
+        self.assertTrue((outputdir / "test_users.json").is_file())
 
     def test_all_message_variants(self, mock_slack):
         # given
@@ -113,7 +138,7 @@ class TestSlackChannelExporter(NoSocketsTestCase):
         exporter = SlackChannelExporter("TOKEN_DUMMY")
         channels = ["G1234567X"]
         # when
-        response = exporter.run(channels, currentdir)
+        response = exporter.run(channels, outputdir)
         # then
         self.assertTrue(response["ok"])
 
@@ -123,7 +148,7 @@ class TestSlackChannelExporter(NoSocketsTestCase):
         exporter = SlackChannelExporter("TOKEN_DUMMY")
         channels = ["C12345678"]
         # when
-        response = exporter.run(channels, currentdir)
+        response = exporter.run(channels, outputdir)
         # then
         self.assertTrue(response["ok"])
 
@@ -137,7 +162,7 @@ class TestSlackChannelExporter(NoSocketsTestCase):
         )
         channel = "C12345678"
         # when
-        response = exporter.run([channel], currentdir)
+        response = exporter.run([channel], outputdir)
         # then
         self.assertTrue(response["ok"])
         res_channel = response["channels"][channel]
