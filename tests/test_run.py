@@ -39,6 +39,31 @@ class TestRun(TestCase):
         kwargs = MockExporter.return_value.run.call_args[1]
         self.assertEqual(kwargs["channel_inputs"], "channel")
 
+    def test_should_use_token_from_environment_var(self, mock_parse_args, MockExporter):
+        # given
+        mock_parse_args.return_value = Namespace(
+            add_debug_info=False,
+            channel="channel",
+            destination=None,
+            latest=None,
+            locale=None,
+            max_messages=None,
+            oldest=None,
+            page_format=None,
+            page_orientation=None,
+            token=None,
+            timezone=None,
+            write_raw_data=None,
+        )
+        # when
+        with patch("slackchannel2pdf.run.os") as mock_os:
+            mock_os.environ = {"SLACK_TOKEN": "DUMMY_TOKEN"}
+            main()
+        # then
+        self.assertTrue(MockExporter.called)
+        kwargs = MockExporter.call_args[1]
+        self.assertEqual(kwargs["slack_token"], "DUMMY_TOKEN")
+
     def test_should_show_version_and_abort(self, mock_parse_args, MockExporter):
         # given
         mock_parse_args.return_value = Namespace(
@@ -155,3 +180,87 @@ class TestRun(TestCase):
         kwargs = mock_run.call_args[1]
         self.assertEqual(kwargs["oldest"], dt.datetime(2020, 2, 2, 20, 0))
         self.assertEqual(kwargs["latest"], dt.datetime(2020, 3, 3, 22, 0))
+
+    def test_should_abort_if_locale_is_invalid(self, mock_parse_args, MockExporter):
+        # given
+        mock_parse_args.return_value = Namespace(
+            add_debug_info=False,
+            channel=None,
+            destination=None,
+            latest=None,
+            locale="xx",
+            max_messages=None,
+            oldest=None,
+            page_format=None,
+            page_orientation=None,
+            token="DUMMY_TOKEN",
+            timezone=None,
+            write_raw_data=None,
+        )
+        # when
+        main()
+        # then
+        self.assertFalse(MockExporter.called)
+
+    def test_should_abort_if_timezone_is_invalid(self, mock_parse_args, MockExporter):
+        # given
+        mock_parse_args.return_value = Namespace(
+            add_debug_info=False,
+            channel=None,
+            destination=None,
+            latest=None,
+            locale=None,
+            max_messages=None,
+            oldest=None,
+            page_format=None,
+            page_orientation=None,
+            token="DUMMY_TOKEN",
+            timezone="xx",
+            write_raw_data=None,
+        )
+        # when
+        main()
+        # then
+        self.assertFalse(MockExporter.called)
+
+    def test_should_abort_if_oldest_is_invalid(self, mock_parse_args, MockExporter):
+        # given
+        mock_parse_args.return_value = Namespace(
+            add_debug_info=False,
+            channel=None,
+            destination=None,
+            latest=None,
+            locale=None,
+            max_messages=None,
+            oldest="xx",
+            page_format=None,
+            page_orientation=None,
+            token="DUMMY_TOKEN",
+            timezone=None,
+            write_raw_data=None,
+        )
+        # when
+        main()
+        # then
+        self.assertFalse(MockExporter.called)
+
+    def test_should_abort_if_latest_is_invalid(self, mock_parse_args, MockExporter):
+        # given
+        mock_parse_args.return_value = Namespace(
+            add_debug_info=False,
+            channel=None,
+            destination=None,
+            latest="xx",
+            locale=None,
+            max_messages=None,
+            oldest=None,
+            page_format=None,
+            page_orientation=None,
+            token="DUMMY_TOKEN",
+            timezone=None,
+            write_raw_data=None,
+        )
+        # when
+        main()
+        # then
+        self.assertFalse(MockExporter.called)

@@ -637,7 +637,7 @@ class SlackChannelExporter:
                     f"ERROR: give destination path does not exist: {dest_path}"
                 )
 
-        logger.info("Writing output to: %s", dest_path)
+        logger.info("Writing output to: %s", dest_path.absolute())
 
         if not isinstance(page_orientation, str):
             raise TypeError("page_orientation must be of type str")
@@ -688,13 +688,12 @@ class SlackChannelExporter:
             # fetch messages
             # if we have a client fetch data from Slack
             if not self._slack_service.is_test_mode:
-                if len(channel_inputs) > 1:
-                    text = f"({channel_count}/{len(channel_inputs)}) "
-                else:
-                    text = ""
-                text += "Retrieving messages from " + f"{team_name} / {channel_name}"
-
-                logger.info(text + " ...")
+                progress_str = (
+                    f"({channel_count}/{len(channel_inputs)})"
+                    if len(channel_inputs) > 1
+                    else ""
+                )
+                logger.info("Current channel %s: %s", progress_str, channel_name)
                 messages = self._slack_service.fetch_messages_from_channel(
                     channel_id, max_messages, oldest, latest
                 )
@@ -868,7 +867,7 @@ class SlackChannelExporter:
 
             # store PDF
             filename_pdf = dest_path / (filename_base_channel + ".pdf")
-            logger.info("Writing PDF file: %s", filename_pdf.absolute())
+            logger.info("Writing PDF file: %s", filename_pdf)
             try:
                 document.output(str(filename_pdf))
                 success_channel = True

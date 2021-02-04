@@ -7,9 +7,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.2.3] - 2021-02-04
+
+### Added
+
+- Ability to add a logfile
+
 ### Changed
 
 - Replaced print statements with logger
+- No uses `Pathlib` for better cross platform compatibility
+
+### Fixed
+
+- 'NoneType' object has no attribute 'decimal_formats'
 
 ## [1.2.2] - 2021-02-03
 

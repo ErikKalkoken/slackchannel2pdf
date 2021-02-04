@@ -31,7 +31,7 @@ class SlackService:
         self._locale = locale_helper.locale
         if slack_token != "TEST":
             self._workspace_info = self._fetch_workspace_info()
-            logger.info("Current Slack workspace '%s'", self.team)
+            logger.info("Current Slack workspace: %s", self.team)
             self._user_names = self.fetch_user_names()
 
             # set author
@@ -45,7 +45,7 @@ class SlackService:
                 author_id = None
                 self._author = "unknown user"
 
-            logger.info("Current Slack user is: '%s'", self.author)
+            logger.info("Current Slack user: %s", self.author)
             self._channel_names = self._fetch_channel_names()
             self._usergroup_names = self._fetch_usergroup_names()
             self._is_test_mode = False
@@ -144,7 +144,7 @@ class SlackService:
                 )
             logger.info(
                 "Got a total of %s usergroups for this workspace",
-                format_number(len(usergroup_names)),
+                format_number(len(usergroup_names), locale=self._locale),
             )
         else:
             logger.info("This workspace has no usergroups")
@@ -190,7 +190,7 @@ class SlackService:
 
         if thread_messages_total:
             logger.info(
-                "Received a total of %s messages from %d threads",
+                "Received %s messages from %d threads",
                 format_number(thread_messages_total, locale=self._locale),
                 thread_num,
             )
@@ -237,7 +237,7 @@ class SlackService:
         page = 1
         output_str = (
             f"Fetching {items_name if items_name else method} "
-            f"from {collection_name if collection_name else 'Slack'}"
+            f"from {collection_name if collection_name else 'workspace'}..."
         )
         logger.info(output_str)
         if not args:
@@ -270,7 +270,7 @@ class SlackService:
 
         if print_result:
             logger.info(
-                "Received a total of %s %s",
+                "Received %s %s",
                 format_number(len(rows), locale=self._locale),
                 items_name if items_name else "objects",
             )
