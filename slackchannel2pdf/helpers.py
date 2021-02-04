@@ -7,7 +7,7 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 
-def transform_encoding(text):
+def transform_encoding(text: str) -> str:
     """adjust encoding to latin-1 and transform HTML entities"""
     text2 = html.unescape(text)
     text2 = text2.encode("utf-8", "replace").decode("utf-8")
@@ -15,7 +15,7 @@ def transform_encoding(text):
     return text2
 
 
-def read_array_from_json_file(filepath: Path, quiet=False):
+def read_array_from_json_file(filepath: Path, quiet=False) -> list:
     """reads a json file and returns its contents as array"""
     my_file = filepath.parent / (filepath.name + ".json")
     if not my_file.is_file:
@@ -34,7 +34,7 @@ def read_array_from_json_file(filepath: Path, quiet=False):
     return arr
 
 
-def write_array_to_json_file(arr, filepath: Path):
+def write_array_to_json_file(arr, filepath: Path) -> None:
     """writes array to a json file"""
     my_file = filepath.parent / (filepath.name + ".json")
     logger.info("Writing file: %s", filepath)

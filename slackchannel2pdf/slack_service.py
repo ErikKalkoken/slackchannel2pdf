@@ -67,15 +67,15 @@ class SlackService:
             self._author_info = dict()
 
     @property
-    def author(self):
+    def author(self) -> str:
         return self._author
 
     @property
-    def team(self):
+    def team(self) -> str:
         return self._workspace_info["team"]
 
     @property
-    def is_test_mode(self):
+    def is_test_mode(self) -> bool:
         return self._is_test_mode
 
     def author_info(self) -> dict:
@@ -90,7 +90,7 @@ class SlackService:
     def usergroup_names(self) -> dict:
         return self._usergroup_names
 
-    def _fetch_workspace_info(self):
+    def _fetch_workspace_info(self) -> dict:
         """returns dict with info about current workspace"""
 
         logger.info("Fetching workspace info from Slack...")
@@ -109,9 +109,8 @@ class SlackService:
             user_names[user] = transform_encoding(user_names[user])
         return user_names
 
-    def _fetch_user_info(self, user_id):
+    def _fetch_user_info(self, user_id: str) -> dict:
         """returns dict of user info for user ID incl. locale"""
-
         logger.info("Fetching user info for author...")
         response = self._client.users_info(user=user_id, include_locale=1)
         assert response["ok"]
@@ -130,7 +129,7 @@ class SlackService:
             channel_names[channel] = transform_encoding(channel_names[channel])
         return channel_names
 
-    def _fetch_usergroup_names(self):
+    def _fetch_usergroup_names(self) -> dict:
         """returns dict of usergroup names with usergroup ID as key"""
 
         logger.info("Fetching usergroups from Slack...")
@@ -152,7 +151,7 @@ class SlackService:
 
     def fetch_messages_from_channel(
         self, channel_id, max_messages, oldest=None, latest=None
-    ):
+    ) -> list:
         """retrieve messages from a channel on Slack and return as list"""
 
         oldest_ts = str(oldest.timestamp()) if oldest is not None else 0
@@ -276,7 +275,7 @@ class SlackService:
             )
         return rows
 
-    def fetch_bot_names_for_messages(self, messages, threads):
+    def fetch_bot_names_for_messages(self, messages: list, threads: list) -> dict:
         """Fetches bot names from API for provided messages
 
         Will only fetch names for bots that never appeared with a username
@@ -318,7 +317,9 @@ class SlackService:
         return bot_names
 
     @staticmethod
-    def _reduce_to_dict(arr, key_name, col_name_primary, col_name_secondary=None):
+    def _reduce_to_dict(
+        arr: list, key_name: str, col_name_primary: str, col_name_secondary: str = None
+    ) -> list:
         """returns dict with selected columns as key and value from list of dict
 
         Args:

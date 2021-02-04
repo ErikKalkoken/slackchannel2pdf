@@ -2,6 +2,7 @@ import datetime as dt
 import logging
 from pathlib import Path
 import re
+from typing import List, Optional
 
 from babel import Locale
 from babel.numbers import format_number
@@ -92,7 +93,14 @@ class SlackChannelExporter:
         if logfile_path:
             pass
 
-    def _parse_message_and_write_to_pdf(self, document, msg, margin_left, last_user_id):
+    def _parse_message_and_write_to_pdf(
+        self,
+        document: MyFPDF,
+        msg: dict,
+        margin_left: int,
+        last_user_id: str,
+        full_date: bool = False,
+    ) -> Optional[str]:
         """parse a message and write it to the PDF"""
 
         if "user" in msg:
@@ -151,9 +159,14 @@ class SlackChannelExporter:
                     document.set_text_color(100, 100, 100)
                     document.write(settings.LINE_HEIGHT_DEFAULT, "App ")
                     document.set_text_color(0)
-                datetime_str = self._locale_helper.get_time_formatted_str(msg["ts"])
+
+                datetime_str = (
+                    self._locale_helper.get_datetime_formatted_str(msg["ts"])
+                    if full_date
+                    else self._locale_helper.get_time_formatted_str(msg["ts"])
+                )
                 document.write(settings.LINE_HEIGHT_DEFAULT, datetime_str)
-                document.ln()
+                document.ln(settings.LINE_HEIGHT_DEFAULT)
 
             if "text" in msg and len(msg["text"]) > 0:
                 text = msg["text"]
@@ -174,7 +187,7 @@ class SlackChannelExporter:
                 document.write_html(
                     settings.LINE_HEIGHT_DEFAULT, text_html + debug_text
                 )
-                document.ln()
+                document.ln(settings.LINE_HEIGHT_DEFAULT)
 
             if "reactions" in msg:
                 # draw reactions
@@ -459,7 +472,9 @@ class SlackChannelExporter:
 
         return user_id
 
-    def _write_messages_to_pdf(self, document, messages, threads):
+    def _write_messages_to_pdf(
+        self, document: MyFPDF, messages: List[dict], threads: List[dict]
+    ) -> None:
         """writes messages with their threads to the PDF document"""
         last_user_id = None
         last_dt = None
@@ -510,7 +525,6 @@ class SlackChannelExporter:
                         "C",
                         True,
                     )
-
                     document.ln()
                     last_user_id = None  # repeat user name for new day
 
@@ -550,6 +564,7 @@ class SlackChannelExporter:
                                     thread_msg,
                                     settings.MARGIN_LEFT + settings.TAB_WIDTH,
                                     last_user_id,
+                                    full_date=True,
                                 )
 
                     last_user_id = None

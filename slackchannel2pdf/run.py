@@ -99,7 +99,7 @@ def main():
         )
 
 
-def parse_args(args) -> argparse.ArgumentParser:
+def parse_args(args: list) -> argparse.ArgumentParser:
     """defines the argument parser and returns parsed result from given argument"""
     my_arg_parser = argparse.ArgumentParser(
         description="This program exports the text of a Slack channel to a PDF file",

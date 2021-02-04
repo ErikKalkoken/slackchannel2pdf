@@ -70,31 +70,31 @@ class LocaleHelper:
         return my_tz
 
     @property
-    def locale(self):
+    def locale(self) -> Locale:
         return self._locale
 
     @property
-    def timezone(self):
+    def timezone(self) -> pytz.BaseTzInfo:
         return self._timezone
 
-    def format_date_full_str(self, my_datetime):
+    def format_date_full_str(self, my_datetime: dt.datetime) -> str:
         return format_date(my_datetime, format="full", locale=self.locale)
 
-    def format_datetime_str(self, my_datetime):
+    def format_datetime_str(self, my_datetime: dt.datetime) -> str:
         """returns formated datetime string for given dt using locale"""
         return format_datetime(my_datetime, format="short", locale=self.locale)
 
-    def get_datetime_formatted_str(self, ts):
+    def get_datetime_formatted_str(self, ts: int) -> str:
         """return given timestamp as formated datetime string using locale"""
         my_datetime = self.get_datetime_from_ts(ts)
         return format_datetime(my_datetime, format="short", locale=self.locale)
 
-    def get_time_formatted_str(self, ts):
+    def get_time_formatted_str(self, ts: int) -> str:
         """return given timestamp as formated datetime string using locale"""
         my_datetime = self.get_datetime_from_ts(ts)
         return format_time(my_datetime, format="short", locale=self.locale)
 
-    def get_datetime_from_ts(self, ts):
+    def get_datetime_from_ts(self, ts: int) -> dt.datetime:
         """returns datetime object of a unix timestamp with local timezone"""
         my_datetime = dt.datetime.fromtimestamp(float(ts), pytz.UTC)
         return my_datetime.astimezone(self.timezone)
