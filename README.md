@@ -91,12 +91,14 @@ slackchannel2pdf --token MY_TOKEN --oldest "2019-JUL-05 11:00" general
 ## Arguments
 
 ```text
-usage: run.py [-h] [--token TOKEN] [--oldest OLDEST] [--latest LATEST]
-              [-d DESTINATION] [--page-orientation {portrait,landscape}]
-              [--page-format {a3,a4,a5,letter,legal}] [--timezone TIMEZONE]
-              [--locale LOCALE] [--version] [--max-messages MAX_MESSAGES]
-              [--write-raw-data] [--add-debug-info]
-              channel [channel ...]
+usage: slackchannel2pdf [-h] [--token TOKEN] [--oldest OLDEST]
+                        [--latest LATEST] [-d DESTINATION]
+                        [--page-orientation {portrait,landscape}]
+                        [--page-format {a3,a4,a5,letter,legal}]
+                        [--timezone TIMEZONE] [--locale LOCALE] [--version]
+                        [--max-messages MAX_MESSAGES] [--write-raw-data]
+                        [--add-debug-info] [--quiet]
+                        channel [channel ...]
 
 This program exports the text of a Slack channel to a PDF file
 
@@ -131,6 +133,10 @@ optional arguments:
                         files, e.g. messages.json with all messages (default:
                         None)
   --add-debug-info      wether to add debug info to PDF (default: False)
+  --quiet               When provided will not generate normal console output,
+                        but still show errors (console logging not affected
+                        and needs to be configured through log levels instead)
+                        (default: False)
 ```
 
 ## Configuration

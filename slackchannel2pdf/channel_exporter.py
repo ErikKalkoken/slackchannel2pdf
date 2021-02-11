@@ -670,7 +670,7 @@ class SlackChannelExporter:
 
         # prepare to process channels
         team_name = self._slack_service.team
-        response = {"ok": success, "channels": dict()}
+        response = {"ok": success, "channels": dict(), "team_name": team_name}
         channel_count = 0
         success = True
 

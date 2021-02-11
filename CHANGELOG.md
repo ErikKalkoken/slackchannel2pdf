@@ -7,9 +7,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.3.0] - 2021-02-11
+
 ### Added
 
-- Many defaults (e.g. page format) can not be adjusted via configuration files
+- Configuration files now allow users to configure defaults (e.g. page format)
+- New command line argument "quiet" to turn off console output
+
+### Changed
+
+- Console output streamlined to better work with console logger
 
 ## [1.2.4] - 2021-02-04
 

@@ -15,12 +15,8 @@ from .channel_exporter import SlackChannelExporter
 def main():
     """Implements the arg parser and starts the channel exporter with its input"""
 
-    print(f"slackchannel2pdf v{__version__} by Erik Kalkoken")
-    print("")
-
     args = parse_args(sys.argv[1:])
     start_export = True
-
     if "version" in args:
         print(__version__)
         start_export = False
@@ -63,7 +59,7 @@ def main():
         try:
             oldest = parser.parse(args.oldest)
         except ValueError:
-            print("Invalid date input for --oldest")
+            print("ERROR: Invalid date input for --oldest")
             start_export = False
             oldest = None
     else:
@@ -74,20 +70,23 @@ def main():
         try:
             latest = parser.parse(args.latest)
         except ValueError:
-            print("Invalid date input for --latest")
+            print("ERROR: Invalid date input for --latest")
             start_export = False
             latest = None
     else:
         latest = None
 
     if start_export:
+        if not args.quiet:
+            channel_postfix = "s" if args.channel and len(args.channel) > 1 else ""
+            print(f"Exporting channel{channel_postfix} from Slack...")
         exporter = SlackChannelExporter(
             slack_token=slack_token,
             my_tz=my_tz,
             my_locale=my_locale,
             add_debug_info=args.add_debug_info,
         )
-        exporter.run(
+        result = exporter.run(
             channel_inputs=args.channel,
             dest_path=Path(args.destination) if args.destination else None,
             oldest=oldest,
@@ -97,6 +96,11 @@ def main():
             max_messages=args.max_messages,
             write_raw_data=(args.write_raw_data is True),
         )
+        for channel in result["channels"].values():
+            if not args.quiet:
+                print(
+                    f"{'created' if channel['ok'] else 'failed'}: {channel['filename_pdf']}"
+                )
 
 
 def parse_args(args: list) -> argparse.ArgumentParser:
@@ -187,7 +191,16 @@ def parse_args(args: list) -> argparse.ArgumentParser:
         default=False,
     )
     my_arg_parser.add_argument(
-        "--logfile", help="will write logs to this filepath when provided"
+        "--quiet",
+        action="store_const",
+        const=True,
+        default=False,
+        help=(
+            "When provided will not generate normal console output, "
+            "but still show errors "
+            "(console logging not affected and needs to be configured through "
+            "log levels instead)"
+        ),
     )
     return my_arg_parser.parse_args(args)
 

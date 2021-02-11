@@ -28,6 +28,7 @@ class TestRun(TestCase):
             token="DUMMY_TOKEN",
             timezone=None,
             write_raw_data=None,
+            quiet=False,
         )
         # when
         main()
@@ -54,6 +55,7 @@ class TestRun(TestCase):
             token=None,
             timezone=None,
             write_raw_data=None,
+            quiet=False,
         )
         # when
         with patch("slackchannel2pdf.run.os") as mock_os:
@@ -122,6 +124,7 @@ class TestRun(TestCase):
             token="DUMMY_TOKEN",
             timezone="Asia/Bangkok",
             write_raw_data=None,
+            quiet=False,
         )
         # when
         main()
@@ -145,6 +148,7 @@ class TestRun(TestCase):
             token="DUMMY_TOKEN",
             timezone=None,
             write_raw_data=None,
+            quiet=False,
         )
         # when
         main()
@@ -170,6 +174,7 @@ class TestRun(TestCase):
             token="DUMMY_TOKEN",
             timezone=None,
             write_raw_data=None,
+            quiet=False,
         )
         # when
         main()
