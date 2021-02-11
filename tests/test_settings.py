@@ -16,6 +16,14 @@ class TestConvertStr(unittest.TestCase):
             settings._configparser_convert_str("42")
 
 
+def fetch_default_config() -> configparser.ConfigParser:
+    default_config = configparser.ConfigParser(
+        converters={"str": settings._configparser_convert_str}
+    )
+    default_config.read(settings._DEFAULTS_PATH / settings._CONF_FILE_NAME)
+    return default_config
+
+
 class TestConfigParser(unittest.TestCase):
 
     TEST_SECTION = "pdf"
@@ -24,8 +32,7 @@ class TestConfigParser(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        cls.default_config = configparser.ConfigParser()
-        cls.default_config.read(settings._DEFAULTS_PATH / settings._CONF_FILE_NAME)
+        cls.default_config = fetch_default_config()
         cls.default_config.set(cls.TEST_SECTION, cls.TEST_OPTION, "12")
 
     def test_should_return_default_configuration(self):
@@ -82,3 +89,56 @@ class TestConfigParser(unittest.TestCase):
         )
         # then
         self.assertEqual(new_parser.getint(self.TEST_SECTION, self.TEST_OPTION), 8)
+
+
+class TestSettings(unittest.TestCase):
+    def test_should_set_console_log_level(self):
+        # given
+        config = fetch_default_config()
+        config.set("logging", "console_log_level", '"DEBUG"')
+        # when
+        dict_config = settings.setup_logging(config)
+        # then
+        self.assertEqual(dict_config["handlers"]["console"]["level"], "DEBUG")
+
+    def test_should_set_file_log_level(self):
+        # given
+        config = fetch_default_config()
+        config.set("logging", "file_log_level", '"DEBUG"')
+        # when
+        dict_config = settings.setup_logging(config)
+        # then
+        self.assertEqual(dict_config["handlers"]["file"]["level"], "DEBUG")
+
+    def test_should_enable_file_logger(self):
+        # given
+        config = fetch_default_config()
+        config.set("logging", "log_file_enabled", "True")
+        # when
+        dict_config = settings.setup_logging(config)
+        # then
+        self.assertIn("file", dict_config["handlers"])
+        self.assertIn("file", dict_config["loggers"][""]["handlers"])
+
+    def test_should_disable_file_logger(self):
+        # given
+        config = fetch_default_config()
+        config.set("logging", "log_file_enabled", "False")
+        # when
+        dict_config = settings.setup_logging(config)
+        # then
+        self.assertNotIn("file", dict_config["handlers"])
+        self.assertNotIn("file", dict_config["loggers"][""]["handlers"])
+
+    def test_should_set_log_file_path(self):
+        # given
+        config = fetch_default_config()
+        config.set("logging", "log_file_enabled", "True")
+        my_path = Path(tempfile.mkdtemp())
+        config.set("logging", "log_file_path", f"'{str(my_path)}'")
+        # when
+        dict_config = settings.setup_logging(config)
+        # then
+        self.assertEqual(
+            Path(dict_config["handlers"]["file"]["filename"]).parent, my_path
+        )

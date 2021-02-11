@@ -84,9 +84,8 @@ class TestRun(TestCase):
             write_raw_data=None,
         )
         # when
-        main()
-        # then
-        self.assertFalse(MockExporter.called)
+        with self.assertRaises(SystemExit):
+            main()
 
     def test_should_abort_when_no_token_given(self, mock_parse_args, MockExporter):
         # given
@@ -105,9 +104,8 @@ class TestRun(TestCase):
             write_raw_data=None,
         )
         # when
-        main()
-        # then
-        self.assertFalse(MockExporter.called)
+        with self.assertRaises(SystemExit):
+            main()
 
     def test_should_use_given_timezone(self, mock_parse_args, MockExporter):
         # given
@@ -203,9 +201,8 @@ class TestRun(TestCase):
             write_raw_data=None,
         )
         # when
-        main()
-        # then
-        self.assertFalse(MockExporter.called)
+        with self.assertRaises(SystemExit):
+            main()
 
     def test_should_abort_if_timezone_is_invalid(self, mock_parse_args, MockExporter):
         # given
@@ -224,9 +221,8 @@ class TestRun(TestCase):
             write_raw_data=None,
         )
         # when
-        main()
-        # then
-        self.assertFalse(MockExporter.called)
+        with self.assertRaises(SystemExit):
+            main()
 
     def test_should_abort_if_oldest_is_invalid(self, mock_parse_args, MockExporter):
         # given
@@ -245,9 +241,8 @@ class TestRun(TestCase):
             write_raw_data=None,
         )
         # when
-        main()
-        # then
-        self.assertFalse(MockExporter.called)
+        with self.assertRaises(SystemExit):
+            main()
 
     def test_should_abort_if_latest_is_invalid(self, mock_parse_args, MockExporter):
         # given
@@ -266,6 +261,5 @@ class TestRun(TestCase):
             write_raw_data=None,
         )
         # when
-        main()
-        # then
-        self.assertFalse(MockExporter.called)
+        with self.assertRaises(SystemExit):
+            main()

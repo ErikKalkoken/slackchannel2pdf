@@ -13,10 +13,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Configuration files now allow users to configure defaults (e.g. page format)
 - New command line argument "quiet" to turn off console output
+- A log file will now be written in the current working directory (can be disabled by through configuration)
 
 ### Changed
 
+- Console will no longer show detailed infos by default (but can be re-enabled by setting console log level to INFO)
 - Console output streamlined to better work with console logger
+- Program now exists with a non zero value if an error occurred
+- API errors returned from Slack now shown in a more user friendly format
 
 ## [1.2.4] - 2021-02-04
 

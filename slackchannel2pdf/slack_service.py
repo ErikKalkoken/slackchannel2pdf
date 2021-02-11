@@ -95,9 +95,7 @@ class SlackService:
 
         logger.info("Fetching workspace info from Slack...")
         res = self._client.auth_test()
-        response = res.data
-        assert response["ok"]
-        return response
+        return res.data
 
     def fetch_user_names(self) -> dict:
         """returns dict of user names with user ID as key"""
@@ -113,7 +111,6 @@ class SlackService:
         """returns dict of user info for user ID incl. locale"""
         logger.info("Fetching user info for author...")
         response = self._client.users_info(user=user_id, include_locale=1)
-        assert response["ok"]
         return response["user"]
 
     def _fetch_channel_names(self) -> dict:
@@ -134,7 +131,6 @@ class SlackService:
 
         logger.info("Fetching usergroups from Slack...")
         response = self._client.usergroups_list()
-        assert response["ok"]
         usergroup_names = self._reduce_to_dict(response["usergroups"], "id", "handle")
         if usergroup_names:
             for usergroup in usergroup_names:
@@ -245,7 +241,6 @@ class SlackService:
             limit = settings.SLACK_PAGE_LIMIT
         base_args = {**args, **{"limit": limit}}
         response = getattr(self._client, method)(**base_args)
-        assert response["ok"]
         rows = response[key]
 
         # fetch additional page (if any)
@@ -264,7 +259,6 @@ class SlackService:
                 },
             }
             response = getattr(self._client, method)(**page_args)
-            assert response["ok"]
             rows += response[key]
 
         if print_result:

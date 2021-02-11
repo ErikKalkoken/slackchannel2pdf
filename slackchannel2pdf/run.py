@@ -3,9 +3,10 @@ import os
 from pathlib import Path
 import sys
 
+from babel import Locale, UnknownLocaleError
 from dateutil import parser
 import pytz
-from babel import Locale, UnknownLocaleError
+from slack.errors import SlackApiError
 
 from . import __version__
 from . import settings
@@ -16,10 +17,9 @@ def main():
     """Implements the arg parser and starts the channel exporter with its input"""
 
     args = parse_args(sys.argv[1:])
-    start_export = True
     if "version" in args:
         print(__version__)
-        start_export = False
+        exit(0)
 
     # try to take slack token from optional argument or environment variable
     if args.token is None:
@@ -27,8 +27,7 @@ def main():
             slack_token = os.environ["SLACK_TOKEN"]
         else:
             print("ERROR: No slack token provided")
-            start_export = False
-            slack_token = None
+            exit(1)
     else:
         slack_token = args.token
 
@@ -38,8 +37,7 @@ def main():
             my_tz = pytz.timezone(args.timezone)
         except pytz.UnknownTimeZoneError:
             print("ERROR: Unknown timezone")
-            my_tz = None
-            start_export = False
+            exit(1)
     else:
         my_tz = None
 
@@ -49,8 +47,7 @@ def main():
             my_locale = Locale.parse(args.locale, sep="-")
         except UnknownLocaleError:
             print("ERROR: provided locale string is not valid")
-            start_export = False
-            my_locale = None
+            exit(1)
     else:
         my_locale = None
 
@@ -60,8 +57,7 @@ def main():
             oldest = parser.parse(args.oldest)
         except ValueError:
             print("ERROR: Invalid date input for --oldest")
-            start_export = False
-            oldest = None
+            exit(1)
     else:
         oldest = None
 
@@ -71,36 +67,39 @@ def main():
             latest = parser.parse(args.latest)
         except ValueError:
             print("ERROR: Invalid date input for --latest")
-            start_export = False
-            latest = None
+            exit(1)
     else:
         latest = None
 
-    if start_export:
-        if not args.quiet:
-            channel_postfix = "s" if args.channel and len(args.channel) > 1 else ""
-            print(f"Exporting channel{channel_postfix} from Slack...")
+    if not args.quiet:
+        channel_postfix = "s" if args.channel and len(args.channel) > 1 else ""
+        print(f"Exporting channel{channel_postfix} from Slack...")
+    try:
         exporter = SlackChannelExporter(
             slack_token=slack_token,
             my_tz=my_tz,
             my_locale=my_locale,
             add_debug_info=args.add_debug_info,
         )
-        result = exporter.run(
-            channel_inputs=args.channel,
-            dest_path=Path(args.destination) if args.destination else None,
-            oldest=oldest,
-            latest=latest,
-            page_orientation=args.page_orientation,
-            page_format=args.page_format,
-            max_messages=args.max_messages,
-            write_raw_data=(args.write_raw_data is True),
-        )
-        for channel in result["channels"].values():
-            if not args.quiet:
-                print(
-                    f"{'created' if channel['ok'] else 'failed'}: {channel['filename_pdf']}"
-                )
+    except SlackApiError as ex:
+        print(f"ERROR: {ex}")
+        exit(1)
+
+    result = exporter.run(
+        channel_inputs=args.channel,
+        dest_path=Path(args.destination) if args.destination else None,
+        oldest=oldest,
+        latest=latest,
+        page_orientation=args.page_orientation,
+        page_format=args.page_format,
+        max_messages=args.max_messages,
+        write_raw_data=(args.write_raw_data is True),
+    )
+    for channel in result["channels"].values():
+        if not args.quiet:
+            print(
+                f"{'written' if channel['ok'] else 'failed'}: {channel['filename_pdf']}"
+            )
 
 
 def parse_args(args: list) -> argparse.ArgumentParser:
