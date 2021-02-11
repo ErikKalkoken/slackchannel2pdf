@@ -6,7 +6,7 @@ import re
 from typing import List, Optional
 
 from babel import Locale
-from babel.numbers import format_number
+from babel.numbers import format_decimal
 import pytz
 
 from . import __version__
@@ -867,10 +867,10 @@ class SlackChannelExporter:
                 "End date": end_date_str,
                 "Timezone": self._locale_helper.timezone,
                 "Locale": f"{self._locale_helper.locale.get_display_name()}",
-                "Messages": format_number(
+                "Messages": format_decimal(
                     message_count, locale=self._locale_helper.locale
                 ),
-                "Threads": format_number(
+                "Threads": format_decimal(
                     thread_count, locale=self._locale_helper.locale
                 ),
                 "Pages": "{nb}",

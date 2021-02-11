@@ -1,10 +1,17 @@
 import configparser
-from copy import deepcopy
 from pathlib import Path
+import pickle
 import unittest
 import tempfile
 
 from slackchannel2pdf import settings
+
+
+def deepcopy(config: configparser.ConfigParser) -> configparser.ConfigParser:
+    """deep copy config"""
+    rep = pickle.dumps(config)
+    new_config = pickle.loads(rep)
+    return new_config
 
 
 class TestConvertStr(unittest.TestCase):
@@ -104,6 +111,7 @@ class TestSettings(unittest.TestCase):
     def test_should_set_file_log_level(self):
         # given
         config = fetch_default_config()
+        config.set("logging", "log_file_enabled", "True")
         config.set("logging", "file_log_level", '"DEBUG"')
         # when
         dict_config = settings.setup_logging(config)

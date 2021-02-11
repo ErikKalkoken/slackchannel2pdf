@@ -1,7 +1,7 @@
 import logging
 from time import sleep
 
-from babel.numbers import format_number
+from babel.numbers import format_decimal
 import slack
 
 from . import settings
@@ -139,7 +139,7 @@ class SlackService:
                 )
             logger.info(
                 "Got a total of %s usergroups for this workspace",
-                format_number(len(usergroup_names), locale=self._locale),
+                format_decimal(len(usergroup_names), locale=self._locale),
             )
         else:
             logger.info("This workspace has no usergroups")
@@ -186,7 +186,7 @@ class SlackService:
         if thread_messages_total:
             logger.info(
                 "Received %s messages from %d threads",
-                format_number(thread_messages_total, locale=self._locale),
+                format_decimal(thread_messages_total, locale=self._locale),
                 thread_num,
             )
         else:
@@ -264,7 +264,7 @@ class SlackService:
         if print_result:
             logger.info(
                 "Received %s %s",
-                format_number(len(rows), locale=self._locale),
+                format_decimal(len(rows), locale=self._locale),
                 items_name if items_name else "objects",
             )
         return rows
