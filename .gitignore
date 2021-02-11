@@ -20,3 +20,4 @@ MANIFEST
 *.pyc
 htmlcov/
 */temp/
+temp/

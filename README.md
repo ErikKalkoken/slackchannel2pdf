@@ -12,6 +12,7 @@
 - [Token](#token)
 - [Usage](#usage)
 - [Arguments](#arguments)
+- [Configuration](#configuration)
 - [Limitations](#limitations)
 
 ## Overview
@@ -29,6 +30,7 @@ Here is a short summary of the key features of **slackchannel2pdf**:
 - Exporting support for all Slack features incl. threads and layout blocks
 - Ability to export only the portion of a channel for a specific time period
 - Ability to configure page layout of PDF file (e.g. Portrait vs. Landscape)
+- Many defaults and behaviors can be configured with configuration files
 
 ## Installation
 
@@ -130,6 +132,17 @@ optional arguments:
                         None)
   --add-debug-info      wether to add debug info to PDF (default: False)
 ```
+
+## Configuration
+
+You can configure many defaults and behaviors via configuration files. Configuration files must have the name `slackchannel2pdf.ini` and can be placed in two locations:
+
+- home directory (home)
+- current working directory (cwd)
+
+You can also have a configuration file in both. Settings in cwd will overwrite the same settings in home. And calling this app with command line arguments will overwrite the corresponding configuration setting.
+
+Please see the master configuration file for a list of all available configuration sections, options and the current defaults. The master configuration file is `slackchannel2pdf/slackchannel2pdf.ini` in this repo.
 
 ## Limitations
 

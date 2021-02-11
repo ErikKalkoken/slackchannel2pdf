@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+### Added
+
+- Many defaults (e.g. page format) can not be adjusted via configuration files
+
 ## [1.2.4] - 2021-02-04
 
 ### Fixed
