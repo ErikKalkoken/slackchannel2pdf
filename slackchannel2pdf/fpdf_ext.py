@@ -1,11 +1,19 @@
 """This module contains an extended FPDF class with rudimentary HTML support"""
 
-import fpdf_mod
+import logging
 import re
 import os
 
+import fpdf_mod
+
+logger = logging.getLogger(__name__)
+
 fpdf_mod.set_global("FPDF_CACHE_MODE", 1)
 fpdf_mod.set_global("SYSTEM_TTFONTS", os.path.join(os.path.dirname(__file__), "fonts"))
+
+
+class HtmlConversionError(Exception):
+    pass
 
 
 class FPDF_ext(fpdf_mod.FPDF):
@@ -54,29 +62,35 @@ class FPDF_ext(fpdf_mod.FPDF):
         parts = re.split(r"<([^>]*)>", html)
 
         # run through all parts one by one
-        for i, part in dict(enumerate(parts)).items():
-            if i % 2 == 0:
-                # we have text
-                if len(self._href) > 0:
-                    self._put_link(self._href, height, part)
-                else:
-                    self.write(height, part)
+        try:
+            for i, part in dict(enumerate(parts)).items():
+                if i % 2 == 0:
+                    # we have text
+                    if len(self._href) > 0:
+                        self._put_link(self._href, height, part)
+                    else:
+                        self.write(height, part)
 
-            else:
-                # we have a tag
-                if part[0] == "/":
-                    self._close_tag(part[1 : len(part)].upper())
                 else:
-                    # extract all attributes from the current tag if any
-                    tag_parts = part.split(" ")
-                    tag = tag_parts.pop(0).upper()
-                    attributes = dict()
-                    for tag_part in tag_parts:
-                        match_obj = re.search(r'([^=]*)=["\']?([^"\']*)', tag_part)
-                        if match_obj is not None and len(match_obj.groups()) == 2:
-                            attributes[match_obj.group(1).upper()] = match_obj.group(2)
+                    # we have a tag
+                    if part[0] == "/":
+                        self._close_tag(part[1 : len(part)].upper())
+                    else:
+                        # extract all attributes from the current tag if any
+                        tag_parts = part.split(" ")
+                        tag = tag_parts.pop(0).upper()
+                        attributes = dict()
+                        for tag_part in tag_parts:
+                            match_obj = re.search(r'([^=]*)=["\']?([^"\']*)', tag_part)
+                            if match_obj is not None and len(match_obj.groups()) == 2:
+                                attributes[
+                                    match_obj.group(1).upper()
+                                ] = match_obj.group(2)
 
-                    self._open_tag(tag, attributes)
+                        self._open_tag(tag, attributes)
+
+        except HtmlConversionError:
+            logger.error("Failed to convert HTML to PDF:", html)
 
     def _open_tag(self, tag, attributes):
         """set style for opening tags and singular tags"""
@@ -95,7 +109,7 @@ class FPDF_ext(fpdf_mod.FPDF):
 
         if tag == "S":
             if self._last_font is not None:
-                raise RuntimeError("<s> tags can not be nested")
+                raise HtmlConversionError("<s> tags can not be nested")
 
             self._last_font = {
                 "font_family": self.font_family,

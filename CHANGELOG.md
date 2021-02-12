@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Console output streamlined to better work with console logger
 - Program now exists with a non zero value if an error occurred
 - API errors returned from Slack now shown in a more user friendly format
+- Now logs an error instead of aborting when failing to generate a message due to nested S-tags
 
 ## [1.2.4] - 2021-02-04
 

@@ -173,6 +173,16 @@ class TestSlackChannelExporter(NoSocketsTestCase):
         )
         self.assertEqual(res_channel["locale"], babel.Locale.parse("es-MX", sep="-"))
 
+    def test_should_handle_nested_code_formatting(self, mock_slack):
+        # given
+        mock_slack.WebClient.return_value = SlackClientStub(team="T12345678")
+        exporter = SlackChannelExporter(slack_token="TOKEN_DUMMY")
+        channel = "C92345678"
+        # when
+        response = exporter.run([channel], outputdir)
+        # then
+        self.assertTrue(response["ok"])
+
 
 class TestTransformations(NoSocketsTestCase):
     @classmethod
