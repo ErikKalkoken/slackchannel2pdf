@@ -7,13 +7,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
-## [1.3.0] - 2021-02-11
+## [1.3.0] - alpha
 
 ### Added
 
 - Configuration files now allow users to configure defaults (e.g. page format)
 - New command line argument "quiet" to turn off console output
 - A log file will now be written in the current working directory (can be disabled by through configuration)
+- Now officially supports Python 3.8 & Python 3.9
 
 ### Changed
 
