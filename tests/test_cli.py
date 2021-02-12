@@ -7,12 +7,12 @@ import pytz
 from unittest import TestCase
 from unittest.mock import patch
 
-from slackchannel2pdf.run import main
+from slackchannel2pdf.cli import main
 
 
-@patch("slackchannel2pdf.run.SlackChannelExporter")
-@patch("slackchannel2pdf.run.parse_args")
-class TestRun(TestCase):
+@patch("slackchannel2pdf.cli.SlackChannelExporter")
+@patch("slackchannel2pdf.cli.parse_args")
+class TestCli(TestCase):
     def test_should_start_export_for_channel(self, mock_parse_args, MockExporter):
         # given
         mock_parse_args.return_value = Namespace(
@@ -58,7 +58,7 @@ class TestRun(TestCase):
             quiet=False,
         )
         # when
-        with patch("slackchannel2pdf.run.os") as mock_os:
+        with patch("slackchannel2pdf.cli.os") as mock_os:
             mock_os.environ = {"SLACK_TOKEN": "DUMMY_TOKEN"}
             main()
         # then

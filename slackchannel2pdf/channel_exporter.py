@@ -1,3 +1,5 @@
+"""API for exporting Slack channels"""
+
 import datetime as dt
 import logging
 import logging.config
@@ -751,7 +753,7 @@ class SlackChannelExporter:
                     dest_path / (filename_base_channel + "_messages")
                 )
                 threads = read_array_from_json_file(
-                    filename=dest_path / (filename_base_channel + "_threads"),
+                    filepath=dest_path / (filename_base_channel + "_threads"),
                     quiet=True,
                 )
 

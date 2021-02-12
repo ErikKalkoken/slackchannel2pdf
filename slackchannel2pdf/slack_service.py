@@ -1,3 +1,5 @@
+"""Handles all requests to Slack"""
+
 import logging
 from time import sleep
 

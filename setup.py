@@ -47,7 +47,7 @@ setup(
     extras_require={"testing": ["PyPDF2", "coverage"]},
     entry_points={
         "console_scripts": [
-            "slackchannel2pdf=slackchannel2pdf.run:main",
+            "slackchannel2pdf=slackchannel2pdf.cli:main",
         ],
     },
 )

@@ -1,3 +1,5 @@
+"""Defines all global settings incl. from configuration files"""
+
 from ast import literal_eval
 import configparser
 from pathlib import Path

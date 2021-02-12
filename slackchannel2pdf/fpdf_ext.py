@@ -1,10 +1,4 @@
-# Copyright 2019 Erik Kalkoken
-#
-# Licensed under MIT license. See attached file for details
-#
-# This package contains the implementation of an extended FPDF class
-# with rudimentary HTML support
-#
+"""This module contains an extended FPDF class with rudimentary HTML support"""
 
 import fpdf_mod
 import re
