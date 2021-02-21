@@ -5,7 +5,7 @@ help:
 	@echo "Makefile for $(appname)"
 
 coverage:
-	coverage run -m unittest discover -v && coverage html && coverage report
+	coverage run -m unittest discover && coverage html && coverage report
 
 test:
 	coverage run -m unittest -v tests.test_channel_exporter.TestSlackChannelExporter.test_should_handle_team_name_with_invalid_characters
