@@ -38,7 +38,7 @@ setup(
         "Programming Language :: Python :: 3.9",
     ],
     install_requires=[
-        "Babel==2.7.0",
+        "Babel==2.9.1",
         "pytz==2019.1",
         "python-dateutil==2.8.0",
         "slackclient==2.1.0",
