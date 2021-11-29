@@ -38,13 +38,12 @@ setup(
         "Programming Language :: Python :: 3.9",
     ],
     install_requires=[
-        "Babel==2.7.0",
-        "pytz==2019.1",
-        "python-dateutil==2.8.0",
-        "slackclient==2.1.0",
-        "tzlocal==2.0.0",
+        "Babel>=2.9.1,<3",
+        "pytz>=2019.1",
+        "python-dateutil>=2.8.0,<3",
+        "slackclient>=2.1.0,<3",
+        "tzlocal>=2.0.0,<3",
     ],
-    extras_require={"testing": ["PyPDF2", "coverage"]},
     entry_points={
         "console_scripts": [
             "slackchannel2pdf=slackchannel2pdf.cli:main",
