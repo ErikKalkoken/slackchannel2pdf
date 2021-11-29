@@ -2,16 +2,15 @@
 
 import argparse
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 
+import pytz
 from babel import Locale, UnknownLocaleError
 from dateutil import parser
-import pytz
 from slack.errors import SlackApiError
 
-from . import __version__
-from . import settings
+from . import __version__, settings
 from .channel_exporter import SlackChannelExporter
 
 

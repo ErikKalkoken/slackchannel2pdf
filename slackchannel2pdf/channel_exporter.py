@@ -3,25 +3,24 @@
 import datetime as dt
 import logging
 import logging.config
-from pathlib import Path
 import re
+from pathlib import Path
 from typing import List, Optional
 
+import pytz
 from babel import Locale
 from babel.numbers import format_decimal
-import pytz
 
-from . import __version__
-from . import settings
-from .my_fpdf import MyFPDF
+from . import __version__, settings
 from .helpers import (
-    transform_encoding,
     read_array_from_json_file,
+    transform_encoding,
     write_array_to_json_file,
 )
 from .locales import LocaleHelper
-from .slack_service import SlackService
 from .message_transformer import MessageTransformer
+from .my_fpdf import MyFPDF
+from .slack_service import SlackService
 
 logging.config.dictConfig(settings.DEFAULT_LOGGING)
 logger = logging.getLogger(__name__)

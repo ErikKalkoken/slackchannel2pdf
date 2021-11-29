@@ -1,4 +1,5 @@
 import urllib.request
+
 from .helpers.no_sockets import NoSocketsTestCase, SocketAccessError
 
 

@@ -1,7 +1,7 @@
 """Defines all global settings incl. from configuration files"""
 
-from ast import literal_eval
 import configparser
+from ast import literal_eval
 from pathlib import Path
 
 _FILE_NAME_BASE = "slackchannel2pdf"

@@ -1,13 +1,12 @@
 import datetime as dt
 import logging
 
-from babel import Locale, UnknownLocaleError
-from babel.dates import format_datetime, format_time, format_date
 import pytz
+from babel import Locale, UnknownLocaleError
+from babel.dates import format_date, format_datetime, format_time
 from tzlocal import get_localzone
 
 from . import settings
-
 
 logger = logging.getLogger(__name__)
 

@@ -1,11 +1,10 @@
-from argparse import Namespace
 import datetime as dt
+from argparse import Namespace
+from unittest import TestCase
+from unittest.mock import patch
 
 import babel
 import pytz
-
-from unittest import TestCase
-from unittest.mock import patch
 
 from slackchannel2pdf.cli import main
 

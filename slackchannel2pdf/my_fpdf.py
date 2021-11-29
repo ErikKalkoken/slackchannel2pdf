@@ -1,5 +1,5 @@
-from .fpdf_ext import FPDF_ext
 from . import settings
+from .fpdf_ext import FPDF_ext
 
 
 class MyFPDF(FPDF_ext):

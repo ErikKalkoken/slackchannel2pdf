@@ -1,8 +1,8 @@
 """This module contains an extended FPDF class with rudimentary HTML support"""
 
 import logging
-import re
 import os
+import re
 
 import fpdf_mod
 
@@ -181,7 +181,7 @@ class FPDF_ext(fpdf_mod.FPDF):
             self.ln()
 
     def _put_link(self, url, height, txt):
-        """ set style and write text to create a link"""
+        """set style and write text to create a link"""
         self.set_text_color(0, 0, 255)
         self._set_style("U", True)
         self.write(height, txt, url)

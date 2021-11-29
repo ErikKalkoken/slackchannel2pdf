@@ -3,13 +3,12 @@
 import logging
 from time import sleep
 
-from babel.numbers import format_decimal
 import slack
+from babel.numbers import format_decimal
 
 from . import settings
 from .helpers import transform_encoding
 from .locales import LocaleHelper
-
 
 logger = logging.getLogger(__name__)
 

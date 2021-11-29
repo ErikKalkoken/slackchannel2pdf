@@ -1,8 +1,8 @@
 import configparser
-from pathlib import Path
 import pickle
-import unittest
 import tempfile
+import unittest
+from pathlib import Path
 
 from slackchannel2pdf import settings
 

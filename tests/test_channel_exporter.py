@@ -1,19 +1,17 @@
 import os
-from pathlib import Path
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 import babel
+import PyPDF2
 import pytz
 
-import PyPDF2
-from slackchannel2pdf import __version__
-from slackchannel2pdf import settings
+from slackchannel2pdf import __version__, settings
 from slackchannel2pdf.channel_exporter import SlackChannelExporter
 
 from .helpers.no_sockets import NoSocketsTestCase
 from .helpers.slack_client_stub import SlackClientStub
-
 
 """
 def test_run_with_error(self):
