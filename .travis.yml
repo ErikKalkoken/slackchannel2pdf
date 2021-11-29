@@ -1,20 +1,28 @@
-cache:
-  directories:
-  - $HOME/.cache/pre-commit
 language: python
-python:
-  - 3.7
-  - 3.8
-  - 3.9
+jobs:
+  include:
+    - name: checks
+      python: 3.7
+      install:
+      - pip install pre-commit
+      script:
+      - pre-commit run --all-files
+    - name: test_py37
+      python: 3.7
+      env: TOXENV=py37
+    - name: test_py38
+      python: 3.8
+      env: TOXENV=py38
+    - name: test_py39
+      python: 3.9
+      env: TOXENV=py39
 before_install:
   - python --version
   - pip install -U pip
 install:
-  - pip install pre-commit codecov PyPDF2 coverage
-  - pip install -e .
+  - pip install codecov tox
 script:
-  - pre-commit run --all-files
-  - coverage run -m unittest
+  - tox
 notifications:
   email: false
 after_success:
