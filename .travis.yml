@@ -10,8 +10,8 @@ before_install:
   - python --version
   - pip install -U pip
 install:
-  - pip install pre-commit codecov
-  - pip install -e ".[testing]"
+  - pip install pre-commit codecov PyPDF2 coverage
+  - pip install -e .
 script:
   - pre-commit run --all-files
   - coverage run -m unittest

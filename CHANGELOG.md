@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.3.1] - 2021-02-21
+
+### Fixed
+
+- Security issue with outdated Babel version
+
 ## [1.3.0] - 2021-02-21
 
 ### Added
