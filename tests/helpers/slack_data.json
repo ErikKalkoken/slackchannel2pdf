@@ -53,6 +53,44 @@
                     "user": "U92345678"
                 }
             ],
+            "C98345678": [
+                {
+                    "blocks": [
+                        {
+                            "block_id": "QLA",
+                            "elements": [
+                                {
+                                    "elements": [
+                                        {
+                                            "text": "I rarely/never see ",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "style": {
+                                                "code": true
+                                            },
+                                            "text": "pickup_offset=7",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "text": " successfully picking up a item. Usually takes needs to fully reset after to pick, so I figured less time-wasting trying to offset might fix that",
+                                            "type": "text"
+                                        }
+                                    ],
+                                    "type": "rich_text_section"
+                                }
+                            ],
+                            "type": "rich_text"
+                        }
+                    ],
+                    "client_msg_id": "DUMMY",
+                    "team": "T12345678",
+                    "text": "I rarely/never see `pickup_offset=7` successfully picking up a item. Usually takes needs to fully reset after to pick, so I figured less time-wasting trying to offset might fix that",
+                    "ts": "1614075414.168100",
+                    "type": "message",
+                    "user": "U12345678"
+                }
+            ],
             "G1234567X": [
                 {
                     "team": "T12345678",
