@@ -46,7 +46,7 @@ py==1.8.1
 pycodestyle==2.8.0
 pycparser==2.20
 pyflakes==2.4.0
-Pygments==2.6.1
+Pygments==2.7.4
 pylint==2.12.1
 pyparsing==2.4.6
 PyPDF2==1.26.0
