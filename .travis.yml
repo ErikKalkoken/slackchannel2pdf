@@ -16,6 +16,9 @@ jobs:
     - name: test_py39
       python: 3.9
       env: TOXENV=py39
+    - name: test_py39
+      python: 3.10
+      env: TOXENV=py39
 before_install:
   - python --version
   - pip install -U pip

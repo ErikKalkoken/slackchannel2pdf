@@ -20,6 +20,6 @@ flake8:
 	flake8 $(package) --count
 
 deploy:
-	rm dist/*
+	rm -f dist/*
 	python setup.py sdist
 	twine upload dist/*
