@@ -2,22 +2,16 @@ language: python
 jobs:
   include:
     - name: checks
-      python: 3.7
+      python: 3.9
       install:
       - pip install pre-commit
       script:
       - pre-commit run --all-files
-    - name: test_py37
-      python: 3.7
-      env: TOXENV=py37
     - name: test_py38
       python: 3.8
       env: TOXENV=py38
     - name: test_py39
       python: 3.9
-      env: TOXENV=py39
-    - name: test_py39
-      python: 3.10
       env: TOXENV=py39
 before_install:
   - python --version

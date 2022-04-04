@@ -7,12 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
-## [1.3.2] - 2022-04-04
+## [1.4.0] - 2022-04-04
 
 ### Changed
 
 - Upgraded to new Slack library (slack_sdk)
-- Added official support for Python 3.10
+- Removed Python 3.7 from CI pipeline
+- Added Python 3.10 to CI pipeline
 - Rate limits are now handled by the slack_sdk library (#7)
 - Include tests in distribution package on PyPI
 
