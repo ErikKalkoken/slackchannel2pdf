@@ -18,7 +18,7 @@ click==7.1.2
 codecov==2.1.12
 colorama==0.4.4
 coverage==6.2
-cryptography==2.8
+cryptography==3.3.2
 distlib==0.3.3
 docutils==0.16
 entrypoints==0.3
