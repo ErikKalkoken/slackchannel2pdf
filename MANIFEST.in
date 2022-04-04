@@ -1,4 +1,4 @@
 include README.md
 include slackchannel2pdf/slackchannel2pdf.ini
 recursive-include slackchannel2pdf/fonts *.*
-recursive-exclude tests *.*
+recursive-exclude *.pdf

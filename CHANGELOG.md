@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Upgraded to new Slack library (slack_sdk)
 - Added official support for Python 3.10
 - Rate limits are now handled by the slack_sdk library (#7)
+- Include tests in distribution package on PyPI
 
 ## [1.3.1] - 2021-02-21
 
