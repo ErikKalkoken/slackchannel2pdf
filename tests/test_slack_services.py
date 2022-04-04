@@ -35,7 +35,6 @@ class TestReduceToDict(NoSocketsTestCase):
 
 
 @patch(MODULE_NAME + ".slack_sdk")
-@patch(MODULE_NAME + ".sleep", lambda x: None)
 class TestSlackService(NoSocketsTestCase):
     def test_should_return_all_user_names_1(self, mock_slack):
         # given

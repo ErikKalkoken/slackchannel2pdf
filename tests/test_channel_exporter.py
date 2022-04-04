@@ -28,7 +28,6 @@ if not outputdir.exists():
 
 
 @patch("slackchannel2pdf.slack_service.slack_sdk")
-@patch("slackchannel2pdf.slack_service.sleep", lambda x: None)
 class TestSlackChannelExporter(NoSocketsTestCase):
     """New test approach with API mocking, that allows full testing of the exporter"""
 

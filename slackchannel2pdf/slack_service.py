@@ -1,7 +1,6 @@
 """Handles all requests to Slack"""
 
 import logging
-from time import sleep
 
 import slack_sdk
 from babel.numbers import format_decimal
@@ -252,7 +251,6 @@ class SlackService:
         ):
             page += 1
             logger.info("%s - page %s", output_str, page)
-            sleep(1)  # need to wait 1 sec before next call due to rate limits
             page_args = {
                 **base_args,
                 **{
@@ -307,8 +305,6 @@ class SlackService:
                 response = self._client.bots_info(bot=bot_id)
                 if response["ok"]:
                     bot_names[bot_id] = transform_encoding(response["bot"]["name"])
-                    sleep(1)  # need to wait 1 sec before next call due to rate limits
-
         return bot_names
 
     @staticmethod
