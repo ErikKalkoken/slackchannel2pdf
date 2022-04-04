@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.3.2] - tbd
+
+### Changed
+
+- Upgraded to new Slack library (slack_sdk)
+- Added official support for Python 3.10
+
 ## [1.3.1] - 2021-02-21
 
 ### Fixed

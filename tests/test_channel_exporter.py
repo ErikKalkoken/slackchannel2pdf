@@ -27,7 +27,7 @@ if not outputdir.exists():
     os.mkdir(outputdir)
 
 
-@patch("slackchannel2pdf.slack_service.slack")
+@patch("slackchannel2pdf.slack_service.slack_sdk")
 @patch("slackchannel2pdf.slack_service.sleep", lambda x: None)
 class TestSlackChannelExporter(NoSocketsTestCase):
     """New test approach with API mocking, that allows full testing of the exporter"""
@@ -196,7 +196,7 @@ class TestTransformations(NoSocketsTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        with patch("slackchannel2pdf.slack_service.slack") as mock_slack:
+        with patch("slackchannel2pdf.slack_service.slack_sdk") as mock_slack:
             mock_slack.WebClient.return_value = SlackClientStub(team="T12345678")
             cls.exporter = SlackChannelExporter("TOKEN_DUMMY")
 
@@ -325,7 +325,7 @@ class TestOther(NoSocketsTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        with patch("slackchannel2pdf.slack_service.slack") as mock_slack:
+        with patch("slackchannel2pdf.slack_service.slack_sdk") as mock_slack:
             mock_slack.WebClient.return_value = SlackClientStub(team="T12345678")
             cls.exporter = SlackChannelExporter("TOKEN_DUMMY")
 

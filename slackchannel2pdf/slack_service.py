@@ -3,7 +3,7 @@
 import logging
 from time import sleep
 
-import slack
+import slack_sdk
 from babel.numbers import format_decimal
 
 from . import settings
@@ -26,7 +26,7 @@ class SlackService:
             raise ValueError("slack_token can not be null")
 
         # load information for current Slack workspace
-        self._client = slack.WebClient(token=slack_token)
+        self._client = slack_sdk.WebClient(token=slack_token)
         if not locale_helper:
             locale_helper = LocaleHelper()
         self._locale = locale_helper.locale

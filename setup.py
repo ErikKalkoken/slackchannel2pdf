@@ -42,7 +42,7 @@ setup(
         "Babel>=2.9.1,<3",
         "pytz>=2019.1",
         "python-dateutil>=2.8.0,<3",
-        "slackclient>=2.1.0,<3",
+        "slack_sdk>=3.15.2,<4",
         "tzlocal>=2.0.0,<3",
     ],
     entry_points={

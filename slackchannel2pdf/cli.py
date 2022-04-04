@@ -8,7 +8,7 @@ from pathlib import Path
 import pytz
 from babel import Locale, UnknownLocaleError
 from dateutil import parser
-from slack.errors import SlackApiError
+from slack_sdk.errors import SlackApiError
 
 from . import __version__, settings
 from .channel_exporter import SlackChannelExporter
