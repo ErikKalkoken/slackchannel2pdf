@@ -1,6 +1,7 @@
 """Handles all requests to Slack"""
 
 import logging
+import time
 
 import slack_sdk
 from babel.numbers import format_decimal
@@ -216,6 +217,18 @@ class SlackService:
         )
         return messages
 
+    def _stagger_request_attempts(self, call, delays=[1, 3, 5, 10, 20, 30, 40, 50, 60]):
+        for delay in delays:
+            try:
+                return call()
+            except slack_sdk.errors.SlackApiError as e:
+                if e.response.status_code == 429:
+                    logger.info('Got rate limited, repeating call in %i seconds', delay)
+                    time.sleep(delay)
+                    continue
+                raise
+        raise Exception('Aborting after repeatedly hitting rate limit and exhausting all staggered attempts with intervals (in seconds): %s' % delays)
+
     def _fetch_pages(
         self,
         method,
@@ -240,7 +253,8 @@ class SlackService:
         if not limit:
             limit = settings.SLACK_PAGE_LIMIT
         base_args = {**args, **{"limit": limit}}
-        response = getattr(self._client, method)(**base_args)
+        call = lambda: getattr(self._client, method)(**base_args)
+        response = self._stagger_request_attempts(call)
         rows = response[key]
 
         # fetch additional page (if any)
