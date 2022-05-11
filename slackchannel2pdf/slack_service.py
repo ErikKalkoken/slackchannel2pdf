@@ -316,7 +316,14 @@ class SlackService:
         if len(bot_ids) > 0:
             logger.info("Fetching names for %d bots", len(bot_ids))
             for bot_id in bot_ids:
-                response = self._client.bots_info(bot=bot_id)
+                try:
+                    response = self._client.bots_info(bot=bot_id)
+                except slack_sdk.errors.SlackApiError as e:
+                    response = getattr(e, 'response', {'ok': False})
+                    sub_error = getattr(response, 'data', {}).get('error')
+                    if sub_error == 'bot_not_found':
+                        logger.warn('Bot not found, could not fetch name: %s', bot_id)
+
                 if response["ok"]:
                     bot_names[bot_id] = transform_encoding(response["bot"]["name"])
         return bot_names
