@@ -439,13 +439,28 @@ class SlackChannelExporter:
                             settings.FONT_FAMILY_DEFAULT,
                             size=settings.FONT_SIZE_NORMAL,
                         )
-                        document.write_html(
-                            settings.LINE_HEIGHT_DEFAULT,
-                            self._transformer.transform_text(
-                                layout_block["text"]["text"],
-                                layout_block["text"]["type"] == "mrkdwn",
-                            ),
-                        )
+
+                        if 'text' in layout_block:
+                            document.write_html(
+                                settings.LINE_HEIGHT_DEFAULT,
+                                self._transformer.transform_text(
+                                    layout_block["text"]["text"],
+                                    layout_block["text"]["type"] == "mrkdwn",
+                                ),
+                            )
+                        elif 'fields' in layout_block:
+                            for field in layout_block['fields']:
+                                document.write_html(
+                                    settings.LINE_HEIGHT_DEFAULT,
+                                    self._transformer.transform_text(
+                                        field["text"],
+                                        field["type"] == "mrkdwn",
+                                    ),
+                                )
+
+                        else:
+                            raise Exception('Section without text or fields, no idea what to do')
+
                         document.ln()
 
                         if "fields" in layout_block:
