@@ -74,7 +74,8 @@ def main():
 
     if not args.quiet:
         channel_postfix = "s" if args.channel and len(args.channel) > 1 else ""
-        print(f"Exporting channel{channel_postfix} from Slack...")
+        channel_names = ', '.join(['#'+channel_name for channel_name in args.channel])
+        print(f"Exporting channel{channel_postfix} {channel_names} from Slack...")
     try:
         exporter = SlackChannelExporter(
             slack_token=slack_token,
