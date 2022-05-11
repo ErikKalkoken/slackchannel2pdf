@@ -109,7 +109,8 @@ class FPDF_ext(fpdf_mod.FPDF):
 
         if tag == "S":
             if self._last_font is not None:
-                raise HtmlConversionError("<s> tags can not be nested")
+                pass   # FIXME: YOLO, what's the worst that can happen...
+                # raise HtmlConversionError("<s> tags can not be nested")
 
             self._last_font = {
                 "font_family": self.font_family,
