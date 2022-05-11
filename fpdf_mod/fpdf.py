@@ -1322,6 +1322,9 @@ class FPDF(object):
                 dest = "F"
         if PY3K:
             # manage binary data as latin1 until PEP461 or similar is implemented
+            self.buffer = self.buffer.replace('\u0300', '')      # FIXME: ignore COMBINING GRAVE ACCENT: https://www.fileformat.info/info/unicode/char/0300/index.htm
+            self.buffer = self.buffer.replace('\u0301', '')      # FIXME: ignore COMBINING ACUTE ACCENT: https://www.fileformat.info/info/unicode/char/0300/index.htm
+            self.buffer = self.buffer.replace('\u2028', '\n')    # FIXME: replace LINE SEPARATOR: https://www.fileformat.info/info/unicode/char/2028/index.htm
             buffer = self.buffer.encode("latin1")
         else:
             buffer = self.buffer
