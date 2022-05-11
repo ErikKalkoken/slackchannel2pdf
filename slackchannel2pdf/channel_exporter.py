@@ -136,6 +136,11 @@ class SlackChannelExporter:
                 user_id = None
                 user_name = None
 
+        elif msg.get('type') == 'message' and 'username' in msg:   # example message: {'type': 'message', 'subtype': 'bot_message', 'text': 'Foo, bar!', 'ts': '1410478437.000000', 'username': 'John Doe'}
+            is_bot = False    # should this be True, because msg['subtype']=='bot_message'? I don't understand why it has that status, as this message has been written by a human. It might have been imported from an older chat system, however.
+            user_id = None
+            user_name = msg['username']
+
         else:
             is_bot = False
             user_id = None
