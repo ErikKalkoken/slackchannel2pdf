@@ -59,7 +59,7 @@ class FPDF_ext(fpdf_mod.FPDF):
         # split html into parts to identify all HTML tags
         # even numbered parts will contain text
         # odd numbered parts will contain tags
-        parts = re.split(r"<([^>]*)>", html)
+        parts = re.split(r"<([^>]+)>", html)
 
         # run through all parts one by one
         try:
