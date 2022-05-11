@@ -798,6 +798,19 @@ class SlackChannelExporter:
                 fname="NotoSansMono-Bold.ttf",
                 uni=True,
             )
+            # new aliases for ITALIC and ITALIC/BOLD style variants of the mono font: we don't actually have special fonts for this, but will just ignore the italics requirement
+            document.add_font(
+                settings.FONT_FAMILY_MONO_DEFAULT,
+                style="I",
+                fname="NotoSansMono-Regular.ttf",
+                uni=True,
+            )
+            document.add_font(
+                settings.FONT_FAMILY_MONO_DEFAULT,
+                style="IB",
+                fname="NotoSansMono-Bold.ttf",
+                uni=True,
+            )
             document.alias_nb_pages()
             document.add_page()
 
