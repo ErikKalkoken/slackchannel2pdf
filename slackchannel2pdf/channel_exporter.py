@@ -99,6 +99,7 @@ class SlackChannelExporter:
         self,
         document: MyFPDF,
         msg: dict,
+        channel_id: str,
         margin_left: int,
         last_user_id: str,
         full_date: bool = False,
@@ -481,7 +482,7 @@ class SlackChannelExporter:
 
         else:
             user_id = None
-            logger.warning("Can not process message with ts %s", msg["ts"])
+            logger.warning("Can not process message with ts %s: %s", msg["ts"], self._slack_service.fetch_permalink(channel_id, msg['ts']))
             document.write(
                 settings.LINE_HEIGHT_DEFAULT, "[Can not process this message]"
             )
@@ -490,7 +491,7 @@ class SlackChannelExporter:
         return user_id
 
     def _write_messages_to_pdf(
-        self, document: MyFPDF, messages: List[dict], threads: List[dict]
+        self, document: MyFPDF, messages: List[dict], threads: List[dict], channel_id: str
     ) -> None:
         """writes messages with their threads to the PDF document"""
         last_user_id = None
@@ -551,7 +552,7 @@ class SlackChannelExporter:
                     last_page = document.page_no()
 
                 last_user_id = self._parse_message_and_write_to_pdf(
-                    document, msg, settings.MARGIN_LEFT, last_user_id
+                    document, msg, channel_id, settings.MARGIN_LEFT, last_user_id
                 )
                 if "thread_ts" in msg and msg["thread_ts"] == msg["ts"]:
                     thread_ts = msg["thread_ts"]
@@ -579,6 +580,7 @@ class SlackChannelExporter:
                                 last_user_id = self._parse_message_and_write_to_pdf(
                                     document,
                                     thread_msg,
+                                    channel_id,
                                     settings.MARGIN_LEFT + settings.TAB_WIDTH,
                                     last_user_id,
                                     full_date=True,
@@ -908,7 +910,7 @@ class SlackChannelExporter:
             document.add_page()
 
             # write messages to PDF
-            self._write_messages_to_pdf(document, messages, threads)
+            self._write_messages_to_pdf(document, messages, threads, channel_id)
 
             # store PDF
             filename_pdf = dest_path / (filename_base_channel + ".pdf")

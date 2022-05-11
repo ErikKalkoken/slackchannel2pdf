@@ -146,6 +146,13 @@ class SlackService:
             logger.info("This workspace has no usergroups")
         return usergroup_names
 
+    def fetch_permalink(self, channel_id, message_ts) -> str:
+        response = self._client.chat_getPermalink(channel=channel_id, message_ts=message_ts)
+        if response.data['ok']:
+            return response.data['permalink']
+        else:
+            raise Exception('Could not determine permalink: %s', repr(response.data))
+
     def fetch_messages_from_channel(
         self, channel_id, max_messages, oldest=None, latest=None
     ) -> list:
