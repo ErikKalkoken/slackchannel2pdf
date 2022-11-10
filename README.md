@@ -59,6 +59,14 @@ To run **slackchannel2pdf** your need to have a token for your Slack workspace w
 - `users:read`
 - `usergroups:read`
 
+To get a working token you need to create a Slack app in your workspace with a user token. Here is one way on how to do that:
+
+1. Create a new Slack app in your workspace (you can give it any name).
+1. Under Oauth & Permissions / User Token Scopes add all the required scopes as documented above.
+1. Install the app into your workspace
+
+After successful installation the token for your app will then shown under Basic Information / App Credentials.
+
 ## Usage
 
 In order to use **slackchannel2pdf** you need:
