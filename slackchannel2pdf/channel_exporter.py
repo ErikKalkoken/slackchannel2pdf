@@ -99,6 +99,7 @@ class SlackChannelExporter:
         self,
         document: MyFPDF,
         msg: dict,
+        channel_id: str,
         margin_left: int,
         last_user_id: str,
         full_date: bool = False,
@@ -134,6 +135,11 @@ class SlackChannelExporter:
             else:
                 user_id = None
                 user_name = None
+
+        elif msg.get('type') == 'message' and 'username' in msg:   # example message: {'type': 'message', 'subtype': 'bot_message', 'text': 'Foo, bar!', 'ts': '1410478437.000000', 'username': 'John Doe'}
+            is_bot = False    # should this be True, because msg['subtype']=='bot_message'? I don't understand why it has that status, as this message has been written by a human. It might have been imported from an older chat system, however.
+            user_id = None
+            user_name = msg['username']
 
         else:
             is_bot = False
@@ -439,13 +445,28 @@ class SlackChannelExporter:
                             settings.FONT_FAMILY_DEFAULT,
                             size=settings.FONT_SIZE_NORMAL,
                         )
-                        document.write_html(
-                            settings.LINE_HEIGHT_DEFAULT,
-                            self._transformer.transform_text(
-                                layout_block["text"]["text"],
-                                layout_block["text"]["type"] == "mrkdwn",
-                            ),
-                        )
+
+                        if 'text' in layout_block:
+                            document.write_html(
+                                settings.LINE_HEIGHT_DEFAULT,
+                                self._transformer.transform_text(
+                                    layout_block["text"]["text"],
+                                    layout_block["text"]["type"] == "mrkdwn",
+                                ),
+                            )
+                        elif 'fields' in layout_block:
+                            for field in layout_block['fields']:
+                                document.write_html(
+                                    settings.LINE_HEIGHT_DEFAULT,
+                                    self._transformer.transform_text(
+                                        field["text"],
+                                        field["type"] == "mrkdwn",
+                                    ),
+                                )
+
+                        else:
+                            raise Exception('Section without text or fields, no idea what to do')
+
                         document.ln()
 
                         if "fields" in layout_block:
@@ -466,7 +487,7 @@ class SlackChannelExporter:
 
         else:
             user_id = None
-            logger.warning("Can not process message with ts %s", msg["ts"])
+            logger.warning("Can not process message with ts %s: %s", msg["ts"], self._slack_service.fetch_permalink(channel_id, msg['ts']))
             document.write(
                 settings.LINE_HEIGHT_DEFAULT, "[Can not process this message]"
             )
@@ -475,7 +496,7 @@ class SlackChannelExporter:
         return user_id
 
     def _write_messages_to_pdf(
-        self, document: MyFPDF, messages: List[dict], threads: List[dict]
+        self, document: MyFPDF, messages: List[dict], threads: List[dict], channel_id: str
     ) -> None:
         """writes messages with their threads to the PDF document"""
         last_user_id = None
@@ -536,7 +557,7 @@ class SlackChannelExporter:
                     last_page = document.page_no()
 
                 last_user_id = self._parse_message_and_write_to_pdf(
-                    document, msg, settings.MARGIN_LEFT, last_user_id
+                    document, msg, channel_id, settings.MARGIN_LEFT, last_user_id
                 )
                 if "thread_ts" in msg and msg["thread_ts"] == msg["ts"]:
                     thread_ts = msg["thread_ts"]
@@ -564,6 +585,7 @@ class SlackChannelExporter:
                                 last_user_id = self._parse_message_and_write_to_pdf(
                                     document,
                                     thread_msg,
+                                    channel_id,
                                     settings.MARGIN_LEFT + settings.TAB_WIDTH,
                                     last_user_id,
                                     full_date=True,
@@ -798,6 +820,19 @@ class SlackChannelExporter:
                 fname="NotoSansMono-Bold.ttf",
                 uni=True,
             )
+            # new aliases for ITALIC and ITALIC/BOLD style variants of the mono font: we don't actually have special fonts for this, but will just ignore the italics requirement
+            document.add_font(
+                settings.FONT_FAMILY_MONO_DEFAULT,
+                style="I",
+                fname="NotoSansMono-Regular.ttf",
+                uni=True,
+            )
+            document.add_font(
+                settings.FONT_FAMILY_MONO_DEFAULT,
+                style="IB",
+                fname="NotoSansMono-Bold.ttf",
+                uni=True,
+            )
             document.alias_nb_pages()
             document.add_page()
 
@@ -880,7 +915,7 @@ class SlackChannelExporter:
             document.add_page()
 
             # write messages to PDF
-            self._write_messages_to_pdf(document, messages, threads)
+            self._write_messages_to_pdf(document, messages, threads, channel_id)
 
             # store PDF
             filename_pdf = dest_path / (filename_base_channel + ".pdf")

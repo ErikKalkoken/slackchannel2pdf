@@ -1,6 +1,7 @@
 """Handles all requests to Slack"""
 
 import logging
+import time
 
 import slack_sdk
 from babel.numbers import format_decimal
@@ -145,6 +146,13 @@ class SlackService:
             logger.info("This workspace has no usergroups")
         return usergroup_names
 
+    def fetch_permalink(self, channel_id, message_ts) -> str:
+        response = self._client.chat_getPermalink(channel=channel_id, message_ts=message_ts)
+        if response.data['ok']:
+            return response.data['permalink']
+        else:
+            raise Exception('Could not determine permalink: %s', repr(response.data))
+
     def fetch_messages_from_channel(
         self, channel_id, max_messages, oldest=None, latest=None
     ) -> list:
@@ -216,6 +224,18 @@ class SlackService:
         )
         return messages
 
+    def _stagger_request_attempts(self, call, delays=[1, 3, 5, 10, 20, 30, 40, 50, 60]):
+        for delay in delays:
+            try:
+                return call()
+            except slack_sdk.errors.SlackApiError as e:
+                if e.response.status_code == 429:
+                    logger.info('Got rate limited, repeating call in %i seconds', delay)
+                    time.sleep(delay)
+                    continue
+                raise
+        raise Exception('Aborting after repeatedly hitting rate limit and exhausting all staggered attempts with intervals (in seconds): %s' % delays)
+
     def _fetch_pages(
         self,
         method,
@@ -240,7 +260,8 @@ class SlackService:
         if not limit:
             limit = settings.SLACK_PAGE_LIMIT
         base_args = {**args, **{"limit": limit}}
-        response = getattr(self._client, method)(**base_args)
+        call = lambda: getattr(self._client, method)(**base_args)
+        response = self._stagger_request_attempts(call)
         rows = response[key]
 
         # fetch additional page (if any)
@@ -302,7 +323,14 @@ class SlackService:
         if len(bot_ids) > 0:
             logger.info("Fetching names for %d bots", len(bot_ids))
             for bot_id in bot_ids:
-                response = self._client.bots_info(bot=bot_id)
+                try:
+                    response = self._client.bots_info(bot=bot_id)
+                except slack_sdk.errors.SlackApiError as e:
+                    response = getattr(e, 'response', {'ok': False})
+                    sub_error = getattr(response, 'data', {}).get('error')
+                    if sub_error == 'bot_not_found':
+                        logger.warn('Bot not found, could not fetch name: %s', bot_id)
+
                 if response["ok"]:
                     bot_names[bot_id] = transform_encoding(response["bot"]["name"])
         return bot_names
