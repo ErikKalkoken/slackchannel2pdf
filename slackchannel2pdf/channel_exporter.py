@@ -258,135 +258,153 @@ class SlackChannelExporter:
                 mrkdwn_in = []
 
             if "pretext" in attach:
-                document.set_left_margin(margin_left)
-                document.set_x(margin_left)
-                document.set_font(
-                    settings.FONT_FAMILY_DEFAULT,
-                    size=settings.FONT_SIZE_NORMAL,
+                self._write_attachments_pretext(
+                    document, margin_left, attach, mrkdwn_in
                 )
-                document.write_html(
-                    settings.LINE_HEIGHT_DEFAULT,
-                    self._transformer.transform_text(
-                        attach["pretext"], "pretext" in mrkdwn_in
-                    ),
-                )
-                document.set_left_margin(margin_left + settings.TAB_WIDTH)
-                document.set_x(margin_left + settings.TAB_WIDTH)
-                document.ln()
 
             document.ln(settings.LINE_HEIGHT_SMALL)
 
             if "author_name" in attach:
-                document.set_font(
-                    settings.FONT_FAMILY_DEFAULT,
-                    size=settings.FONT_SIZE_LARGE,
-                    style="B",
-                )
-                document.write(
-                    settings.LINE_HEIGHT_DEFAULT,
-                    self._transformer.transform_text(attach["author_name"]),
-                )
-                document.ln()
+                self._write_attachments_author_name(document, attach)
 
             if "title" in attach:
-                title_text = self._transformer.transform_text(
-                    attach["title"], "title" in mrkdwn_in
-                )
-
-                # add link to title if defined
-                if "title_link" in attach:
-                    title_text = (
-                        '<a href="' + attach["title_link"] + '">' + title_text + "</a>"
-                    )
-
-                    # add bold formatting to title
-                title_text = "<b>" + title_text + "</b>"
-
-                document.set_font(
-                    settings.FONT_FAMILY_DEFAULT,
-                    size=settings.FONT_SIZE_NORMAL,
-                )
-                document.write_html(settings.LINE_HEIGHT_DEFAULT, title_text)
-                document.ln()
+                self._write_attachments_title(document, attach, mrkdwn_in)
 
             if "text" in attach:
-                document.set_font(
-                    settings.FONT_FAMILY_DEFAULT,
-                    size=settings.FONT_SIZE_NORMAL,
-                )
-                document.write_html(
-                    settings.LINE_HEIGHT_DEFAULT,
-                    self._transformer.transform_text(
-                        attach["text"], "text" in mrkdwn_in
-                    ),
-                )
-                document.ln()
+                self._write_attachments_text(document, attach, mrkdwn_in)
 
             if "fields" in attach:
-                for field in attach["fields"]:
-                    document.set_font(
-                        settings.FONT_FAMILY_DEFAULT,
-                        size=settings.FONT_SIZE_NORMAL,
-                        style="B",
-                    )
-                    document.write(
-                        settings.LINE_HEIGHT_DEFAULT,
-                        self._transformer.transform_text(field["title"]),
-                    )
-                    document.ln()
-                    document.set_font(
-                        settings.FONT_FAMILY_DEFAULT,
-                        size=settings.FONT_SIZE_NORMAL,
-                    )
-                    document.write_html(
-                        settings.LINE_HEIGHT_DEFAULT,
-                        self._transformer.transform_text(
-                            field["value"], "fields" in mrkdwn_in
-                        ),
-                    )
-                    document.ln()
+                self._write_attachments_fields(document, attach, mrkdwn_in)
 
             if "footer" in attach:
-                if "ts" in attach:
-                    text = (
-                        self._transformer.transform_text(attach["footer"])
-                        + "|"
-                        + self._locale_helper.get_datetime_formatted_str(attach["ts"])
-                    )
-                else:
-                    text = self._transformer.transform_text(attach["footer"])
-
-                document.set_font(
-                    settings.FONT_FAMILY_DEFAULT,
-                    size=settings.FONT_SIZE_SMALL,
-                )
-                document.write(settings.LINE_HEIGHT_DEFAULT, text)
-                document.ln()
+                self._write_attachments_footer(document, attach)
 
             if "image_url" in attach:
-                image_url_html = '<a href="' + attach["image_url"] + '">[Image]</a>'
-                document.set_font(
-                    settings.FONT_FAMILY_DEFAULT,
-                    size=settings.FONT_SIZE_NORMAL,
-                )
-                document.write_html(settings.LINE_HEIGHT_DEFAULT, image_url_html)
-                document.ln()
+                self._write_attachments_image_url(document, attach)
 
                 # action attachments
             if "actions" in attach:
-                for action in attach["actions"]:
-                    document.set_font(
-                        settings.FONT_FAMILY_DEFAULT,
-                        size=settings.FONT_SIZE_SMALL,
-                    )
-                    document.write_html(
-                        settings.LINE_HEIGHT_DEFAULT,
-                        ("[" + self._transformer.transform_text(action["text"]) + "] "),
-                    )
-
-                document.ln()
+                self._write_attachments_actions(document, attach)
 
         document.ln(settings.LINE_HEIGHT_SMALL)
+
+    def _write_attachments_pretext(self, document, margin_left, attach, mrkdwn_in):
+        document.set_left_margin(margin_left)
+        document.set_x(margin_left)
+        document.set_font(
+            settings.FONT_FAMILY_DEFAULT,
+            size=settings.FONT_SIZE_NORMAL,
+        )
+        document.write_html(
+            settings.LINE_HEIGHT_DEFAULT,
+            self._transformer.transform_text(attach["pretext"], "pretext" in mrkdwn_in),
+        )
+        document.set_left_margin(margin_left + settings.TAB_WIDTH)
+        document.set_x(margin_left + settings.TAB_WIDTH)
+        document.ln()
+
+    def _write_attachments_author_name(self, document, attach):
+        document.set_font(
+            settings.FONT_FAMILY_DEFAULT,
+            size=settings.FONT_SIZE_LARGE,
+            style="B",
+        )
+        document.write(
+            settings.LINE_HEIGHT_DEFAULT,
+            self._transformer.transform_text(attach["author_name"]),
+        )
+        document.ln()
+
+    def _write_attachments_title(self, document, attach, mrkdwn_in):
+        title_text = self._transformer.transform_text(
+            attach["title"], "title" in mrkdwn_in
+        )
+
+        # add link to title if defined
+        if "title_link" in attach:
+            title_text = '<a href="' + attach["title_link"] + '">' + title_text + "</a>"
+
+            # add bold formatting to title
+        title_text = "<b>" + title_text + "</b>"
+
+        document.set_font(
+            settings.FONT_FAMILY_DEFAULT,
+            size=settings.FONT_SIZE_NORMAL,
+        )
+        document.write_html(settings.LINE_HEIGHT_DEFAULT, title_text)
+        document.ln()
+
+    def _write_attachments_text(self, document, attach, mrkdwn_in):
+        document.set_font(
+            settings.FONT_FAMILY_DEFAULT,
+            size=settings.FONT_SIZE_NORMAL,
+        )
+        document.write_html(
+            settings.LINE_HEIGHT_DEFAULT,
+            self._transformer.transform_text(attach["text"], "text" in mrkdwn_in),
+        )
+        document.ln()
+
+    def _write_attachments_fields(self, document, attach, mrkdwn_in):
+        for field in attach["fields"]:
+            document.set_font(
+                settings.FONT_FAMILY_DEFAULT,
+                size=settings.FONT_SIZE_NORMAL,
+                style="B",
+            )
+            document.write(
+                settings.LINE_HEIGHT_DEFAULT,
+                self._transformer.transform_text(field["title"]),
+            )
+            document.ln()
+            document.set_font(
+                settings.FONT_FAMILY_DEFAULT,
+                size=settings.FONT_SIZE_NORMAL,
+            )
+            document.write_html(
+                settings.LINE_HEIGHT_DEFAULT,
+                self._transformer.transform_text(field["value"], "fields" in mrkdwn_in),
+            )
+            document.ln()
+
+    def _write_attachments_footer(self, document, attach):
+        if "ts" in attach:
+            text = (
+                self._transformer.transform_text(attach["footer"])
+                + "|"
+                + self._locale_helper.get_datetime_formatted_str(attach["ts"])
+            )
+        else:
+            text = self._transformer.transform_text(attach["footer"])
+
+        document.set_font(
+            settings.FONT_FAMILY_DEFAULT,
+            size=settings.FONT_SIZE_SMALL,
+        )
+        document.write(settings.LINE_HEIGHT_DEFAULT, text)
+        document.ln()
+
+    def _write_attachments_image_url(self, document, attach):
+        image_url_html = '<a href="' + attach["image_url"] + '">[Image]</a>'
+        document.set_font(
+            settings.FONT_FAMILY_DEFAULT,
+            size=settings.FONT_SIZE_NORMAL,
+        )
+        document.write_html(settings.LINE_HEIGHT_DEFAULT, image_url_html)
+        document.ln()
+
+    def _write_attachments_actions(self, document, attach):
+        for action in attach["actions"]:
+            document.set_font(
+                settings.FONT_FAMILY_DEFAULT,
+                size=settings.FONT_SIZE_SMALL,
+            )
+            document.write_html(
+                settings.LINE_HEIGHT_DEFAULT,
+                ("[" + self._transformer.transform_text(action["text"]) + "] "),
+            )
+
+        document.ln()
 
     def _write_blocks(self, document, msg, margin_left):
         document.set_left_margin(margin_left + settings.TAB_WIDTH)
@@ -433,8 +451,9 @@ class SlackChannelExporter:
                 user_name = self._slack_service.user_names()[user_id]
             else:
                 user_name = f"unknown_user_{user_id}"
+            return user_id, is_bot, user_name
 
-        elif "bot_id" in msg:
+        if "bot_id" in msg:
             user_id = msg["bot_id"]
             is_bot = True
             if "username" in msg:
@@ -443,8 +462,9 @@ class SlackChannelExporter:
                 user_name = self._bot_names[user_id]
             else:
                 user_name = f"unknown_bot_{user_id}"
+            return user_id, is_bot, user_name
 
-        elif "subtype" in msg and msg["subtype"] == "file_comment":
+        if "subtype" in msg and msg["subtype"] == "file_comment":
             is_bot = False
             if "user" in msg["comment"]:
                 user_id = msg["comment"]["user"]
@@ -455,12 +475,9 @@ class SlackChannelExporter:
             else:
                 user_id = None
                 user_name = None
+            return user_id, is_bot, user_name
 
-        else:
-            is_bot = False
-            user_id = None
-            user_name = None
-        return user_id, is_bot, user_name
+        return None, False, None
 
     def _write_messages_to_pdf(
         self, document: MyFPDF, messages: List[dict], threads: dict
@@ -484,37 +501,7 @@ class SlackChannelExporter:
 
                 # write day separator if needed
                 if last_dt is None or msg_dt.date() != last_dt.date():
-                    document.ln(settings.LINE_HEIGHT_SMALL)
-                    document.ln(settings.LINE_HEIGHT_SMALL)
-                    document.set_font(
-                        settings.FONT_FAMILY_DEFAULT, size=settings.FONT_SIZE_NORMAL
-                    )
-
-                    # draw divider line for next day
-                    page_width = document.fw - 2 * settings.MARGIN_LEFT
-                    x1 = settings.MARGIN_LEFT
-                    x2 = x1 + page_width
-                    y1 = document.get_y() + 3
-                    document.line(x1, y1, x2, y1)
-
-                    # stamp date on divider
-                    date_text = self._locale_helper.format_date_full_str(msg_dt)
-                    text_width = document.get_string_width(date_text)
-                    x3 = (x2 - x1) / 2 + x1
-                    x4 = x3 - (text_width / 2)
-                    border_x = 3
-                    document.set_fill_color(255, 255, 255)
-                    document.set_x(x4 - border_x)
-                    document.cell(
-                        text_width + 2 * border_x,
-                        settings.LINE_HEIGHT_DEFAULT,
-                        date_text,
-                        0,
-                        0,
-                        "C",
-                        True,
-                    )
-                    document.ln()
+                    self._write_day_separator(document, msg_dt)
                     last_user_id = None  # repeat user name for new day
 
                 # repeat user name for new page
@@ -526,37 +513,9 @@ class SlackChannelExporter:
                     document, msg, settings.MARGIN_LEFT, last_user_id
                 )
                 if "thread_ts" in msg and msg["thread_ts"] == msg["ts"]:
-                    thread_ts = msg["thread_ts"]
-
-                    if thread_ts in threads:
-                        thread_messages = threads[thread_ts]
-                        last_user_id = None
-                        last_dt = None
-                        thread_messages = sorted(thread_messages, key=lambda k: k["ts"])
-                        for thread_msg in thread_messages:
-                            if thread_msg["ts"] != thread_msg["thread_ts"]:
-                                # repeat user name for if last post from same user is older
-                                msg_dt = self._locale_helper.get_datetime_from_ts(
-                                    thread_msg["ts"]
-                                )
-                                if last_dt is not None:
-                                    dt_delta = msg_dt - last_dt
-                                    minutes_delta = dt_delta / dt.timedelta(minutes=1)
-                                    if (
-                                        minutes_delta
-                                        > settings.MINUTES_UNTIL_USERNAME_REPEATS
-                                    ):
-                                        last_user_id = None
-                                last_dt = msg_dt
-                                last_user_id = self._parse_message_and_write_to_pdf(
-                                    document,
-                                    thread_msg,
-                                    settings.MARGIN_LEFT + settings.TAB_WIDTH,
-                                    last_user_id,
-                                    full_date=True,
-                                )
-
-                    last_user_id = None
+                    msg_dt = self._write_messages_threads(
+                        document, threads, msg, msg_dt
+                    )
 
                 last_dt = msg_dt
         else:
@@ -565,6 +524,66 @@ class SlackChannelExporter:
             )
             document.ln()
             document.write(settings.LINE_HEIGHT_DEFAULT, "This channel is empty", "I")
+
+    def _write_day_separator(self, document, msg_dt):
+        document.ln(settings.LINE_HEIGHT_SMALL)
+        document.ln(settings.LINE_HEIGHT_SMALL)
+        document.set_font(settings.FONT_FAMILY_DEFAULT, size=settings.FONT_SIZE_NORMAL)
+
+        # draw divider line for next day
+        page_width = document.fw - 2 * settings.MARGIN_LEFT
+        x1 = settings.MARGIN_LEFT
+        x2 = x1 + page_width
+        y1 = document.get_y() + 3
+        document.line(x1, y1, x2, y1)
+
+        # stamp date on divider
+        date_text = self._locale_helper.format_date_full_str(msg_dt)
+        text_width = document.get_string_width(date_text)
+        x3 = (x2 - x1) / 2 + x1
+        x4 = x3 - (text_width / 2)
+        border_x = 3
+        document.set_fill_color(255, 255, 255)
+        document.set_x(x4 - border_x)
+        document.cell(
+            text_width + 2 * border_x,
+            settings.LINE_HEIGHT_DEFAULT,
+            date_text,
+            0,
+            0,
+            "C",
+            True,
+        )
+        document.ln()
+
+    def _write_messages_threads(self, document, threads, msg, msg_dt):
+        thread_ts = msg["thread_ts"]
+
+        if thread_ts in threads:
+            thread_messages = threads[thread_ts]
+            last_user_id = None
+            last_dt = None
+            thread_messages = sorted(thread_messages, key=lambda k: k["ts"])
+            for thread_msg in thread_messages:
+                if thread_msg["ts"] != thread_msg["thread_ts"]:
+                    # repeat user name for if last post from same user is older
+                    msg_dt = self._locale_helper.get_datetime_from_ts(thread_msg["ts"])
+                    if last_dt is not None:
+                        dt_delta = msg_dt - last_dt
+                        minutes_delta = dt_delta / dt.timedelta(minutes=1)
+                        if minutes_delta > settings.MINUTES_UNTIL_USERNAME_REPEATS:
+                            last_user_id = None
+                    last_dt = msg_dt
+                    last_user_id = self._parse_message_and_write_to_pdf(
+                        document,
+                        thread_msg,
+                        settings.MARGIN_LEFT + settings.TAB_WIDTH,
+                        last_user_id,
+                        full_date=True,
+                    )
+
+        last_user_id = None
+        return msg_dt
 
     def run(
         self,
