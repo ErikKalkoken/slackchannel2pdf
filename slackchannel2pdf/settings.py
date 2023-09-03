@@ -1,5 +1,7 @@
 """Global settings incl. from configuration files for slackchannel2pdf."""
 
+# pylint: disable = no-member
+
 import configparser
 from ast import literal_eval
 from pathlib import Path
@@ -67,7 +69,7 @@ MAX_MESSAGES_PER_CHANNEL = _my_config.getint("slack", "max_messages_per_channel"
 SLACK_PAGE_LIMIT = _my_config.getint("slack", "slack_page_limit")
 
 
-def setup_logging(config: configparser.ConfigParser) -> dict:
+def _setup_logging(config: configparser.ConfigParser) -> dict:
     config_logging = {
         "version": 1,
         "disable_existing_loggers": False,
@@ -112,4 +114,4 @@ def setup_logging(config: configparser.ConfigParser) -> dict:
     return config_logging
 
 
-DEFAULT_LOGGING = setup_logging(_my_config)
+DEFAULT_LOGGING = _setup_logging(_my_config)
