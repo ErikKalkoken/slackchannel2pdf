@@ -210,7 +210,7 @@ class Template:
         backgroud=65535,
         multiline=None,
         *args,
-        **kwargs
+        **kwargs,
     ):
         if text:
             if pdf.text_color != rgb(foreground):
@@ -274,7 +274,7 @@ class Template:
         foreground=0,
         backgroud=65535,
         *args,
-        **kwargs
+        **kwargs,
     ):
         if pdf.draw_color != rgb(foreground):
             pdf.set_draw_color(*rgb(foreground))
@@ -299,7 +299,7 @@ class Template:
         size=1,
         foreground=0,
         *args,
-        **kwargs
+        **kwargs,
     ):
         if pdf.draw_color != rgb(foreground):
             pdf.set_draw_color(*rgb(foreground))
@@ -325,7 +325,7 @@ class Template:
         link="http://example.com",
         foreground=0,
         *args,
-        **kwargs
+        **kwargs,
     ):
         if pdf.text_color != rgb(foreground):
             pdf.set_text_color(*rgb(foreground))
