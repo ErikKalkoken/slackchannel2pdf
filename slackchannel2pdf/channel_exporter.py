@@ -585,6 +585,7 @@ class SlackChannelExporter:
         last_user_id = None
         return msg_dt
 
+    # pylint: disable = too-many-locals
     def run(
         self,
         channel_inputs: list,
@@ -611,10 +612,164 @@ class SlackChannelExporter:
         Returns:
         - info about export result
         """
-        # set defaults
-        success = False
+        dest_path, oldest, latest, max_messages = self._validate_parameters(
+            channel_inputs,
+            dest_path,
+            oldest,
+            latest,
+            page_orientation,
+            page_format,
+            max_messages,
+            write_raw_data,
+        )
 
-        # input validation
+        # prepare to process channels
+        team_name = self._slack_service.team
+        response = {"ok": False, "channels": {}, "team_name": team_name}
+        channel_count = 0
+        success = True
+
+        # process each channel
+        for channel_input in channel_inputs:
+            success_channel = False
+            channel_count += 1
+            if channel_input.upper() in self._slack_service.channel_names():
+                channel_id = channel_input.upper()
+            else:
+                # flip channel_names since channel names are unique
+                channel_names_ids = {
+                    v: k for k, v in self._slack_service.channel_names().items()
+                }
+                if channel_input.lower() not in channel_names_ids:
+                    logger.error(
+                        "(%d/%d) Unknown channel '%s' on %s",
+                        channel_count,
+                        len(channel_inputs),
+                        channel_input,
+                        team_name,
+                    )
+                    continue
+
+                channel_id = channel_names_ids[channel_input.lower()]
+
+            channel_name = self._slack_service.channel_names()[channel_id]
+            filename_base = re.sub(r"[^\w\-_\.]", "_", team_name)
+            filename_base_channel = filename_base + "_" + channel_name
+
+            messages, threads = self._fetch_messages(
+                channel_inputs,
+                oldest,
+                latest,
+                max_messages,
+                channel_count,
+                channel_id,
+                channel_name,
+            )
+
+            if write_raw_data:
+                self._write_raw_data(
+                    dest_path, filename_base, filename_base_channel, messages, threads
+                )
+
+            # create PDF
+            document = MyFPDF(
+                page_orientation, settings.PAGE_UNITS_DEFAULT, page_format
+            )
+
+            self._add_fonts_to_support_unicode(document)
+
+            # compile all values
+            creation_date = dt.datetime.now(tz=self._locale_helper.timezone)
+            creation_datetime_str = self._locale_helper.format_datetime_str(
+                creation_date
+            )
+
+            message_count = self._count_all_messages(messages, threads)
+
+            (
+                start_date,
+                start_date_str,
+                end_date,
+                end_date_str,
+            ) = self._find_start_and_end_dates(messages, message_count)
+
+            # set variables for title, header, footer
+            title = team_name + " / " + channel_name
+            sub_title = "Slack channel export"
+            page_title = title
+
+            self._set_properties_for_document_info(
+                document, title, sub_title, page_title
+            )
+            self._write_title_on_first_page(document, title, sub_title)
+
+            # write info block after title
+            thread_count = len(threads.keys()) if len(threads) > 0 else 0
+            export_infos = {
+                "Slack workspace": team_name,
+                "Channel": channel_name,
+                "Exported at": creation_datetime_str,
+                "Exported by": self._slack_service.author,
+                "Start date": start_date_str,
+                "End date": end_date_str,
+                "Timezone": self._locale_helper.timezone,
+                "Locale": f"{self._locale_helper.locale.get_display_name()}",
+                "Messages": format_decimal(
+                    message_count, locale=self._locale_helper.locale
+                ),
+                "Threads": format_decimal(
+                    thread_count, locale=self._locale_helper.locale
+                ),
+                "Pages": "{nb}",
+            }
+            document.write_info_table(export_infos)
+            document.add_page()
+
+            # write messages to PDF
+            self._write_messages_to_pdf(document, messages, threads)
+
+            success_channel, filename_pdf = self._store_pdf(
+                dest_path, filename_base_channel, document
+            )
+
+            # compile response dict
+            response["channels"][channel_id] = {
+                "ok": success_channel,
+                "channel_id": channel_id,
+                "channel_name": channel_name,
+                "filename_pdf": str(filename_pdf),
+                "filename_base_channel": str(dest_path / filename_base_channel),
+                "dest_path": str(dest_path),
+                "page_format": page_format,
+                "page_orientation": page_orientation,
+                "max_messages": max_messages,
+                "messages_total": max_messages,
+                "export_infos": export_infos,
+                "message_count": message_count,
+                "thread_count": thread_count,
+                "creation_date": creation_date,
+                "start_date": start_date,
+                "end_date": end_date,
+                "timezone": self._locale_helper.timezone,
+                "locale": self._locale_helper.locale,
+            }
+            success = success and success_channel
+
+        response["ok"] = success
+        return response
+
+    # pylint: disable = too-many-branches
+    def _validate_parameters(
+        self,
+        channel_inputs,
+        dest_path,
+        oldest,
+        latest,
+        page_orientation,
+        page_format,
+        max_messages,
+        write_raw_data,
+    ):
         if max_messages is not None:
             if not isinstance(max_messages, int):
                 raise TypeError("max_messages must be of type int")
@@ -674,178 +829,67 @@ class SlackChannelExporter:
 
         if write_raw_data is not None and not isinstance(write_raw_data, bool):
             raise TypeError("write_raw_data must be of type bool")
+        return dest_path, oldest, latest, max_messages
 
-        # prepare to process channels
-        team_name = self._slack_service.team
-        response = {"ok": success, "channels": {}, "team_name": team_name}
-        channel_count = 0
-        success = True
+    def _count_all_messages(self, messages, threads):
+        message_count = len(messages)
+        if len(threads) > 0:
+            for _, thread_messages in threads.items():
+                message_count += len(thread_messages) - 1
+        return message_count
 
-        # process each channel
-        for channel_input in channel_inputs:
+    def _find_start_and_end_dates(self, messages, message_count):
+        if message_count > 0:
+            # find start and end date based on messages
+            ts_extract = [d["ts"] for d in messages]
+            ts_min = min(float(s) for s in ts_extract)
+            ts_max = max(float(s) for s in ts_extract)
+
+            start_date = self._locale_helper.get_datetime_from_ts(ts_min)
+            start_date_str = self._locale_helper.format_datetime_str(start_date)
+            end_date = self._locale_helper.get_datetime_from_ts(ts_max)
+            end_date_str = self._locale_helper.format_datetime_str(end_date)
+        else:
+            start_date = None
+            start_date_str = ""
+            end_date = None
+            end_date_str = ""
+        return start_date, start_date_str, end_date, end_date_str
+
+    def _set_properties_for_document_info(self, document, title, sub_title, page_title):
+        document.set_author(self._slack_service.author)
+        document.set_creator(f"Channel Export v{__version__}")
+        document.set_title(title)
+        # document.set_creation_date(creation_date)
+        document.set_subject(sub_title)
+        document.page_title = page_title
+
+    def _write_title_on_first_page(self, document, title, sub_title):
+        document.set_font(
+            settings.FONT_FAMILY_DEFAULT, size=settings.FONT_SIZE_LARGE, style="B"
+        )
+        document.cell(0, 0, title, 0, 1, "C")
+        document.ln(settings.LINE_HEIGHT_DEFAULT)
+
+        document.set_font(
+            settings.FONT_FAMILY_DEFAULT,
+            size=settings.FONT_SIZE_NORMAL,
+            style="B",
+        )
+        document.cell(0, 0, sub_title, 0, 1, "C")
+        document.ln(settings.LINE_HEIGHT_DEFAULT)
+
+    def _store_pdf(self, dest_path, filename_base_channel, document):
+        filename_pdf = dest_path / (filename_base_channel + ".pdf")
+        logger.info("Writing PDF file: %s", filename_pdf)
+        try:
+            document.output(str(filename_pdf))
+            document.close()
+            success_channel = True
+        except IOError:
+            logger.error("Failed to write PDF file:", exc_info=True)
             success_channel = False
-            channel_count += 1
-            if channel_input.upper() in self._slack_service.channel_names():
-                channel_id = channel_input.upper()
-            else:
-                # flip channel_names since channel names are unique
-                channel_names_ids = {
-                    v: k for k, v in self._slack_service.channel_names().items()
-                }
-                if channel_input.lower() not in channel_names_ids:
-                    logger.error(
-                        "(%d/%d) Unknown channel '%s' on %s",
-                        channel_count,
-                        len(channel_inputs),
-                        channel_input,
-                        team_name,
-                    )
-                    continue
-
-                channel_id = channel_names_ids[channel_input.lower()]
-
-            channel_name = self._slack_service.channel_names()[channel_id]
-            filename_base = re.sub(r"[^\w\-_\.]", "_", team_name)
-            filename_base_channel = filename_base + "_" + channel_name
-
-            messages, threads = self._fetch_messages(
-                channel_inputs,
-                oldest,
-                latest,
-                max_messages,
-                channel_count,
-                channel_id,
-                channel_name,
-            )
-
-            if write_raw_data:
-                self._write_raw_data(
-                    dest_path, filename_base, filename_base_channel, messages, threads
-                )
-
-            # create PDF
-            document = MyFPDF(
-                page_orientation, settings.PAGE_UNITS_DEFAULT, page_format
-            )
-
-            self._add_fonts_to_support_unicode(document)
-
-            # compile all values
-            creation_date = dt.datetime.now(tz=self._locale_helper.timezone)
-            creation_datetime_str = self._locale_helper.format_datetime_str(
-                creation_date
-            )
-
-            # count all messages including threads
-            message_count = len(messages)
-            if len(threads) > 0:
-                for _, thread_messages in threads.items():
-                    message_count += len(thread_messages) - 1
-
-            if message_count > 0:
-                # find start and end date based on messages
-                ts_extract = [d["ts"] for d in messages]
-                ts_min = min(float(s) for s in ts_extract)
-                ts_max = max(float(s) for s in ts_extract)
-
-                start_date = self._locale_helper.get_datetime_from_ts(ts_min)
-                start_date_str = self._locale_helper.format_datetime_str(start_date)
-                end_date = self._locale_helper.get_datetime_from_ts(ts_max)
-                end_date_str = self._locale_helper.format_datetime_str(end_date)
-            else:
-                start_date = None
-                start_date_str = ""
-                end_date = None
-                end_date_str = ""
-
-            # set variables for title, header, footer
-            title = team_name + " / " + channel_name
-            sub_title = "Slack channel export"
-            page_title = title
-
-            # set properties for document info
-            document.set_author(self._slack_service.author)
-            document.set_creator(f"Channel Export v{__version__}")
-            document.set_title(title)
-            # document.set_creation_date(creation_date)
-            document.set_subject(sub_title)
-            document.page_title = page_title
-
-            # write title on first page
-            document.set_font(
-                settings.FONT_FAMILY_DEFAULT, size=settings.FONT_SIZE_LARGE, style="B"
-            )
-            document.cell(0, 0, title, 0, 1, "C")
-            document.ln(settings.LINE_HEIGHT_DEFAULT)
-
-            document.set_font(
-                settings.FONT_FAMILY_DEFAULT,
-                size=settings.FONT_SIZE_NORMAL,
-                style="B",
-            )
-            document.cell(0, 0, sub_title, 0, 1, "C")
-            document.ln(settings.LINE_HEIGHT_DEFAULT)
-
-            # write info block after title
-            thread_count = len(threads.keys()) if len(threads) > 0 else 0
-            export_infos = {
-                "Slack workspace": team_name,
-                "Channel": channel_name,
-                "Exported at": creation_datetime_str,
-                "Exported by": self._slack_service.author,
-                "Start date": start_date_str,
-                "End date": end_date_str,
-                "Timezone": self._locale_helper.timezone,
-                "Locale": f"{self._locale_helper.locale.get_display_name()}",
-                "Messages": format_decimal(
-                    message_count, locale=self._locale_helper.locale
-                ),
-                "Threads": format_decimal(
-                    thread_count, locale=self._locale_helper.locale
-                ),
-                "Pages": "{nb}",
-            }
-            document.write_info_table(export_infos)
-            document.add_page()
-
-            # write messages to PDF
-            self._write_messages_to_pdf(document, messages, threads)
-
-            # store PDF
-            filename_pdf = dest_path / (filename_base_channel + ".pdf")
-            logger.info("Writing PDF file: %s", filename_pdf)
-            try:
-                document.output(str(filename_pdf))
-                document.close()
-                success_channel = True
-            except IOError:
-                logger.error("Failed to write PDF file:", exc_info=True)
-
-            # compile response dict
-            response["channels"][channel_id] = {
-                "ok": success_channel,
-                "channel_id": channel_id,
-                "channel_name": channel_name,
-                "filename_pdf": str(filename_pdf),
-                "filename_base_channel": str(dest_path / filename_base_channel),
-                "dest_path": str(dest_path),
-                "page_format": page_format,
-                "page_orientation": page_orientation,
-                "max_messages": max_messages,
-                "messages_total": max_messages,
-                "export_infos": export_infos,
-                "message_count": message_count,
-                "thread_count": thread_count,
-                "creation_date": creation_date,
-                "start_date": start_date,
-                "end_date": end_date,
-                "timezone": self._locale_helper.timezone,
-                "locale": self._locale_helper.locale,
-            }
-            success = success and success_channel
-
-        response["ok"] = success
-        return response
+        return success_channel, filename_pdf
 
     def _add_fonts_to_support_unicode(self, document):
         document.add_font(

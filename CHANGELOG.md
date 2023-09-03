@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Added support for Python 3.11
 - Add GH actions for test and release
+- Add pylint checks to CI pipeline
 
 ### Changed
 
