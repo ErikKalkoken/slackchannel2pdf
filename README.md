@@ -2,7 +2,12 @@
 
 **slackchannel2pdf** is a command line tool for exporting the text contents of any Slack channel to a PDF file.
 
-[![release](https://img.shields.io/pypi/v/slackchannel2pdf?label=release)](https://pypi.org/project/slackchannel2pdf/) [![python](https://img.shields.io/pypi/pyversions/slackchannel2pdf)](https://pypi.org/project/slackchannel2pdf/) [![licence](https://img.shields.io/github/license/ErikKalkoken/slackchannel2pdf)](https://github.com/ErikKalkoken/slackchannel2pdf/blob/master/LICENSE) [![pipeline](https://api.travis-ci.org/ErikKalkoken/slackchannel2pdf.svg?branch=master)](https://travis-ci.com/github/ErikKalkoken/slackchannel2pdf) [![codecov](https://codecov.io/gh/ErikKalkoken/slackchannel2pdf/branch/master/graph/badge.svg?token=omhTxW8ALq)](https://codecov.io/gh/ErikKalkoken/slackchannel2pdf) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![release](https://img.shields.io/pypi/v/slackchannel2pdf?label=release)](https://pypi.org/project/slackchannel2pdf/)
+[![python](https://img.shields.io/pypi/pyversions/slackchannel2pdf)](https://pypi.org/project/slackchannel2pdf/)
+[![license](https://img.shields.io/github/license/ErikKalkoken/slackchannel2pdf)](https://github.com/ErikKalkoken/slackchannel2pdf/blob/master/LICENSE)
+[![Tests](https://github.com/ErikKalkoken/slackchannel2pdf/actions/workflows/main.yml/badge.svg)](https://github.com/ErikKalkoken/slackchannel2pdf/actions/workflows/main.yml)
+[![codecov](https://codecov.io/gh/ErikKalkoken/slackchannel2pdf/branch/master/graph/badge.svg?token=omhTxW8ALq)](https://codecov.io/gh/ErikKalkoken/slackchannel2pdf)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 ## Contents
 
