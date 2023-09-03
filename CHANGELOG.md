@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.5.0] - 2023-09-03
+
+### Changed
+
+- Consolidated tests.helper package into module
+
 ## [1.4.0] - 2022-04-04
 
 ### Changed

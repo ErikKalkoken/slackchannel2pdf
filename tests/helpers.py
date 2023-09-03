@@ -1,10 +1,7 @@
-import inspect
 import json
-import os
 import socket
+from pathlib import Path
 from unittest import TestCase
-
-_currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 
 
 class SocketAccessError(Exception):
@@ -57,7 +54,8 @@ class SlackClientStub:
         self._team = str(team)
         self._page_size = int(page_size) if page_size else None
         self._page_counts = {"conversations_list": 0}
-        with open(f"{_currentdir}/slack_data.json", "r", encoding="utf-8") as f:
+        path = Path(__file__).parent / "slack_data.json"
+        with path.open("r", encoding="utf-8") as f:
             self._slack_data = json.load(f)
 
     def _paging(self, data, key, cursor=None) -> str:
