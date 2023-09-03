@@ -46,8 +46,8 @@ PAGE_UNITS_DEFAULT = "mm"
 FONT_FAMILY_DEFAULT = "NotoSans"
 FONT_FAMILY_MONO_DEFAULT = "NotoSansMono"
 
-PAGE_ORIENTATION_DEFAULT = _my_config.getstr("pdf", "page_orientation")
-PAGE_FORMAT_DEFAULT = _my_config.getstr("pdf", "page_format")
+PAGE_ORIENTATION_DEFAULT = _my_config.getstr("pdf", "page_orientation")  # type: ignore
+PAGE_FORMAT_DEFAULT = _my_config.getstr("pdf", "page_format")  # type: ignore
 FONT_SIZE_NORMAL = _my_config.getint("pdf", "font_size_normal")
 FONT_SIZE_LARGE = _my_config.getint("pdf", "font_size_large")
 FONT_SIZE_SMALL = _my_config.getint("pdf", "font_size_small")
@@ -57,7 +57,7 @@ MARGIN_LEFT = _my_config.getint("pdf", "margin_left")
 TAB_WIDTH = _my_config.getint("pdf", "tab_width")
 
 # locale
-FALLBACK_LOCALE = _my_config.getstr("locale", "fallback_locale")
+FALLBACK_LOCALE = _my_config.getstr("locale", "fallback_locale")  # type: ignore
 
 # slack
 MINUTES_UNTIL_USERNAME_REPEATS = _my_config.getint(
@@ -77,7 +77,7 @@ def setup_logging(config: configparser.ConfigParser) -> dict:
         },
         "handlers": {
             "console": {
-                "level": config.getstr("logging", "console_log_level"),
+                "level": config.getstr("logging", "console_log_level"),  # type: ignore
                 "formatter": "console",
                 "class": "logging.StreamHandler",
                 "stream": "ext://sys.stdout",  # Default is stderr
@@ -95,14 +95,14 @@ def setup_logging(config: configparser.ConfigParser) -> dict:
     # add log file if configured
     log_file_enabled = config.getboolean("logging", "log_file_enabled", fallback=False)
     if log_file_enabled:
-        file_log_path_full = config.getstr("logging", "log_file_path", fallback=None)
+        file_log_path_full = config.getstr("logging", "log_file_path", fallback=None)  # type: ignore
         filename = (
             Path(file_log_path_full) / _LOG_FILE_NAME
             if file_log_path_full
             else _LOG_FILE_NAME
         )
         config_logging["handlers"]["file"] = {
-            "level": config.getstr("logging", "file_log_level"),
+            "level": config.getstr("logging", "file_log_level"),  # type: ignore
             "formatter": "file",
             "class": "logging.FileHandler",
             "filename": filename,
