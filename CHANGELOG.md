@@ -9,10 +9,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [1.5.0] - 2023-09-03
 
+### Added
+
+- Added support for Python 3.11
+
 ### Changed
 
 - Consolidated tests.helper package into module
 - Migrate build process to PEP 621
+- Removed support for Python 3.7
 
 ## [1.4.0] - 2022-04-04
 

@@ -85,8 +85,8 @@ class TestSlackChannelExporter(NoSocketsTestCase):
 
             # assert infos in PDF file are correct
             pdf_file = open(res_channel["filename_pdf"], "rb")
-            pdf_reader = PyPDF2.PdfFileReader(pdf_file)
-            doc_info = pdf_reader.getDocumentInfo()
+            pdf_reader = PyPDF2.PdfReader(pdf_file)
+            doc_info = pdf_reader.metadata
             self.assertEqual(doc_info.author, "Erik Kalkoken")
             self.assertEqual(doc_info.creator, f"Channel Export v{__version__}")
             self.assertEqual(
