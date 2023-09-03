@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.5.1] - 2023-09-03
+
+### Fixed
+
+- Locale.default() breaks with exception on Windows (#20)
+- Typo in latin-1 encoding (#18)
+- KeyError: 'team' (#17)
+
 ## [1.5.0] - 2023-09-03
 
 ### Added

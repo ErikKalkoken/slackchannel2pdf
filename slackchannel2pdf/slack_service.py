@@ -39,10 +39,10 @@ class SlackService:
         # set author
         if "user_id" in self._workspace_info:
             author_id = self._workspace_info["user_id"]
-            if self._workspace_info["user_id"] in self._user_names:
+            if author_id in self._user_names:
                 self._author = self._user_names[author_id]
             else:
-                self._author = "unknown_user_" + self._workspace_info["user_id"]
+                self._author = f"unknown_user_{author_id}"
         else:
             author_id = None
             self._author = "unknown user"
@@ -64,7 +64,7 @@ class SlackService:
     @property
     def team(self) -> str:
         """Return team."""
-        return self._workspace_info["team"]
+        return self._workspace_info.get("team", "")
 
     def author_info(self) -> dict:
         """Return author info."""
