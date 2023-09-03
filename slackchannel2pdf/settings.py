@@ -1,7 +1,5 @@
 """Global settings incl. from configuration files for slackchannel2pdf."""
 
-# pylint: disable = no-member
-
 import configparser
 from ast import literal_eval
 from pathlib import Path
