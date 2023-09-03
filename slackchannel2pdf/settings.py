@@ -3,6 +3,7 @@
 import configparser
 from ast import literal_eval
 from pathlib import Path
+from typing import Optional
 
 _FILE_NAME_BASE = "slackchannel2pdf"
 _CONF_FILE_NAME = f"{_FILE_NAME_BASE}.ini"
@@ -19,7 +20,9 @@ def _configparser_convert_str(x):
 
 
 def config_parser(
-    defaults_path: Path, home_path: Path = None, cwd_path: Path = None
+    defaults_path: Path,
+    home_path: Optional[Path] = None,
+    cwd_path: Optional[Path] = None,
 ) -> configparser.ConfigParser:
     parser = configparser.ConfigParser(converters={"str": _configparser_convert_str})
     config_file_paths = [defaults_path / _CONF_FILE_NAME]
@@ -63,7 +66,7 @@ MAX_MESSAGES_PER_CHANNEL = _my_config.getint("slack", "max_messages_per_channel"
 SLACK_PAGE_LIMIT = _my_config.getint("slack", "slack_page_limit")
 
 
-def setup_logging(config: configparser.ConfigParser) -> None:
+def setup_logging(config: configparser.ConfigParser) -> dict:
     config_logging = {
         "version": 1,
         "disable_existing_loggers": False,

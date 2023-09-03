@@ -12,11 +12,7 @@ from babel import Locale
 from babel.numbers import format_decimal
 
 from . import __version__, settings
-from .helpers import (
-    read_array_from_json_file,
-    transform_encoding,
-    write_array_to_json_file,
-)
+from .helpers import transform_encoding, write_array_to_json_file
 from .locales import LocaleHelper
 from .message_transformer import MessageTransformer
 from .my_fpdf import MyFPDF
@@ -50,15 +46,14 @@ class SlackChannelExporter:
     def __init__(
         self,
         slack_token: str,
-        my_tz: pytz.BaseTzInfo = None,
-        my_locale: Locale = None,
+        my_tz: Optional[pytz.BaseTzInfo] = None,
+        my_locale: Optional[Locale] = None,
         add_debug_info: bool = False,
-        logfile_path: Path = None,
+        logfile_path: Optional[Path] = None,
     ):
         """
         Args:
             slack_token: OAuth token to be used for all calls to the Slack API
-                "TEST" can be provided to run in test mode
             my_tz: override system's timezone
             my_locale: override system's default locale
             add_debug_info: wether to add debug info to message output
@@ -100,7 +95,7 @@ class SlackChannelExporter:
         document: MyFPDF,
         msg: dict,
         margin_left: int,
-        last_user_id: str,
+        last_user_id: Optional[str],
         full_date: bool = False,
     ) -> Optional[str]:
         """parse a message and write it to the PDF"""
@@ -474,7 +469,7 @@ class SlackChannelExporter:
         return user_id
 
     def _write_messages_to_pdf(
-        self, document: MyFPDF, messages: List[dict], threads: List[dict]
+        self, document: MyFPDF, messages: List[dict], threads: dict
     ) -> None:
         """writes messages with their threads to the PDF document"""
         last_user_id = None
@@ -493,7 +488,7 @@ class SlackChannelExporter:
                     if minutes_delta > settings.MINUTES_UNTIL_USERNAME_REPEATS:
                         last_user_id = None
 
-                # write day seperator if needed
+                # write day separator if needed
                 if last_dt is None or msg_dt.date() != last_dt.date():
                     document.ln(settings.LINE_HEIGHT_SMALL)
                     document.ln(settings.LINE_HEIGHT_SMALL)
@@ -580,12 +575,12 @@ class SlackChannelExporter:
     def run(
         self,
         channel_inputs: list,
-        dest_path: Path = None,
-        oldest: dt.datetime = None,
-        latest: dt.datetime = None,
+        dest_path: Optional[Path] = None,
+        oldest: Optional[dt.datetime] = None,
+        latest: Optional[dt.datetime] = None,
         page_orientation: str = "portrait",
         page_format: str = "a4",
-        max_messages: int = None,
+        max_messages: Optional[int] = None,
         write_raw_data: bool = False,
     ) -> dict:
         """Exports all message from a channel and stores them in a PDF
@@ -701,58 +696,46 @@ class SlackChannelExporter:
             filename_base_channel = filename_base + "_" + channel_name
 
             # fetch messages
-            # if we have a client fetch data from Slack
-            if not self._slack_service.is_test_mode:
-                progress_str = (
-                    f"({channel_count}/{len(channel_inputs)})"
-                    if len(channel_inputs) > 1
-                    else ""
-                )
-                logger.info("Current channel %s: %s", progress_str, channel_name)
-                messages = self._slack_service.fetch_messages_from_channel(
-                    channel_id, max_messages, oldest, latest
-                )
-                threads = self._slack_service.fetch_threads_from_messages(
-                    channel_id, messages, max_messages, oldest, latest
-                )
-                self._bot_names = self._slack_service.fetch_bot_names_for_messages(
-                    messages, threads
-                )
+            progress_str = (
+                f"({channel_count}/{len(channel_inputs)})"
+                if len(channel_inputs) > 1
+                else ""
+            )
+            logger.info("Current channel %s: %s", progress_str, channel_name)
+            messages = self._slack_service.fetch_messages_from_channel(
+                channel_id, max_messages, oldest, latest
+            )
+            threads = self._slack_service.fetch_threads_from_messages(
+                channel_id, messages, max_messages, oldest, latest
+            )
+            self._bot_names = self._slack_service.fetch_bot_names_for_messages(
+                messages, threads
+            )
 
-                if write_raw_data:
-                    # write raw data received from Slack API to file
-                    write_array_to_json_file(
-                        self._slack_service.user_names(),
-                        dest_path / (filename_base + "_users"),
-                    )
-                    write_array_to_json_file(
-                        self._bot_names, dest_path / (filename_base + "_bots")
-                    )
-                    write_array_to_json_file(
-                        self._slack_service.channel_names(),
-                        dest_path / (filename_base + "_channels"),
-                    )
-                    write_array_to_json_file(
-                        self._slack_service.user_names(),
-                        dest_path / (filename_base + "_usergroups"),
-                    )
-                    write_array_to_json_file(
-                        messages, dest_path / (filename_base_channel + "_messages")
-                    )
-                    if len(threads) > 0:
-                        write_array_to_json_file(
-                            threads, dest_path / (filename_base_channel + "_threads")
-                        )
-            else:
-                # if we don't have a client we will try to fetch from a file
-                # this is used for testing
-                messages = read_array_from_json_file(
-                    dest_path / (filename_base_channel + "_messages")
+            if write_raw_data:
+                # write raw data received from Slack API to file
+                write_array_to_json_file(
+                    self._slack_service.user_names(),
+                    dest_path / (filename_base + "_users"),
                 )
-                threads = read_array_from_json_file(
-                    filepath=dest_path / (filename_base_channel + "_threads"),
-                    quiet=True,
+                write_array_to_json_file(
+                    self._bot_names, dest_path / (filename_base + "_bots")
                 )
+                write_array_to_json_file(
+                    self._slack_service.channel_names(),
+                    dest_path / (filename_base + "_channels"),
+                )
+                write_array_to_json_file(
+                    self._slack_service.user_names(),
+                    dest_path / (filename_base + "_usergroups"),
+                )
+                write_array_to_json_file(
+                    messages, dest_path / (filename_base_channel + "_messages")
+                )
+                if len(threads) > 0:
+                    write_array_to_json_file(
+                        threads, dest_path / (filename_base_channel + "_threads")
+                    )
 
             # create PDF
             document = MyFPDF(

@@ -20,7 +20,7 @@ def main():
     args = parse_args(sys.argv[1:])
     if "version" in args:
         print(__version__)
-        exit(0)
+        sys.exit(0)
 
     # try to take slack token from optional argument or environment variable
     if args.token is None:
@@ -28,7 +28,7 @@ def main():
             slack_token = os.environ["SLACK_TOKEN"]
         else:
             print("ERROR: No slack token provided")
-            exit(1)
+            sys.exit(1)
     else:
         slack_token = args.token
 
@@ -38,7 +38,7 @@ def main():
             my_tz = pytz.timezone(args.timezone)
         except pytz.UnknownTimeZoneError:
             print("ERROR: Unknown timezone")
-            exit(1)
+            sys.exit(1)
     else:
         my_tz = None
 
@@ -48,7 +48,7 @@ def main():
             my_locale = Locale.parse(args.locale, sep="-")
         except UnknownLocaleError:
             print("ERROR: provided locale string is not valid")
-            exit(1)
+            sys.exit(1)
     else:
         my_locale = None
 
@@ -58,7 +58,7 @@ def main():
             oldest = parser.parse(args.oldest)
         except ValueError:
             print("ERROR: Invalid date input for --oldest")
-            exit(1)
+            sys.exit(1)
     else:
         oldest = None
 
@@ -68,7 +68,7 @@ def main():
             latest = parser.parse(args.latest)
         except ValueError:
             print("ERROR: Invalid date input for --latest")
-            exit(1)
+            sys.exit(1)
     else:
         latest = None
 
@@ -84,7 +84,7 @@ def main():
         )
     except SlackApiError as ex:
         print(f"ERROR: {ex}")
-        exit(1)
+        sys.exit(1)
 
     result = exporter.run(
         channel_inputs=args.channel,
@@ -103,7 +103,7 @@ def main():
             )
 
 
-def parse_args(args: list) -> argparse.ArgumentParser:
+def parse_args(args: list) -> argparse.Namespace:
     """defines the argument parser and returns parsed result from given argument"""
     my_arg_parser = argparse.ArgumentParser(
         description="This program exports the text of a Slack channel to a PDF file",
@@ -160,7 +160,7 @@ def parse_args(args: list) -> argparse.ArgumentParser:
     # standards
     my_arg_parser.add_argument(
         "--version",
-        help="show the program version and exit",
+        help="show the program version and sys.exit",
         action="version",
         version=__version__,
     )

@@ -1,5 +1,6 @@
 import datetime as dt
 import logging
+from typing import Optional
 
 import pytz
 from babel import Locale, UnknownLocaleError
@@ -16,9 +17,9 @@ class LocaleHelper:
 
     def __init__(
         self,
-        my_locale: Locale = None,
-        my_tz: pytz.BaseTzInfo = None,
-        author_info: dict = None,
+        my_locale: Optional[Locale] = None,
+        my_tz: Optional[pytz.BaseTzInfo] = None,
+        author_info: Optional[dict] = None,
     ) -> None:
         """
         Args:
@@ -31,7 +32,9 @@ class LocaleHelper:
         self._timezone = self._determine_timezone(my_tz, author_info)
 
     @staticmethod
-    def _determine_locale(my_locale: Locale = None, author_info: dict = None) -> Locale:
+    def _determine_locale(
+        my_locale: Optional[Locale] = None, author_info: Optional[dict] = None
+    ) -> Locale:
         if my_locale:
             if not isinstance(my_locale, Locale):
                 raise TypeError("my_locale must be a babel Locale object")
@@ -50,7 +53,7 @@ class LocaleHelper:
 
     @staticmethod
     def _determine_timezone(
-        my_tz: pytz.BaseTzInfo = None, author_info: dict = None
+        my_tz: Optional[pytz.BaseTzInfo] = None, author_info: Optional[dict] = None
     ) -> pytz.BaseTzInfo:
         if my_tz:
             if not isinstance(my_tz, pytz.BaseTzInfo):
@@ -93,7 +96,7 @@ class LocaleHelper:
         my_datetime = self.get_datetime_from_ts(ts)
         return format_time(my_datetime, format="short", locale=self.locale)
 
-    def get_datetime_from_ts(self, ts: int) -> dt.datetime:
+    def get_datetime_from_ts(self, ts: float) -> dt.datetime:
         """returns datetime object of a unix timestamp with local timezone"""
         my_datetime = dt.datetime.fromtimestamp(float(ts), pytz.UTC)
         return my_datetime.astimezone(self.timezone)

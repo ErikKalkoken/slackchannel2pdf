@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Consolidated tests.helper package into module
 - Migrate build process to PEP 621
 - Removed support for Python 3.7
+- Remove TEST mode
 
 ## [1.4.0] - 2022-04-04
 
