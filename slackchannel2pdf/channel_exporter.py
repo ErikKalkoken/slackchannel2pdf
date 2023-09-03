@@ -1,4 +1,4 @@
-"""API for exporting Slack channels"""
+"""Main logic for exporting Slack channels."""
 
 import datetime as dt
 import logging
@@ -12,10 +12,10 @@ from babel import Locale
 from babel.numbers import format_decimal
 
 from . import __version__, settings
+from .fpdf_extension import MyFPDF
 from .helpers import transform_encoding, write_array_to_json_file
 from .locales import LocaleHelper
 from .message_transformer import MessageTransformer
-from .my_fpdf import MyFPDF
 from .slack_service import SlackService
 
 logging.config.dictConfig(settings.DEFAULT_LOGGING)
@@ -59,7 +59,7 @@ class SlackChannelExporter:
             add_debug_info: wether to add debug info to message output
 
         """
-        self._bot_names = dict()
+        self._bot_names = {}
         if slack_token is None:
             raise ValueError("slack_token can not be null")
 
@@ -207,7 +207,7 @@ class SlackChannelExporter:
                     document.ln()
 
                     # convert user IDs to names
-                    users_with_names = list()
+                    users_with_names = []
                     for user in reaction["users"]:
                         if user in self._slack_service.user_names():
                             user_name = self._slack_service.user_names()[user]
@@ -651,20 +651,20 @@ class SlackChannelExporter:
 
         if not isinstance(page_orientation, str):
             raise TypeError("page_orientation must be of type str")
-        else:
-            logger.info("Page orientation: %s", page_orientation.title())
+
+        logger.info("Page orientation: %s", page_orientation.title())
 
         if not isinstance(page_format, str):
             raise TypeError("page_format must be of type str")
-        else:
-            logger.info("Page format: %s", page_format.title())
+
+        logger.info("Page format: %s", page_format.title())
 
         if write_raw_data is not None and not isinstance(write_raw_data, bool):
             raise TypeError("write_raw_data must be of type bool")
 
         # prepare to process channels
         team_name = self._slack_service.team
-        response = {"ok": success, "channels": dict(), "team_name": team_name}
+        response = {"ok": success, "channels": {}, "team_name": team_name}
         channel_count = 0
         success = True
 
@@ -688,8 +688,8 @@ class SlackChannelExporter:
                         team_name,
                     )
                     continue
-                else:
-                    channel_id = channel_names_ids[channel_input.lower()]
+
+                channel_id = channel_names_ids[channel_input.lower()]
 
             channel_name = self._slack_service.channel_names()[channel_id]
             filename_base = re.sub(r"[^\w\-_\.]", "_", team_name)

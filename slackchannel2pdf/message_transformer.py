@@ -1,3 +1,5 @@
+"""Slack message transformers for slackchannel2pdf."""
+
 import re
 
 from .helpers import transform_encoding
@@ -6,7 +8,7 @@ from .slack_service import SlackService
 
 
 class MessageTransformer:
-    """parsing and transforming Slack messages"""
+    """A class for parsing and transforming Slack messages."""
 
     def __init__(
         self,
@@ -19,7 +21,7 @@ class MessageTransformer:
         self._font_family_mono_default = font_family_mono_default
 
     def transform_text(self, text: str, use_mrkdwn: bool = False) -> str:
-        """transforms mrkdwn text into HTML text for PDF output
+        """Transform mrkdwn text into HTML text for PDF output.
 
         Main method to resolve all mrkdwn, e.g. <C12345678>, <!here>, *bold*
         Will resolve channel and user IDs to their names if possible
@@ -34,39 +36,41 @@ class MessageTransformer:
         """
 
         # pass 1 - adjust encoding to latin-1 and transform HTML entities
-        s2 = transform_encoding(text)
+        result = transform_encoding(text)
 
         # if requested try to transform mrkdwn in text
         if use_mrkdwn:
             # pass 2 - transform mrkdwns with brackets
-            s2 = re.sub(r"<(.*?)>", self._replace_mrkdwn_in_text, s2)
+            result = re.sub(r"<(.*?)>", self._replace_mrkdwn_in_text, result)
 
             # pass 3 - transform formatting mrkdwns
 
             # bold
-            s2 = re.sub(r"\*(.+)\*", r"<b>\1</b>", s2)
+            result = re.sub(r"\*(.+)\*", r"<b>\1</b>", result)
             # italic
-            s2 = re.sub(r"\b_(.+)_\b", r"<i>\1</i>", s2)
+            result = re.sub(r"\b_(.+)_\b", r"<i>\1</i>", result)
             # code
-            s2 = re.sub(
+            result = re.sub(
                 r"`(.*)`",
                 r'<s fontfamily="' + self._font_family_mono_default + r'">\1</s>',
-                s2,
+                result,
             )
             # indents
-            s2 = re.sub(r"^>(.+)", r"<blockquote>\1</blockquote>", s2, 0, re.MULTILINE)
-            s2 = s2.replace("</blockquote><br>", "</blockquote>")
+            result = re.sub(
+                r"^>(.+)", r"<blockquote>\1</blockquote>", result, 0, re.MULTILINE
+            )
+            result = result.replace("</blockquote><br>", "</blockquote>")
             # EOF
-            s2 = s2.replace("\n", "<br>")
+            result = result.replace("\n", "<br>")
 
-        return s2
+        return result
 
-    def _replace_mrkdwn_in_text(self, matchObj: re.Match) -> str:
+    def _replace_mrkdwn_in_text(self, match_obj: re.Match) -> str:
         """inline function returns replacement string for re.sub
 
         This function does the actual resolving of IDs and mrkdwn key words
         """
-        match = matchObj.group(1)
+        match = match_obj.group(1)
 
         id_chars = match[0:2]
         id_raw = match[1 : len(match)]
@@ -74,7 +78,7 @@ class MessageTransformer:
         obj_id = parts[0]
 
         make_bold = True
-        if id_chars == "@U" or id_chars == "@W":
+        if id_chars in {"@U", "@W"}:
             # match is a user ID
             if obj_id in self._slack_service.user_names():
                 replacement = "@" + self._slack_service.user_names()[obj_id]

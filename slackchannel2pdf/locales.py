@@ -1,3 +1,5 @@
+"""Locales for slackchannel2pdf."""
+
 import datetime as dt
 import logging
 from typing import Optional
@@ -86,17 +88,17 @@ class LocaleHelper:
         """returns formated datetime string for given dt using locale"""
         return format_datetime(my_datetime, format="short", locale=self.locale)
 
-    def get_datetime_formatted_str(self, ts: int) -> str:
+    def get_datetime_formatted_str(self, timestamp: int) -> str:
         """return given timestamp as formated datetime string using locale"""
-        my_datetime = self.get_datetime_from_ts(ts)
+        my_datetime = self.get_datetime_from_ts(timestamp)
         return format_datetime(my_datetime, format="short", locale=self.locale)
 
-    def get_time_formatted_str(self, ts: int) -> str:
+    def get_time_formatted_str(self, timestamp: int) -> str:
         """return given timestamp as formated datetime string using locale"""
-        my_datetime = self.get_datetime_from_ts(ts)
+        my_datetime = self.get_datetime_from_ts(timestamp)
         return format_time(my_datetime, format="short", locale=self.locale)
 
-    def get_datetime_from_ts(self, ts: float) -> dt.datetime:
+    def get_datetime_from_ts(self, timestamp: float) -> dt.datetime:
         """returns datetime object of a unix timestamp with local timezone"""
-        my_datetime = dt.datetime.fromtimestamp(float(ts), pytz.UTC)
+        my_datetime = dt.datetime.fromtimestamp(float(timestamp), pytz.UTC)
         return my_datetime.astimezone(self.timezone)

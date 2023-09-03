@@ -1,4 +1,4 @@
-"""Defines all global settings incl. from configuration files"""
+"""Global settings incl. from configuration files for slackchannel2pdf."""
 
 import configparser
 from ast import literal_eval
@@ -12,10 +12,10 @@ _LOG_FILE_NAME = f"{_FILE_NAME_BASE}.log"
 _DEFAULTS_PATH = Path(__file__).parent
 
 
-def _configparser_convert_str(x):
-    result = literal_eval(x)
+def _configparser_convert_str(value):
+    result = literal_eval(value)
     if not isinstance(result, str):
-        raise configparser.ParsingError(f"Needs to be a string type: {x}")
+        raise configparser.ParsingError(f"Needs to be a string type: {value}")
     return result
 
 
@@ -24,6 +24,7 @@ def config_parser(
     home_path: Optional[Path] = None,
     cwd_path: Optional[Path] = None,
 ) -> configparser.ConfigParser:
+    """Load and parse config from file and return it."""
     parser = configparser.ConfigParser(converters={"str": _configparser_convert_str})
     config_file_paths = [defaults_path / _CONF_FILE_NAME]
     if home_path:

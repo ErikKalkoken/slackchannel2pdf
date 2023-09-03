@@ -1,4 +1,4 @@
-"""Handles all requests to Slack"""
+"""Logic for handling Slack API."""
 
 import logging
 from typing import Optional
@@ -54,7 +54,7 @@ class SlackService:
         if author_id is not None:
             self._author_info = self._fetch_user_info(author_id)
         else:
-            self._author_info = dict()
+            self._author_info = {}
 
     @property
     def author(self) -> str:
@@ -156,7 +156,7 @@ class SlackService:
         self, channel_id, messages, max_messages, oldest=None, latest=None
     ) -> dict:
         """returns threads from all messages from for a channel as dict"""
-        threads = dict()
+        threads = {}
         thread_num = 0
         thread_messages_total = 0
         for msg in messages:
@@ -261,8 +261,8 @@ class SlackService:
         in any message (lazy approach since calls to bots_info are very slow)
         """
         # collect bot_ids without user name from messages
-        bot_ids = list()
-        bot_names = dict()
+        bot_ids = []
+        bot_names = {}
         for msg in messages:
             if "bot_id" in msg:
                 bot_id = msg["bot_id"]
@@ -313,7 +313,7 @@ class SlackService:
         col_name_secondary will not be included in the resulting new dict
 
         """
-        arr2 = dict()
+        arr2 = {}
         for item in arr:
             if key_name in item:
                 key = item[key_name]

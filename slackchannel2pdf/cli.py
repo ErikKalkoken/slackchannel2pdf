@@ -1,4 +1,4 @@
-"""command line interface"""
+"""Command line interface."""
 
 import argparse
 import os
