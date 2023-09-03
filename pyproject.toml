@@ -1,0 +1,51 @@
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "slackchannel2pdf"
+dynamic = ["version", "description"]
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = "~=3.7"
+authors = [{ name = "Erik Kalkoken", email = "kalkoken87@gmail.com" }]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+]
+dependencies = [
+    "Babel>=2.9.1,<3",
+    "python-dateutil>=2.8.0,<3",
+    "pytz>=2019.1",
+    "slack_sdk>=3.15.2,<4",
+    "tzlocal>=2.0.0,<3",
+]
+
+[project.scripts]
+slackchannel2pdf = "slackchannel2pdf.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/ErikKalkoken/slackchannel2pdf"
+
+[tool.flit.module]
+name = "slackchannel2pdf"
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+
+[tool.pylint.'MASTER']
+ignore-patterns = ["__init__.py"]
+ignore-paths = ["^.*/tests/.*$", "^.*/fpdf_mod/.*$"]
+
+[tool.pylint.'BASIC']
+good-names = ["i", "j", "k", "ex"]
+
+[tool.pylint.'FORMAT']
+max-line-length = 120

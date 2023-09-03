@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 - Consolidated tests.helper package into module
+- Migrate build process to PEP 621
 
 ## [1.4.0] - 2022-04-04
 
