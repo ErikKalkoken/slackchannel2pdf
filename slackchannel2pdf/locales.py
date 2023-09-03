@@ -40,18 +40,19 @@ class LocaleHelper:
         if my_locale:
             if not isinstance(my_locale, Locale):
                 raise TypeError("my_locale must be a babel Locale object")
-        else:
-            if author_info:
-                try:
-                    my_locale = Locale.parse(author_info["locale"], sep="-")
-                except UnknownLocaleError:
-                    logger.warning("Could not use locale info from Slack")
-                    my_locale = Locale.default()
-            else:
-                my_locale = Locale.default()
-        if not my_locale:
-            my_locale = Locale.parse(settings.FALLBACK_LOCALE)
-        return my_locale
+            return my_locale
+
+        if author_info:
+            try:
+                return Locale.parse(author_info["locale"], sep="-")
+            except UnknownLocaleError:
+                logger.warning("Could not use locale info from Slack.")
+                my_locale = None
+
+        try:
+            return Locale.default()
+        except Exception:
+            return Locale.parse(settings.FALLBACK_LOCALE, sep="-")
 
     @staticmethod
     def _determine_timezone(
