@@ -51,7 +51,7 @@ class LocaleHelper:
 
         try:
             return Locale.default()
-        except Exception:
+        except Exception:  # pylint: disable = broad-exception-caught
             return Locale.parse(settings.FALLBACK_LOCALE, sep="-")
 
     @staticmethod
