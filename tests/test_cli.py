@@ -10,7 +10,7 @@ from slackchannel2pdf.cli import main
 
 
 @patch("slackchannel2pdf.cli.SlackChannelExporter")
-@patch("slackchannel2pdf.cli.parse_args")
+@patch("slackchannel2pdf.cli._parse_args")
 class TestCli(TestCase):
     def test_should_start_export_for_channel(self, mock_parse_args, MockExporter):
         # given
