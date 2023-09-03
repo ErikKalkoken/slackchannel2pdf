@@ -1273,10 +1273,10 @@ class FPDF(object):
         return info
 
     @check_page
-    def ln(self, h=""):
+    def ln(self, h=None):
         "Line Feed; default value is last cell height"
         self.x = self.l_margin
-        if isinstance(h, basestring):
+        if h is None:
             self.y += self.lasth
         else:
             self.y += h
