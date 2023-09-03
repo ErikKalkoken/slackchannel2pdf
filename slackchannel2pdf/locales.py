@@ -92,12 +92,12 @@ class LocaleHelper:
         """Return formatted datetime string for given dt using locale."""
         return format_datetime(my_datetime, format="short", locale=self.locale)
 
-    def get_datetime_formatted_str(self, timestamp: int) -> str:
+    def get_datetime_formatted_str(self, timestamp: float) -> str:
         """Return given timestamp as formatted datetime string using locale."""
         my_datetime = self.get_datetime_from_ts(timestamp)
         return format_datetime(my_datetime, format="short", locale=self.locale)
 
-    def get_time_formatted_str(self, timestamp: int) -> str:
+    def get_time_formatted_str(self, timestamp: float) -> str:
         """Return given timestamp as formatted datetime string using locale."""
         my_datetime = self.get_datetime_from_ts(timestamp)
         return format_time(my_datetime, format="short", locale=self.locale)

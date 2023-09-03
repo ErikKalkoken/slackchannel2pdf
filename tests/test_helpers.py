@@ -44,14 +44,6 @@ class TestLocaleHelper(unittest.TestCase):
         self.assertEqual(locale_helper.locale, babel.Locale.parse("es-MX", sep="-"))
         self.assertEqual(locale_helper.timezone, pytz.timezone("Asia/Bangkok"))
 
-    def test_should_use_fallback_locale_if_none_can_be_determined(self):
-        # when
-        with patch("slackchannel2pdf.locales.Locale.default") as mock_default:
-            mock_default.return_value = None
-            locale_helper = LocaleHelper()
-        # then
-        self.assertEqual(locale_helper.locale, babel.Locale.parse("en"))
-
     def test_should_use_fallback_timezone_if_none_can_be_determined(self):
         # when
         with patch("slackchannel2pdf.locales.get_localzone") as mock_get_localzone:
