@@ -58,22 +58,28 @@ class SlackService:
 
     @property
     def author(self) -> str:
+        """Return author."""
         return self._author
 
     @property
     def team(self) -> str:
+        """Return team."""
         return self._workspace_info["team"]
 
     def author_info(self) -> dict:
+        """Return author info."""
         return self._author_info
 
     def channel_names(self) -> dict:
+        """Return channel names."""
         return self._channel_names
 
     def user_names(self) -> dict:
+        """Return user names."""
         return self._user_names
 
     def usergroup_names(self) -> dict:
+        """Return usergroup names."""
         return self._usergroup_names
 
     def _fetch_workspace_info(self) -> dict:
