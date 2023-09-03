@@ -1,9 +1,6 @@
-import inspect
-import os
+from pathlib import Path
 
 from slackchannel2pdf.fpdf_ext import FPDF_ext
-
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 
 
 def main():
@@ -24,7 +21,8 @@ def main():
     )
     document.write_html(5, html)
 
-    document.output(os.path.join(currentdir, "test_fpdf_ext.pdf"))
+    path = Path(__file__) / "test_fpdf_ext.pdf"
+    document.output(str(path))
 
 
 if __name__ == "__main__":

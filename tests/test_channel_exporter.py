@@ -10,8 +10,7 @@ import pytz
 from slackchannel2pdf import __version__, settings
 from slackchannel2pdf.channel_exporter import SlackChannelExporter
 
-from .helpers.no_sockets import NoSocketsTestCase
-from .helpers.slack_client_stub import SlackClientStub
+from .helpers import NoSocketsTestCase, SlackClientStub
 
 """
 def test_run_with_error(self):
@@ -86,8 +85,8 @@ class TestSlackChannelExporter(NoSocketsTestCase):
 
             # assert infos in PDF file are correct
             pdf_file = open(res_channel["filename_pdf"], "rb")
-            pdf_reader = PyPDF2.PdfFileReader(pdf_file)
-            doc_info = pdf_reader.getDocumentInfo()
+            pdf_reader = PyPDF2.PdfReader(pdf_file)
+            doc_info = pdf_reader.metadata
             self.assertEqual(doc_info.author, "Erik Kalkoken")
             self.assertEqual(doc_info.creator, f"Channel Export v{__version__}")
             self.assertEqual(

@@ -38,7 +38,6 @@ class MessageTransformer:
 
         # if requested try to transform mrkdwn in text
         if use_mrkdwn:
-
             # pass 2 - transform mrkdwns with brackets
             s2 = re.sub(r"<(.*?)>", self._replace_mrkdwn_in_text, s2)
 

@@ -1,8 +1,34 @@
-import inspect
 import json
-import os
+import socket
+from pathlib import Path
+from unittest import TestCase
 
-_currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+
+class SocketAccessError(Exception):
+    pass
+
+
+class NoSocketsTestCase(TestCase):
+    """Enhancement of TestCase class that prevents any use of sockets
+
+    Will throw the exception SocketAccessError when any code tries to
+    access network sockets
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.socket_original = socket.socket
+        socket.socket = cls.guard
+        return super().setUpClass()
+
+    @classmethod
+    def tearDownClass(cls):
+        socket.socket = cls.socket_original
+        return super().tearDownClass()
+
+    @staticmethod
+    def guard(*args, **kwargs):
+        raise SocketAccessError("Attempted to access network")
 
 
 def chunks(lst, size):
@@ -28,7 +54,8 @@ class SlackClientStub:
         self._team = str(team)
         self._page_size = int(page_size) if page_size else None
         self._page_counts = {"conversations_list": 0}
-        with open(f"{_currentdir}/slack_data.json", "r", encoding="utf-8") as f:
+        path = Path(__file__).parent / "slack_data.json"
+        with path.open("r", encoding="utf-8") as f:
             self._slack_data = json.load(f)
 
     def _paging(self, data, key, cursor=None) -> str:

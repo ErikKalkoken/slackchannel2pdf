@@ -32,7 +32,6 @@ def fetch_default_config() -> configparser.ConfigParser:
 
 
 class TestConfigParser(unittest.TestCase):
-
     TEST_SECTION = "pdf"
     TEST_OPTION = "font_size_normal"
 
