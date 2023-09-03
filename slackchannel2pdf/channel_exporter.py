@@ -885,6 +885,7 @@ class SlackChannelExporter:
             logger.info("Writing PDF file: %s", filename_pdf)
             try:
                 document.output(str(filename_pdf))
+                document.close()
                 success_channel = True
             except IOError:
                 logger.error("Failed to write PDF file:", exc_info=True)
