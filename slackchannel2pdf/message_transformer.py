@@ -1,3 +1,5 @@
+"""Slack message transformers for slackchannel2pdf."""
+
 import re
 
 from .helpers import transform_encoding
@@ -6,7 +8,7 @@ from .slack_service import SlackService
 
 
 class MessageTransformer:
-    """parsing and transforming Slack messages"""
+    """A class for parsing and transforming Slack messages."""
 
     def __init__(
         self,
@@ -19,7 +21,7 @@ class MessageTransformer:
         self._font_family_mono_default = font_family_mono_default
 
     def transform_text(self, text: str, use_mrkdwn: bool = False) -> str:
-        """transforms mrkdwn text into HTML text for PDF output
+        """Transform mrkdwn text into HTML text for PDF output.
 
         Main method to resolve all mrkdwn, e.g. <C12345678>, <!here>, *bold*
         Will resolve channel and user IDs to their names if possible
@@ -34,39 +36,41 @@ class MessageTransformer:
         """
 
         # pass 1 - adjust encoding to latin-1 and transform HTML entities
-        s2 = transform_encoding(text)
+        result = transform_encoding(text)
 
         # if requested try to transform mrkdwn in text
         if use_mrkdwn:
             # pass 2 - transform mrkdwns with brackets
-            s2 = re.sub(r"<(.*?)>", self._replace_mrkdwn_in_text, s2)
+            result = re.sub(r"<(.*?)>", self._replace_mrkdwn_in_text, result)
 
             # pass 3 - transform formatting mrkdwns
 
             # bold
-            s2 = re.sub(r"\*(.+)\*", r"<b>\1</b>", s2)
+            result = re.sub(r"\*(.+)\*", r"<b>\1</b>", result)
             # italic
-            s2 = re.sub(r"\b_(.+)_\b", r"<i>\1</i>", s2)
+            result = re.sub(r"\b_(.+)_\b", r"<i>\1</i>", result)
             # code
-            s2 = re.sub(
+            result = re.sub(
                 r"`(.*)`",
                 r'<s fontfamily="' + self._font_family_mono_default + r'">\1</s>',
-                s2,
+                result,
             )
             # indents
-            s2 = re.sub(r"^>(.+)", r"<blockquote>\1</blockquote>", s2, 0, re.MULTILINE)
-            s2 = s2.replace("</blockquote><br>", "</blockquote>")
+            result = re.sub(
+                r"^>(.+)", r"<blockquote>\1</blockquote>", result, 0, re.MULTILINE
+            )
+            result = result.replace("</blockquote><br>", "</blockquote>")
             # EOF
-            s2 = s2.replace("\n", "<br>")
+            result = result.replace("\n", "<br>")
 
-        return s2
+        return result
 
-    def _replace_mrkdwn_in_text(self, matchObj: re.Match) -> str:
+    def _replace_mrkdwn_in_text(self, match_obj: re.Match) -> str:
         """inline function returns replacement string for re.sub
 
         This function does the actual resolving of IDs and mrkdwn key words
         """
-        match = matchObj.group(1)
+        match = match_obj.group(1)
 
         id_chars = match[0:2]
         id_raw = match[1 : len(match)]
@@ -74,71 +78,83 @@ class MessageTransformer:
         obj_id = parts[0]
 
         make_bold = True
-        if id_chars == "@U" or id_chars == "@W":
-            # match is a user ID
-            if obj_id in self._slack_service.user_names():
-                replacement = "@" + self._slack_service.user_names()[obj_id]
-            else:
-                replacement = f"@user_{obj_id}"
+        if id_chars in {"@U", "@W"}:
+            result = self._process_user_id(obj_id)
 
         elif id_chars == "#C":
-            # match is a channel ID
-            if obj_id in self._slack_service.channel_names():
-                replacement = "#" + self._slack_service.channel_names()[obj_id]
-            else:
-                replacement = f"#channel_{obj_id}"
+            result = self._process_channel_id(obj_id)
 
         elif match[0:9] == "!subteam^":
-            # match is a user group ID
-            match2 = re.match(r"!subteam\^(S[A-Z0-9]+)", match)
-            if match2 is not None and len(match2.groups()) == 1:
-                usergroup_id = match2.group(1)
-                if usergroup_id in self._slack_service.usergroup_names():
-                    usergroup_name = self._slack_service.usergroup_names()[usergroup_id]
-                else:
-                    usergroup_name = f"usergroup_{usergroup_id}"
-            else:
-                usergroup_name = "usergroup_unknown"
-            replacement = "@" + usergroup_name
+            result = self._process_user_group_id(match)
 
         elif match[0:1] == "!":
-            # match is a special mention
-            if obj_id == "here":
-                replacement = "@here"
-
-            elif obj_id == "channel":
-                replacement = "@channel"
-
-            elif obj_id == "everyone":
-                replacement = "@everyone"
-
-            elif match[0:5] == "!date":
-                make_bold = False
-                date_parts = match.split("^")
-                if len(date_parts) > 1:
-                    replacement = self._locale_helper.get_datetime_formatted_str(
-                        date_parts[1]
-                    )
-                else:
-                    replacement = "(failed to parse date)"
-
-            else:
-                replacement = f"@special_{obj_id}"
+            make_bold, result = self._process_special_mention(match, obj_id)
 
         else:
-            # match is an URL
-            link_parts = match.split("|")
-            if len(link_parts) == 2:
-                url = link_parts[0]
-                text = link_parts[1]
-            else:
-                url = match
-                text = match
-
-            make_bold = False
-            replacement = f'<a href="{url}">{text}</a>'
+            make_bold, result = self._process_url(match)
 
         if make_bold:
-            replacement = f"<b>{replacement}</b>"
+            result = f"<b>{result}</b>"
 
-        return replacement
+        return result
+
+    def _process_user_id(self, obj_id):
+        if obj_id in self._slack_service.user_names():
+            return "@" + self._slack_service.user_names()[obj_id]
+
+        return f"@user_{obj_id}"
+
+    def _process_channel_id(self, obj_id):
+        if obj_id in self._slack_service.channel_names():
+            return "#" + self._slack_service.channel_names()[obj_id]
+
+        return f"#channel_{obj_id}"
+
+    def _process_user_group_id(self, match):
+        match2 = re.match(r"!subteam\^(S[A-Z0-9]+)", match)
+        if match2 is not None and len(match2.groups()) == 1:
+            usergroup_id = match2.group(1)
+            if usergroup_id in self._slack_service.usergroup_names():
+                usergroup_name = self._slack_service.usergroup_names()[usergroup_id]
+            else:
+                usergroup_name = f"usergroup_{usergroup_id}"
+        else:
+            usergroup_name = "usergroup_unknown"
+        return "@" + usergroup_name
+
+    def _process_special_mention(self, match, obj_id):
+        make_bold = True
+        if obj_id == "here":
+            result = "@here"
+
+        elif obj_id == "channel":
+            result = "@channel"
+
+        elif obj_id == "everyone":
+            result = "@everyone"
+
+        elif match[0:5] == "!date":
+            make_bold = False
+            date_parts = match.split("^")
+            if len(date_parts) > 1:
+                result = self._locale_helper.get_datetime_formatted_str(date_parts[1])
+            else:
+                result = "(failed to parse date)"
+
+        else:
+            result = f"@special_{obj_id}"
+
+        return make_bold, result
+
+    def _process_url(self, match):
+        link_parts = match.split("|")
+        if len(link_parts) == 2:
+            url = link_parts[0]
+            text = link_parts[1]
+        else:
+            url = match
+            text = match
+
+        make_bold = False
+        result = f'<a href="{url}">{text}</a>'
+        return make_bold, result

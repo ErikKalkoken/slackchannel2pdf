@@ -13,12 +13,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Added support for Python 3.11
 - Add GH actions for test and release
+- Add pylint checks to CI pipeline
 
 ### Changed
 
 - Consolidated tests.helper package into module
 - Migrate build process to PEP 621
 - Removed support for Python 3.7
+- Remove TEST mode
 
 ## [1.4.0] - 2022-04-04
 

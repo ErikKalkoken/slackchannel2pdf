@@ -1,3 +1,5 @@
+"""Helpers for slackchannel2pdf."""
+
 import html
 import json
 import logging
@@ -20,15 +22,15 @@ def read_array_from_json_file(filepath: Path, quiet=False) -> list:
     if not my_file.is_file:
         if quiet is False:
             logger.warning("file does not exist: %s", filepath)
-        arr = list()
+        arr = []
     else:
         try:
-            with my_file.open("r", encoding="utf-8") as f:
-                arr = json.load(f)
+            with my_file.open("r", encoding="utf-8") as file:
+                arr = json.load(file)
         except IOError:
             if quiet is False:
                 logger.warning("failed to read from %s: ", my_file, exc_info=True)
-            arr = list()
+            arr = []
 
     return arr
 
@@ -38,7 +40,7 @@ def write_array_to_json_file(arr, filepath: Path) -> None:
     my_file = filepath.parent / (filepath.name + ".json")
     logger.info("Writing file: %s", filepath)
     try:
-        with my_file.open("w", encoding="utf-8") as f:
-            json.dump(arr, f, sort_keys=True, indent=4, ensure_ascii=False)
+        with my_file.open("w", encoding="utf-8") as file:
+            json.dump(arr, file, sort_keys=True, indent=4, ensure_ascii=False)
     except IOError:
         logger.error("failed to write to %s", my_file, exc_info=True)

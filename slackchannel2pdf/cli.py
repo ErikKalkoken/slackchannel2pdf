@@ -1,4 +1,4 @@
-"""command line interface"""
+"""Command line interface."""
 
 import argparse
 import os
@@ -17,60 +17,12 @@ from .channel_exporter import SlackChannelExporter
 def main():
     """Implements the arg parser and starts the channel exporter with its input"""
 
-    args = parse_args(sys.argv[1:])
-    if "version" in args:
-        print(__version__)
-        exit(0)
-
-    # try to take slack token from optional argument or environment variable
-    if args.token is None:
-        if "SLACK_TOKEN" in os.environ:
-            slack_token = os.environ["SLACK_TOKEN"]
-        else:
-            print("ERROR: No slack token provided")
-            exit(1)
-    else:
-        slack_token = args.token
-
-    # parse local timezone
-    if args.timezone is not None:
-        try:
-            my_tz = pytz.timezone(args.timezone)
-        except pytz.UnknownTimeZoneError:
-            print("ERROR: Unknown timezone")
-            exit(1)
-    else:
-        my_tz = None
-
-    # parse locale
-    if args.locale is not None:
-        try:
-            my_locale = Locale.parse(args.locale, sep="-")
-        except UnknownLocaleError:
-            print("ERROR: provided locale string is not valid")
-            exit(1)
-    else:
-        my_locale = None
-
-    # parse oldest
-    if args.oldest is not None:
-        try:
-            oldest = parser.parse(args.oldest)
-        except ValueError:
-            print("ERROR: Invalid date input for --oldest")
-            exit(1)
-    else:
-        oldest = None
-
-    # parse latest
-    if args.latest is not None:
-        try:
-            latest = parser.parse(args.latest)
-        except ValueError:
-            print("ERROR: Invalid date input for --latest")
-            exit(1)
-    else:
-        latest = None
+    args = _parse_args(sys.argv[1:])
+    slack_token = _parse_slack_token(args)
+    my_tz = _parse_local_timezone(args)
+    my_locale = _parse_locale(args)
+    oldest = _parse_oldest(args)
+    latest = _parse_latest(args)
 
     if not args.quiet:
         channel_postfix = "s" if args.channel and len(args.channel) > 1 else ""
@@ -84,7 +36,7 @@ def main():
         )
     except SlackApiError as ex:
         print(f"ERROR: {ex}")
-        exit(1)
+        sys.exit(1)
 
     result = exporter.run(
         channel_inputs=args.channel,
@@ -103,7 +55,7 @@ def main():
             )
 
 
-def parse_args(args: list) -> argparse.ArgumentParser:
+def _parse_args(args: list) -> argparse.Namespace:
     """defines the argument parser and returns parsed result from given argument"""
     my_arg_parser = argparse.ArgumentParser(
         description="This program exports the text of a Slack channel to a PDF file",
@@ -160,7 +112,7 @@ def parse_args(args: list) -> argparse.ArgumentParser:
     # standards
     my_arg_parser.add_argument(
         "--version",
-        help="show the program version and exit",
+        help="show the program version and sys.exit",
         action="version",
         version=__version__,
     )
@@ -203,6 +155,67 @@ def parse_args(args: list) -> argparse.ArgumentParser:
         ),
     )
     return my_arg_parser.parse_args(args)
+
+
+def _parse_slack_token(args):
+    """Try to take slack token from optional argument or environment variable."""
+    if args.token is None:
+        if "SLACK_TOKEN" in os.environ:
+            slack_token = os.environ["SLACK_TOKEN"]
+        else:
+            print("ERROR: No slack token provided")
+            sys.exit(1)
+    else:
+        slack_token = args.token
+    return slack_token
+
+
+def _parse_local_timezone(args):
+    if args.timezone is not None:
+        try:
+            my_tz = pytz.timezone(args.timezone)
+        except pytz.UnknownTimeZoneError:
+            print("ERROR: Unknown timezone")
+            sys.exit(1)
+    else:
+        my_tz = None
+    return my_tz
+
+
+def _parse_locale(args):
+    if args.locale is not None:
+        try:
+            my_locale = Locale.parse(args.locale, sep="-")
+        except UnknownLocaleError:
+            print("ERROR: provided locale string is not valid")
+            sys.exit(1)
+    else:
+        my_locale = None
+    return my_locale
+
+
+def _parse_oldest(args):
+    if args.oldest is not None:
+        try:
+            oldest = parser.parse(args.oldest)
+        except ValueError:
+            print("ERROR: Invalid date input for --oldest")
+            sys.exit(1)
+    else:
+        oldest = None
+    return oldest
+
+
+def _parse_latest(args):
+    if args.latest is not None:
+        try:
+            latest = parser.parse(args.latest)
+        except ValueError:
+            print("ERROR: Invalid date input for --latest")
+            sys.exit(1)
+    else:
+        latest = None
+    return latest
 
 
 if __name__ == "__main__":

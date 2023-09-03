@@ -1,6 +1,7 @@
-"""Handles all requests to Slack"""
+"""Logic for handling Slack API."""
 
 import logging
+from typing import Optional
 
 import slack_sdk
 from babel.numbers import format_decimal
@@ -15,7 +16,9 @@ logger = logging.getLogger(__name__)
 class SlackService:
     """Service layer between main app and Slack API"""
 
-    def __init__(self, slack_token: str, locale_helper: LocaleHelper = None) -> None:
+    def __init__(
+        self, slack_token: str, locale_helper: Optional[LocaleHelper] = None
+    ) -> None:
         """
         Args:
         - slack_token: Slack token to use for all API calls
@@ -29,65 +32,54 @@ class SlackService:
         if not locale_helper:
             locale_helper = LocaleHelper()
         self._locale = locale_helper.locale
-        if slack_token != "TEST":
-            self._workspace_info = self._fetch_workspace_info()
-            logger.info("Current Slack workspace: %s", self.team)
-            self._user_names = self.fetch_user_names()
+        self._workspace_info = self._fetch_workspace_info()
+        logger.info("Current Slack workspace: %s", self.team)
+        self._user_names = self.fetch_user_names()
 
-            # set author
-            if "user_id" in self._workspace_info:
-                author_id = self._workspace_info["user_id"]
-                if self._workspace_info["user_id"] in self._user_names:
-                    self._author = self._user_names[author_id]
-                else:
-                    self._author = "unknown_user_" + self._workspace_info["user_id"]
+        # set author
+        if "user_id" in self._workspace_info:
+            author_id = self._workspace_info["user_id"]
+            if self._workspace_info["user_id"] in self._user_names:
+                self._author = self._user_names[author_id]
             else:
-                author_id = None
-                self._author = "unknown user"
-
-            logger.info("Current Slack user: %s", self.author)
-            self._channel_names = self._fetch_channel_names()
-            self._usergroup_names = self._fetch_usergroup_names()
-            self._is_test_mode = False
-
+                self._author = "unknown_user_" + self._workspace_info["user_id"]
         else:
-            # if started with TEST parameter class properties will be
-            # initialized empty and need to be set manually in test setup
-            self._workspace_info = dict()
-            self._user_names = dict()
-            self._channel_names = dict()
-            self._usergroup_names = dict()
             author_id = None
-            self._author = "test user"
-            self._is_test_mode = True
+            self._author = "unknown user"
+
+        logger.info("Current Slack user: %s", self.author)
+        self._channel_names = self._fetch_channel_names()
+        self._usergroup_names = self._fetch_usergroup_names()
 
         if author_id is not None:
             self._author_info = self._fetch_user_info(author_id)
         else:
-            self._author_info = dict()
+            self._author_info = {}
 
     @property
     def author(self) -> str:
+        """Return author."""
         return self._author
 
     @property
     def team(self) -> str:
+        """Return team."""
         return self._workspace_info["team"]
 
-    @property
-    def is_test_mode(self) -> bool:
-        return self._is_test_mode
-
     def author_info(self) -> dict:
+        """Return author info."""
         return self._author_info
 
     def channel_names(self) -> dict:
+        """Return channel names."""
         return self._channel_names
 
     def user_names(self) -> dict:
+        """Return user names."""
         return self._user_names
 
     def usergroup_names(self) -> dict:
+        """Return usergroup names."""
         return self._usergroup_names
 
     def _fetch_workspace_info(self) -> dict:
@@ -95,7 +87,7 @@ class SlackService:
 
         logger.info("Fetching workspace info from Slack...")
         res = self._client.auth_test()
-        return res.data
+        return res.data  # type: ignore
 
     def fetch_user_names(self) -> dict:
         """returns dict of user names with user ID as key"""
@@ -110,7 +102,7 @@ class SlackService:
     def _fetch_user_info(self, user_id: str) -> dict:
         """returns dict of user info for user ID incl. locale"""
         logger.info("Fetching user info for author...")
-        response = self._client.users_info(user=user_id, include_locale=1)
+        response = self._client.users_info(user=user_id, include_locale=True)
         return response["user"]
 
     def _fetch_channel_names(self) -> dict:
@@ -170,7 +162,7 @@ class SlackService:
         self, channel_id, messages, max_messages, oldest=None, latest=None
     ) -> dict:
         """returns threads from all messages from for a channel as dict"""
-        threads = dict()
+        threads = {}
         thread_num = 0
         thread_messages_total = 0
         for msg in messages:
@@ -220,11 +212,11 @@ class SlackService:
         self,
         method,
         key: str,
-        args: dict = None,
-        limit: int = None,
-        max_rows: int = None,
-        items_name: str = None,
-        collection_name: str = None,
+        args: Optional[dict] = None,
+        limit: Optional[int] = None,
+        max_rows: Optional[int] = None,
+        items_name: Optional[str] = None,
+        collection_name: Optional[str] = None,
         print_result: bool = True,
     ) -> list:
         """helper for retrieving all pages from an API endpoint"""
@@ -268,15 +260,15 @@ class SlackService:
             )
         return rows
 
-    def fetch_bot_names_for_messages(self, messages: list, threads: list) -> dict:
+    def fetch_bot_names_for_messages(self, messages: list, threads: dict) -> dict:
         """Fetches bot names from API for provided messages
 
         Will only fetch names for bots that never appeared with a username
         in any message (lazy approach since calls to bots_info are very slow)
         """
         # collect bot_ids without user name from messages
-        bot_ids = list()
-        bot_names = dict()
+        bot_ids = []
+        bot_names = {}
         for msg in messages:
             if "bot_id" in msg:
                 bot_id = msg["bot_id"]
@@ -286,7 +278,7 @@ class SlackService:
                     bot_ids.append(bot_id)
 
         # collect bot_ids without user name from thread messages
-        for thread_messages in threads:
+        for thread_messages in threads.values():
             for msg in thread_messages:
                 if "bot_id" in msg:
                     bot_id = msg["bot_id"]
@@ -309,8 +301,11 @@ class SlackService:
 
     @staticmethod
     def _reduce_to_dict(
-        arr: list, key_name: str, col_name_primary: str, col_name_secondary: str = None
-    ) -> list:
+        arr: list,
+        key_name: str,
+        col_name_primary: str,
+        col_name_secondary: Optional[str] = None,
+    ) -> dict:
         """returns dict with selected columns as key and value from list of dict
 
         Args:
@@ -324,7 +319,7 @@ class SlackService:
         col_name_secondary will not be included in the resulting new dict
 
         """
-        arr2 = dict()
+        arr2 = {}
         for item in arr:
             if key_name in item:
                 key = item[key_name]

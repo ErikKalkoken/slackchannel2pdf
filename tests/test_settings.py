@@ -103,7 +103,7 @@ class TestSettings(unittest.TestCase):
         config = fetch_default_config()
         config.set("logging", "console_log_level", '"DEBUG"')
         # when
-        dict_config = settings.setup_logging(config)
+        dict_config = settings._setup_logging(config)
         # then
         self.assertEqual(dict_config["handlers"]["console"]["level"], "DEBUG")
 
@@ -113,7 +113,7 @@ class TestSettings(unittest.TestCase):
         config.set("logging", "log_file_enabled", "True")
         config.set("logging", "file_log_level", '"DEBUG"')
         # when
-        dict_config = settings.setup_logging(config)
+        dict_config = settings._setup_logging(config)
         # then
         self.assertEqual(dict_config["handlers"]["file"]["level"], "DEBUG")
 
@@ -122,7 +122,7 @@ class TestSettings(unittest.TestCase):
         config = fetch_default_config()
         config.set("logging", "log_file_enabled", "True")
         # when
-        dict_config = settings.setup_logging(config)
+        dict_config = settings._setup_logging(config)
         # then
         self.assertIn("file", dict_config["handlers"])
         self.assertIn("file", dict_config["loggers"][""]["handlers"])
@@ -132,7 +132,7 @@ class TestSettings(unittest.TestCase):
         config = fetch_default_config()
         config.set("logging", "log_file_enabled", "False")
         # when
-        dict_config = settings.setup_logging(config)
+        dict_config = settings._setup_logging(config)
         # then
         self.assertNotIn("file", dict_config["handlers"])
         self.assertNotIn("file", dict_config["loggers"][""]["handlers"])
@@ -144,7 +144,7 @@ class TestSettings(unittest.TestCase):
         my_path = Path(tempfile.mkdtemp())
         config.set("logging", "log_file_path", f"'{str(my_path)}'")
         # when
-        dict_config = settings.setup_logging(config)
+        dict_config = settings._setup_logging(config)
         # then
         self.assertEqual(
             Path(dict_config["handlers"]["file"]["filename"]).parent, my_path

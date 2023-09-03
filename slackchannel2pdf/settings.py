@@ -1,8 +1,11 @@
-"""Defines all global settings incl. from configuration files"""
+"""Global settings incl. from configuration files for slackchannel2pdf."""
+
+# pylint: disable = no-member
 
 import configparser
 from ast import literal_eval
 from pathlib import Path
+from typing import Optional
 
 _FILE_NAME_BASE = "slackchannel2pdf"
 _CONF_FILE_NAME = f"{_FILE_NAME_BASE}.ini"
@@ -11,16 +14,19 @@ _LOG_FILE_NAME = f"{_FILE_NAME_BASE}.log"
 _DEFAULTS_PATH = Path(__file__).parent
 
 
-def _configparser_convert_str(x):
-    result = literal_eval(x)
+def _configparser_convert_str(value):
+    result = literal_eval(value)
     if not isinstance(result, str):
-        raise configparser.ParsingError(f"Needs to be a string type: {x}")
+        raise configparser.ParsingError(f"Needs to be a string type: {value}")
     return result
 
 
 def config_parser(
-    defaults_path: Path, home_path: Path = None, cwd_path: Path = None
+    defaults_path: Path,
+    home_path: Optional[Path] = None,
+    cwd_path: Optional[Path] = None,
 ) -> configparser.ConfigParser:
+    """Load and parse config from file and return it."""
     parser = configparser.ConfigParser(converters={"str": _configparser_convert_str})
     config_file_paths = [defaults_path / _CONF_FILE_NAME]
     if home_path:
@@ -42,8 +48,8 @@ PAGE_UNITS_DEFAULT = "mm"
 FONT_FAMILY_DEFAULT = "NotoSans"
 FONT_FAMILY_MONO_DEFAULT = "NotoSansMono"
 
-PAGE_ORIENTATION_DEFAULT = _my_config.getstr("pdf", "page_orientation")
-PAGE_FORMAT_DEFAULT = _my_config.getstr("pdf", "page_format")
+PAGE_ORIENTATION_DEFAULT = _my_config.getstr("pdf", "page_orientation")  # type: ignore
+PAGE_FORMAT_DEFAULT = _my_config.getstr("pdf", "page_format")  # type: ignore
 FONT_SIZE_NORMAL = _my_config.getint("pdf", "font_size_normal")
 FONT_SIZE_LARGE = _my_config.getint("pdf", "font_size_large")
 FONT_SIZE_SMALL = _my_config.getint("pdf", "font_size_small")
@@ -53,7 +59,7 @@ MARGIN_LEFT = _my_config.getint("pdf", "margin_left")
 TAB_WIDTH = _my_config.getint("pdf", "tab_width")
 
 # locale
-FALLBACK_LOCALE = _my_config.getstr("locale", "fallback_locale")
+FALLBACK_LOCALE = _my_config.getstr("locale", "fallback_locale")  # type: ignore
 
 # slack
 MINUTES_UNTIL_USERNAME_REPEATS = _my_config.getint(
@@ -63,7 +69,7 @@ MAX_MESSAGES_PER_CHANNEL = _my_config.getint("slack", "max_messages_per_channel"
 SLACK_PAGE_LIMIT = _my_config.getint("slack", "slack_page_limit")
 
 
-def setup_logging(config: configparser.ConfigParser) -> None:
+def _setup_logging(config: configparser.ConfigParser) -> dict:
     config_logging = {
         "version": 1,
         "disable_existing_loggers": False,
@@ -73,7 +79,7 @@ def setup_logging(config: configparser.ConfigParser) -> None:
         },
         "handlers": {
             "console": {
-                "level": config.getstr("logging", "console_log_level"),
+                "level": config.getstr("logging", "console_log_level"),  # type: ignore
                 "formatter": "console",
                 "class": "logging.StreamHandler",
                 "stream": "ext://sys.stdout",  # Default is stderr
@@ -91,14 +97,14 @@ def setup_logging(config: configparser.ConfigParser) -> None:
     # add log file if configured
     log_file_enabled = config.getboolean("logging", "log_file_enabled", fallback=False)
     if log_file_enabled:
-        file_log_path_full = config.getstr("logging", "log_file_path", fallback=None)
+        file_log_path_full = config.getstr("logging", "log_file_path", fallback=None)  # type: ignore
         filename = (
             Path(file_log_path_full) / _LOG_FILE_NAME
             if file_log_path_full
             else _LOG_FILE_NAME
         )
         config_logging["handlers"]["file"] = {
-            "level": config.getstr("logging", "file_log_level"),
+            "level": config.getstr("logging", "file_log_level"),  # type: ignore
             "formatter": "file",
             "class": "logging.FileHandler",
             "filename": filename,
@@ -108,4 +114,4 @@ def setup_logging(config: configparser.ConfigParser) -> None:
     return config_logging
 
 
-DEFAULT_LOGGING = setup_logging(_my_config)
+DEFAULT_LOGGING = _setup_logging(_my_config)

@@ -1,5 +1,8 @@
+"""Locales for slackchannel2pdf."""
+
 import datetime as dt
 import logging
+from typing import Optional
 
 import pytz
 from babel import Locale, UnknownLocaleError
@@ -16,9 +19,9 @@ class LocaleHelper:
 
     def __init__(
         self,
-        my_locale: Locale = None,
-        my_tz: pytz.BaseTzInfo = None,
-        author_info: dict = None,
+        my_locale: Optional[Locale] = None,
+        my_tz: Optional[pytz.BaseTzInfo] = None,
+        author_info: Optional[dict] = None,
     ) -> None:
         """
         Args:
@@ -31,7 +34,9 @@ class LocaleHelper:
         self._timezone = self._determine_timezone(my_tz, author_info)
 
     @staticmethod
-    def _determine_locale(my_locale: Locale = None, author_info: dict = None) -> Locale:
+    def _determine_locale(
+        my_locale: Optional[Locale] = None, author_info: Optional[dict] = None
+    ) -> Locale:
         if my_locale:
             if not isinstance(my_locale, Locale):
                 raise TypeError("my_locale must be a babel Locale object")
@@ -50,7 +55,7 @@ class LocaleHelper:
 
     @staticmethod
     def _determine_timezone(
-        my_tz: pytz.BaseTzInfo = None, author_info: dict = None
+        my_tz: Optional[pytz.BaseTzInfo] = None, author_info: Optional[dict] = None
     ) -> pytz.BaseTzInfo:
         if my_tz:
             if not isinstance(my_tz, pytz.BaseTzInfo):
@@ -70,30 +75,33 @@ class LocaleHelper:
 
     @property
     def locale(self) -> Locale:
+        """Return locale."""
         return self._locale
 
     @property
     def timezone(self) -> pytz.BaseTzInfo:
+        """Return timezone."""
         return self._timezone
 
     def format_date_full_str(self, my_datetime: dt.datetime) -> str:
+        """Return all full formatted date."""
         return format_date(my_datetime, format="full", locale=self.locale)
 
     def format_datetime_str(self, my_datetime: dt.datetime) -> str:
-        """returns formated datetime string for given dt using locale"""
+        """Return formatted datetime string for given dt using locale."""
         return format_datetime(my_datetime, format="short", locale=self.locale)
 
-    def get_datetime_formatted_str(self, ts: int) -> str:
-        """return given timestamp as formated datetime string using locale"""
-        my_datetime = self.get_datetime_from_ts(ts)
+    def get_datetime_formatted_str(self, timestamp: int) -> str:
+        """Return given timestamp as formatted datetime string using locale."""
+        my_datetime = self.get_datetime_from_ts(timestamp)
         return format_datetime(my_datetime, format="short", locale=self.locale)
 
-    def get_time_formatted_str(self, ts: int) -> str:
-        """return given timestamp as formated datetime string using locale"""
-        my_datetime = self.get_datetime_from_ts(ts)
+    def get_time_formatted_str(self, timestamp: int) -> str:
+        """Return given timestamp as formatted datetime string using locale."""
+        my_datetime = self.get_datetime_from_ts(timestamp)
         return format_time(my_datetime, format="short", locale=self.locale)
 
-    def get_datetime_from_ts(self, ts: int) -> dt.datetime:
-        """returns datetime object of a unix timestamp with local timezone"""
-        my_datetime = dt.datetime.fromtimestamp(float(ts), pytz.UTC)
+    def get_datetime_from_ts(self, timestamp: float) -> dt.datetime:
+        """Return datetime object of a unix timestamp with local timezone."""
+        my_datetime = dt.datetime.fromtimestamp(float(timestamp), pytz.UTC)
         return my_datetime.astimezone(self.timezone)
