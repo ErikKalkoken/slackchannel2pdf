@@ -40,18 +40,19 @@ class LocaleHelper:
         if my_locale:
             if not isinstance(my_locale, Locale):
                 raise TypeError("my_locale must be a babel Locale object")
-        else:
-            if author_info:
-                try:
-                    my_locale = Locale.parse(author_info["locale"], sep="-")
-                except UnknownLocaleError:
-                    logger.warning("Could not use locale info from Slack")
-                    my_locale = Locale.default()
-            else:
-                my_locale = Locale.default()
-        if not my_locale:
-            my_locale = Locale.parse(settings.FALLBACK_LOCALE)
-        return my_locale
+            return my_locale
+
+        if author_info:
+            try:
+                return Locale.parse(author_info["locale"], sep="-")
+            except UnknownLocaleError:
+                logger.warning("Could not use locale info from Slack.")
+                my_locale = None
+
+        try:
+            return Locale.default()
+        except Exception:  # pylint: disable = broad-exception-caught
+            return Locale.parse(settings.FALLBACK_LOCALE, sep="-")
 
     @staticmethod
     def _determine_timezone(
@@ -91,12 +92,12 @@ class LocaleHelper:
         """Return formatted datetime string for given dt using locale."""
         return format_datetime(my_datetime, format="short", locale=self.locale)
 
-    def get_datetime_formatted_str(self, timestamp: int) -> str:
+    def get_datetime_formatted_str(self, timestamp: float) -> str:
         """Return given timestamp as formatted datetime string using locale."""
         my_datetime = self.get_datetime_from_ts(timestamp)
         return format_datetime(my_datetime, format="short", locale=self.locale)
 
-    def get_time_formatted_str(self, timestamp: int) -> str:
+    def get_time_formatted_str(self, timestamp: float) -> str:
         """Return given timestamp as formatted datetime string using locale."""
         my_datetime = self.get_datetime_from_ts(timestamp)
         return format_time(my_datetime, format="short", locale=self.locale)
