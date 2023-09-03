@@ -274,7 +274,6 @@ class SlackChannelExporter:
 
                 # draw normal text attachments
                 for attach in msg["attachments"]:
-
                     if "mrkdwn_in" in attach:
                         mrkdwn_in = attach["mrkdwn_in"]
                     else:
@@ -485,7 +484,6 @@ class SlackChannelExporter:
         if len(messages) > 0:
             messages = sorted(messages, key=lambda k: k["ts"])
             for msg in messages:
-
                 msg_dt = self._locale_helper.get_datetime_from_ts(msg["ts"])
 
                 # repeat user name for if last post from same user is older

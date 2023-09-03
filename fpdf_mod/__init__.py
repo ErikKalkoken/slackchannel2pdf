@@ -8,12 +8,12 @@ __version__ = "1.7.2"
 
 from .fpdf import (
     FPDF,
+    FPDF_CACHE_DIR,
+    FPDF_CACHE_MODE,
     FPDF_FONT_DIR,
     FPDF_VERSION,
     SYSTEM_TTFONTS,
     set_global,
-    FPDF_CACHE_MODE,
-    FPDF_CACHE_DIR,
 )
 
 try:

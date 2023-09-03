@@ -68,6 +68,7 @@ else:
     unicode = unicode
     ord = ord
 
+
 # shortcut to bytes conversion (b prefix)
 def b(s):
     if isinstance(s, basestring):

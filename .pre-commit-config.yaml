@@ -1,22 +1,20 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.3.0
+    rev: v4.4.0
     hooks:
       - id: trailing-whitespace
+        exclude: \.(min\.css|min\.js|po|mo|txt|svg)$|(staticfiles/vendor\/)
       - id: end-of-file-fixer
-        exclude: ^fpdf_mod\/|\.(min\.css|min\.js|po|mo|txt)$
+        exclude: \.(min\.css|min\.js|po|mo|txt|svg)$|(staticfiles/vendor\/)
   - repo: https://github.com/psf/black
-    rev: 22.10.0
+    rev: 23.7.0
     hooks:
       - id: black
-        exclude: ^fpdf_mod\/
   - repo: https://github.com/pre-commit/mirrors-isort
     rev: "v5.10.1"
     hooks:
       - id: isort
-        exclude: ^fpdf_mod\/
-  - repo: https://gitlab.com/pycqa/flake8
-    rev: "3.9.2"
+  - repo: https://github.com/pycqa/flake8
+    rev: "6.1.0"
     hooks:
       - id: flake8
-        exclude: ^fpdf_mod\/

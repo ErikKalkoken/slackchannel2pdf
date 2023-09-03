@@ -10,7 +10,7 @@ import pytz
 from slackchannel2pdf import __version__, settings
 from slackchannel2pdf.channel_exporter import SlackChannelExporter
 
-from .helpers import SlackClientStub, NoSocketsTestCase
+from .helpers import NoSocketsTestCase, SlackClientStub
 
 """
 def test_run_with_error(self):

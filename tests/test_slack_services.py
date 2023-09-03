@@ -4,7 +4,6 @@ from slackchannel2pdf.slack_service import SlackService
 
 from .helpers import NoSocketsTestCase, SlackClientStub
 
-
 MODULE_NAME = "slackchannel2pdf.slack_service"
 
 
