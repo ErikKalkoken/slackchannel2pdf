@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.5.2] - 2023-09-06
+
+### Fixed
+
+- ModuleNotFoundError: No module named 'fpdf_mod' (#25)
+
 ## [1.5.1] - 2023-09-03
 
 ### Fixed
