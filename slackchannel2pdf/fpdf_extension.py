@@ -4,9 +4,7 @@ import logging
 import os
 import re
 
-import fpdf_mod
-
-from . import settings
+from . import fpdf_mod, settings
 
 logger = logging.getLogger(__name__)
 
